@@ -36,7 +36,7 @@ void IjjParse(Graph& model, int& argc, char**& argv) {
             model.AddEdge(std::get<0>(v), std::get<1>(v), std::get<2>(v));
             model.AddEdge(std::get<1>(v), std::get<0>(v), std::get<2>(v));
         }
-        utilities::Check(model.IsSymmetric(), "Adjacency matrix not symmetric. Missing edge somewhere.");
+        utilities::Check(model.IsConsistent(), "Missing edge somewhere.");
         utilities::Check(model.Adjacent().size() > 0, "No Elements.");
     } catch(std::exception& e) {
         utilities::Check(false, "Parsing failed.");
@@ -91,7 +91,7 @@ void NativeParse(Graph& model, int& argc, char**& argv) {
                 values.pop_back();
             }
         }
-        utilities::Check(model.IsSymmetric(), "Adjacency matrix not symmetric. Missing edge somewhere.");
+        utilities::Check(model.IsConsistent(), "Missing edge somewhere.");
         utilities::Check(model.Adjacent().size() > 0, "No Elements.");
     } catch(std::exception& e) {
         utilities::Check(false, "Parsing failed.");

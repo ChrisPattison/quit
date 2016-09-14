@@ -8,6 +8,25 @@
 #include "Eigen/Dense"
 
 class PopulationAnnealing {
+public:
+    struct Result {
+        struct ProbabilityMass {
+            double bin;
+            double mass;
+        };
+        void Resize(std::size_t N);
+        std::size_t Size();
+        Eigen::VectorXd energy;
+        std::vector<ProbabilityMass> overlap;
+        double beta;
+        double population;
+        double ground_energy;
+        std::size_t grounded_replicas;
+        double entropy;
+    };
+
+    
+private:
     Graph structure_;
 
     RandomNumberGenerator rng_;
@@ -33,23 +52,16 @@ class PopulationAnnealing {
 
     void MonteCarloSweep(StateVector& replica, int moves);
 
+    bool IsLocalMinimum(StateVector& replica);
+
+    StateVector Quench(const StateVector& replica);
+
     double Overlap(StateVector& alpha, StateVector& beta);
 
-    void OverlapPdf(std::vector<double>& pdf);
+    void OverlapPmd(std::vector<Result::ProbabilityMass>& pmd);
 
     void Resample(double beta);
 public:
-    struct Result {
-        void Resize(std::size_t N);
-        std::size_t Size();
-        Eigen::VectorXd energy;
-        std::vector<double> overlap;
-        double beta;
-        double population;
-        double ground_energy;
-        std::size_t grounded_replicas;
-        double entropy;
-    };
 
     PopulationAnnealing() = delete;
 

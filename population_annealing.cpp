@@ -23,34 +23,36 @@ std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
         pairs[k] = {k, k + pairs.size()};
     }
 
-    auto i = pairs.begin();
-    for(;;) {
+    for(auto& it : pairs) {
         // this is highly unlikely to be true
-        i = std::find_if(i, pairs.end(), [&](const std::pair<int, int>& p)
-            {return replica_families_[p.first] == replica_families_[p.second];});
-        if(i != pairs.end()) {
-            for(int k = 0; k < pairs.size(); ++k) {
-                auto i_other = pairs.begin() + rng_.Range(pairs.size());
-                if(replica_families_[i_other->first] != replica_families_[i->second] && 
-                    replica_families_[i->first] != replica_families_[i_other->second]) {
-                    i->swap(*i_other);
+        if(replica_families_[it.first] == replica_families_[it.second]) {
+            for(auto& it_other : pairs) {
+                if(replica_families_[it_other.first] != replica_families_[it.second] && 
+                    replica_families_[it.first] != replica_families_[it_other.second]) {
+                    it.swap(it_other);
                     break;
                 }
             }
-        } else {
-            break;
         }
     }
     return pairs;
 }
 
-void PopulationAnnealing::OverlapPdf(std::vector<double>& pdf) {
+void PopulationAnnealing::OverlapPmd(std::vector<Result::ProbabilityMass>& pmd) {
     std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
     std::vector<double> overlap(overlap_pairs.size());
-    std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(), 
+    std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
         [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
     for(auto v : overlap) {
-        auto it = std::binary_search(pdf.begin(), pdf.end(), )
+        auto it = std::lower_bound(pmd.begin(), pmd.end(), v, [&](const Result::ProbabilityMass& a, const double& b) {return kEpsilon < b - a.bin;});
+        if(it==pmd.end() || v + kEpsilon <= it->bin) {
+            pmd.insert(it, {v, 1.0});
+        }else {
+            it->mass++;
+        }
+    }
+    for(auto& pd : pmd) {
+        pd.mass /= overlap_pairs.size();
     }
 }
 
@@ -115,12 +117,36 @@ void PopulationAnnealing::MonteCarloSweep(StateVector& replica, int sweeps) {
     }
 }
 
+bool PopulationAnnealing::IsLocalMinimum(StateVector& replica) {
+    for(int k = 0; k < replica.size(); ++k) {
+        if(DeltaEnergy(replica, k) < 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+PopulationAnnealing::StateVector PopulationAnnealing::Quench(const StateVector& replica) {
+    const std::size_t sweeps = 4;
+    StateVector quenched_replica = replica;
+    do {
+        for(std::size_t k = 0; k < sweeps * quenched_replica.size(); ++k) {
+            int vertex = rng_.Range(quenched_replica.size());
+            if(DeltaEnergy(quenched_replica, vertex) < 0) {
+                quenched_replica(vertex) *= -1;
+            }
+        }
+    }while(!IsLocalMinimum(quenched_replica));
+    return quenched_replica;
+}
+
 double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
     return static_cast<double>((alpha.array() * beta.array()).sum()) / structure_.Size();
 }
 
 void PopulationAnnealing::Run(std::vector<Result>& results) {
-    std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;
+    // std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;
+    
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {
             r(k) = rng_.Get<bool>() ? 1 : -1;
@@ -135,7 +161,6 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
         Result observables;
         double H;
         Resample(new_beta);
-        beta_ = new_beta;
         observables.Resize(replicas_.size());
 
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
@@ -155,7 +180,7 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
         std::transform(family_size.begin(),family_size.end(),family_size.begin(),[&](double n){return n * std::log(n);});
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
         // Overlap
-        OverlapPdf(observables.overlap);
+        OverlapPmd(observables.overlap);
 
         results.push_back(observables);
         
