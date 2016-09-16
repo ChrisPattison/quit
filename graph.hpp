@@ -11,7 +11,7 @@ public:
     void SetField(int vertex, EdgeType field); // Set the field on a vertex
     void AddEdge(int from, int to, EdgeType coupler); // Sets a non-zero coupler
     bool IsConsistent() const; // Checks validity of the coefficient matrix
-    int Size() const; // Gets number of vertices
+    int size() const; // Gets number of vertices
     /*const*/ Eigen::SparseMatrix<EdgeType>& Adjacent() /*const*/;
     /*const*/ Eigen::Matrix<VertexType, Eigen::Dynamic, 1>& Fields() /*const*/;// TODO: make this better
 };

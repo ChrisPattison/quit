@@ -1,6 +1,6 @@
 #include "parse.hpp"
 #include "graph.hpp"
-#include "population_annealing.hpp"
+#include "parallel_population_annealing.hpp"
 #include "post.hpp"
 #include "types.hpp"
 #include "Eigen/Dense"
@@ -35,32 +35,10 @@ int main(int argc, char** argv) {
     //     betalist[i] = i*10.0/(betalist.size()-1);
     // }
 
-    auto population_annealing = PopulationAnnealing(model, betalist, R);
+    ParallelPopulationAnnealing population_annealing(model, betalist, R);
 
-    std::vector<PopulationAnnealing::Result> results;
+    std::vector<ParallelPopulationAnnealing::Result> results;
     //solve
     population_annealing.Run(results);
-
-    // for (auto r : results) {
-    //     std::cout << r.beta << std::endl;
-    //     for(auto pd : r.overlap) {
-    //         std::cout << pd.bin << ",\t" << pd.density << std::endl;
-    //     }
-    //     std::cout << std::endl;
-    // }
-
-    // for(std::size_t i = 1; i < results.size()-1; ++i) {
-    //     std::cout << results[i].beta << ",\t" << results[i].energy.sum() / results[i].energy.size() << std::endl;
-    // }
-    // double Fsum = 0.0;
-    // for(std::size_t i = 0; i < results.size()-1; ++i) {
-    //     Fsum += std::log((results[i].energy.array() * -(betalist[i] - betalist[i-1])).exp().sum() / results[i].population);
-    // }
-    // for(std::size_t i = results.size()-1; i > 0; --i) {
-    //     double Q = (results[i].energy.array() * -(betalist[i] - betalist[i-1])).exp().sum() / results[i].population;
-    //     Fsum -= std::log(Q);
-    //     double F = (Fsum + std::log(std::pow(2.0, model.Size()))) / -betalist[i];
-    //     std::cout << betalist[i] << ",\t" << F << std::endl;
-    // }
     return EXIT_SUCCESS;
 }

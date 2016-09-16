@@ -40,6 +40,6 @@ Eigen::Matrix<VertexType, Eigen::Dynamic, 1>& Graph::Fields() {
     return fields_;
 }
 
-int Graph::Size() const {
+int Graph::size() const {
     return fields_.size();
 }

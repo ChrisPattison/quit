@@ -5,9 +5,11 @@
 #include "graph.hpp"
 #include "types.hpp"
 #include "random_number_generator.hpp"
+// #include "population_annealing.hpp"
+#include "parallel.hpp"
 #include "Eigen/Dense"
 
-class PopulationAnnealing {
+class ParallelPopulationAnnealing {
 public:
     struct Result {
         struct ProbabilityMass {
@@ -16,7 +18,7 @@ public:
         };
         std::vector<ProbabilityMass> overlap;
         double beta;
-        double population;
+        std::size_t population;
         double average_energy;
         double ground_energy;
         std::size_t grounded_replicas;
@@ -24,7 +26,10 @@ public:
     };
 
     
-protected:
+private:
+
+    Parallel parallel_;
+
     Graph structure_;
 
     RandomNumberGenerator rng_;
@@ -33,7 +38,7 @@ protected:
     std::vector<StateVector> replicas_;
     std::vector<int> replica_families_;
 
-    int average_population_;
+    int average_node_population_;
     std::vector<double> betalist_;
     double beta_;
 
@@ -61,9 +66,11 @@ protected:
     void Resample(double beta);
 public:
 
-    PopulationAnnealing() = delete;
+    ParallelPopulationAnnealing() = delete;
 
-    explicit PopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
+    ParallelPopulationAnnealing(const ParallelPopulationAnnealing&) = delete;
+
+    explicit ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
 
     void Run(std::vector<Result>& results);
 };
