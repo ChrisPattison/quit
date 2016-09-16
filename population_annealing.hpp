@@ -16,7 +16,7 @@ public:
         };
         std::vector<ProbabilityMass> overlap;
         double beta;
-        double population;
+        std::size_t population;
         double average_energy;
         double ground_energy;
         std::size_t grounded_replicas;
@@ -58,12 +58,12 @@ protected:
 
     void OverlapPmd(std::vector<Result::ProbabilityMass>& pmd);
 
-    void Resample(double beta);
+    void Resample(double new_beta);
 public:
 
     PopulationAnnealing() = delete;
 
-    explicit PopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
+    PopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
 
     void Run(std::vector<Result>& results);
 };

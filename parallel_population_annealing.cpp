@@ -8,136 +8,20 @@
 #include <numeric>
 #include <functional>
 
-std::vector<std::pair<int, int>> ParallelPopulationAnnealing::BuildReplicaPairs() {
-    std::vector<std::pair<int, int>> pairs;
-    pairs.resize(replica_families_.size()/2);
-
-    for(int k = 0; k < pairs.size(); ++k) {
-        pairs[k] = {k, k + pairs.size()};
-    }
-
-    for(auto& it : pairs) {
-        // this is highly unlikely to be true
-        if(replica_families_[it.first] == replica_families_[it.second]) {
-            for(auto& it_other : pairs) {
-                if(replica_families_[it_other.first] != replica_families_[it.second] && 
-                    replica_families_[it.first] != replica_families_[it_other.second]) {
-                    it.swap(it_other);
-                    break;
-                }
-            }
-        }
-    }
-    return pairs;
-}
-
-void ParallelPopulationAnnealing::OverlapPmd(std::vector<Result::ProbabilityMass>& pmd) {
-    std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
-    std::vector<double> overlap(overlap_pairs.size());
-    std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
-        [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
-    for(auto v : overlap) {
-        auto it = std::lower_bound(pmd.begin(), pmd.end(), v, [&](const Result::ProbabilityMass& a, const double& b) {return kEpsilon < b - a.bin;});
-        if(it==pmd.end() || v + kEpsilon <= it->bin) {
-            pmd.insert(it, {v, 1.0});
-        }else {
-            it->mass++;
-        }
-    }
-    for(auto& pd : pmd) {
-        pd.mass /= overlap_pairs.size();
-    }
-}
-
-std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
-    std::vector<double> count;
-    count.reserve(replica_families_.size());
-    auto i = replica_families_.begin();
-    do {
-        auto i_next = std::find_if(i, replica_families_.end(), [&](const int& v){return v != *i;});
-        count.push_back(static_cast<double>(std::distance(i, i_next)) / replicas_.size());
-        i = i_next;
-    }while(i != replica_families_.end());
-    return count;
-}
-
-ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population) {
+ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population) : 
+        PopulationAnnealing(structure, betalist, 0) {
+        
+    average_node_population_ = average_population / parallel_.size();
+    average_population_ = average_node_population_ * parallel_.size();
     rng_ = RandomNumberGenerator(parallel_.rank());
-    betalist_ = betalist;
-    beta_ = NAN;
-    structure_ = structure;
-    average_node_population_ = (average_population / parallel_.size());
+
     replicas_.resize(average_node_population_);
     replica_families_.resize(average_node_population_);
-
     for(auto& r : replicas_) {
         r = StateVector();
-        r.resize(structure_.Fields().size());
+        r.resize(structure_.size());
     }
  }
-
-double ParallelPopulationAnnealing::Hamiltonian(StateVector& replica) {
-    double energy = 0.0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += replica(k) * it.value() * replica(it.index());
-        }
-        // energy -= replica(k) * structure_.Fields()(k);
-    }
-    return energy;
-}
-
-double ParallelPopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
-    double h = 0.0;
-    for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
-        h += it.value() * replica(it.index());
-    }
-    // h -= structure_.Fields()(vertex);
-    return -2 * replica(vertex) * h;
-}
-
-void ParallelPopulationAnnealing::MonteCarloSweep(StateVector& replica, int sweeps) {
-    for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t i = 0; i < replica.size(); ++i) {
-            int vertex = rng_.Range(replica.size());
-            double delta_energy = DeltaEnergy(replica, vertex);
-            double acceptance_probability = AcceptanceProbability(delta_energy);
-            
-            //round-off isn't a concern here
-            if(acceptance_probability==1.0 || acceptance_probability > rng_.Probability()) {
-                replica(vertex) *= -1;
-            }
-        }
-    }
-}
-
-bool ParallelPopulationAnnealing::IsLocalMinimum(StateVector& replica) {
-    for(int k = 0; k < replica.size(); ++k) {
-        if(DeltaEnergy(replica, k) < 0) {
-            return false;
-        }
-    }
-    return true;
-}
-
-ParallelPopulationAnnealing::StateVector ParallelPopulationAnnealing::Quench(const StateVector& replica) {
-    const std::size_t sweeps = 4;
-    StateVector quenched_replica = replica;
-    do {
-        for(std::size_t k = 0; k < sweeps * quenched_replica.size(); ++k) {
-            int vertex = rng_.Range(quenched_replica.size());
-            if(DeltaEnergy(quenched_replica, vertex) < 0) {
-                quenched_replica(vertex) *= -1;
-            }
-        }
-    }while(!IsLocalMinimum(quenched_replica));
-    return quenched_replica;
-}
-
-double ParallelPopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
-    return static_cast<double>((alpha.array() * beta.array()).sum()) / structure_.size();
-}
 
 void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
     parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
@@ -211,11 +95,6 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
     }
 }
 
-//TODO: compute the exponential only when necessary
-double ParallelPopulationAnnealing::AcceptanceProbability(double delta_energy) const {
-    return delta_energy < 0.0 ? 1.0 : std::exp(-delta_energy*beta_);
-}
-
 void ParallelPopulationAnnealing::Resample(double new_beta) {
     std::vector<StateVector> resampled_replicas;
     std::vector<int> resampled_families;
@@ -231,7 +110,7 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
         return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>());
     });
     
-    double normalize = average_node_population_ * parallel_.size() / summed_weights;
+    double normalize = average_population_ / summed_weights;
     for(std::size_t k = 0; k < replicas_.size(); ++k) {
         double weight = normalize * weighting(k);
         unsigned int n = (weight - std::floor(weight)) > rng_.Probability() ? std::ceil(weight) : std::floor(weight);

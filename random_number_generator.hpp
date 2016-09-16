@@ -12,7 +12,7 @@ class RandomNumberGenerator {
     std::uint16_t last_range_;
     std::uint16_t discard_range_;
 public:
-    RandomNumberGenerator(std::size_t rank);
+    RandomNumberGenerator(int rank);
     RandomNumberGenerator();
     // random number
     template<typename T> std::enable_if_t<std::is_integral<T>::value, T> Get();

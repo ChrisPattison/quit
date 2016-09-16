@@ -69,7 +69,7 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<double> b
     replica_families_.resize(average_population_);
     for(auto& r : replicas_) {
         r = StateVector();
-        r.resize(structure_.Fields().size());
+        r.resize(structure_.size());
     }
  }
 

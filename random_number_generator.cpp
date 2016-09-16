@@ -4,7 +4,7 @@
 #include <chrono>
 #include <cassert>
 
-RandomNumberGenerator::RandomNumberGenerator(std::size_t rank) {
+RandomNumberGenerator::RandomNumberGenerator(int rank) {
     generator_ = std::mt19937_64(static_cast<std::mt19937_64::result_type>(
         time(NULL) ^
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() ^
