@@ -12,8 +12,6 @@ class Parallel {
 public:
     Parallel();
 
-    Parallel(const Parallel&) = delete;
-
     int rank();
 
     int size();
@@ -25,6 +23,8 @@ public:
     template<typename T> T Reduce(T value, std::function<T(std::vector<T>&)> reduce);
     template<typename T> T ReduceToAll(T value, std::function<T(std::vector<T>&)> reduce);
     template<typename T> T ReduceRootToAll(T value, std::function<T(std::vector<T>&)> reduce);
+
+    void Barrier();
 };
 
 template<typename T> T Parallel::Reduce(T value, std::function<T(std::vector<T>&)> reduce) {

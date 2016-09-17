@@ -1,7 +1,12 @@
 #include "parallel.hpp"
 
 Parallel::Parallel() {
-    MPI_Init(0,nullptr);
+    int initialized;
+    MPI_Initialized(&initialized);
+    if(!initialized) {
+        MPI_Init(0,nullptr);
+    }
+
     MPI_Comm_size(MPI_COMM_WORLD, &size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
 }
@@ -22,4 +27,8 @@ void Parallel::ExecRoot(std::function<void()> target) {
     if(rank_ == 0) {
         target();
     }
+}
+
+void Parallel::Barrier() {
+    MPI_Barrier(MPI_COMM_WORLD);
 }

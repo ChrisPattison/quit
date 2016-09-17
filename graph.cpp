@@ -15,6 +15,7 @@ void Graph::AddEdge(int from, int to, EdgeType coupler) {
     adjacent_.insert(from, to) = coupler;
 }
 
+// This doesn't detect a hanging node
 bool Graph::IsConsistent() const {
     bool not_consistent = false;
     for(std::size_t k = 0; k < adjacent_.outerSize(); ++k) {
@@ -29,7 +30,7 @@ bool Graph::IsConsistent() const {
             not_consistent = true;
         }
     }
-    return not_consistent | adjacent_.isApprox(adjacent_.transpose());
+    return !(not_consistent | !adjacent_.isApprox(adjacent_.transpose()));
 }
 
 Eigen::SparseMatrix<EdgeType>& Graph::Adjacent() {

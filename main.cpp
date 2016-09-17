@@ -1,6 +1,6 @@
 #include "parse.hpp"
 #include "graph.hpp"
-#include "parallel_population_annealing.hpp"
+#include "population_annealing.hpp"
 #include "post.hpp"
 #include "types.hpp"
 #include "Eigen/Dense"
@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     std::cout.width(16);
 
     // initializate solver
-    int R = 50000;
+    int R = 20000;
     // int R = 250000;
 
     std::vector<double> betalist = {
@@ -35,10 +35,14 @@ int main(int argc, char** argv) {
     //     betalist[i] = i*10.0/(betalist.size()-1);
     // }
 
-    ParallelPopulationAnnealing population_annealing(model, betalist, R);
+    PopulationAnnealing population_annealing(model, betalist, R);
 
-    std::vector<ParallelPopulationAnnealing::Result> results;
+    std::vector<PopulationAnnealing::Result> results;
     //solve
     population_annealing.Run(results);
+
+    for(auto q : results.back().overlap) {
+        std::cout << q.bin << ",\t" << q.mass << std::endl;
+    }
     return EXIT_SUCCESS;
 }

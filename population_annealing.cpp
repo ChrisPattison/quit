@@ -148,12 +148,17 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
     beta_ = betalist_.at(0);
     int M = 10;
+    Eigen::VectorXd energy;
 
-    for(auto new_beta : betalist_) {
+    auto __begin = ++(betalist_.begin());
+    auto __end = betalist_.end();
+    for(; __begin != __end; ++__begin) {
+        auto new_beta = *__begin;
+
         Result observables;
         double H;
         Resample(new_beta);
-        Eigen::VectorXd energy(replicas_.size());;
+        energy.resize(replicas_.size());
 
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
             MonteCarloSweep(replicas_[k], M);
@@ -183,7 +188,7 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
             << observables.population << ",\t \t" 
             << observables.ground_energy << ",\t" 
             << observables.grounded_replicas << ",\t" 
-            << observables.grounded_replicas/observables.population << ",\t \t" 
+            << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
             << observables.entropy << ",\t" 
             << observables.population/std::exp(observables.entropy) << std::endl;
     }

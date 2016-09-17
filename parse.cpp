@@ -19,7 +19,8 @@ void IjjParse(Graph& model, int& argc, char**& argv) {
             std::getline(file, buffer);
         } while(utilities::Split(buffer, kWhitespaceTokens, utilities::kStringSplitOptions_RemoveEmptyEntries)[0][0]=='#');
 
-        int coupler_multiplier = std::stoi(utilities::Split(buffer, kWhitespaceTokens, utilities::kStringSplitOptions_RemoveEmptyEntries)[1]);
+        auto header = utilities::Split(buffer, kWhitespaceTokens, utilities::kStringSplitOptions_RemoveEmptyEntries);
+        int coupler_multiplier = std::stoi(header[1]);
         std::vector<std::tuple<double, double, double>> values;
 
         do {
@@ -31,7 +32,7 @@ void IjjParse(Graph& model, int& argc, char**& argv) {
             }
         } while(!file.eof());
         
-        model.Resize(values.size(), values.size() * kReservedVertices);
+        model.Resize(stoi(header[0]), values.size());
         for(auto& v : values) {
             model.AddEdge(std::get<0>(v), std::get<1>(v), std::get<2>(v));
             model.AddEdge(std::get<1>(v), std::get<0>(v), std::get<2>(v));

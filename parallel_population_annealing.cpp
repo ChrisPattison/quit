@@ -22,9 +22,9 @@ ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::
         r.resize(structure_.size());
     }
  }
-
+ 
 void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
-    parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
+    // parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
     
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {
@@ -37,7 +37,11 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
     int M = 10;
     Eigen::VectorXd energy;
 
-    for(auto new_beta : betalist_) {
+    auto __begin = ++(betalist_.begin());
+    auto __end = betalist_.end();
+    for(; __begin != __end; ++__begin) {
+        auto new_beta = *__begin;
+        
         Result observables;
         double H;
         Resample(new_beta);
@@ -82,15 +86,15 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
         
         parallel_.ExecRoot([&](){
             results.push_back(observables);
-            std::cout 
-                << observables.beta << ",\t" 
-                << observables.average_energy << ",\t" 
-                << observables.population << ",\t \t" 
-                << observables.ground_energy << ",\t" 
-                << observables.grounded_replicas << ",\t" 
-                << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
-                << observables.entropy << ",\t" 
-                << observables.population/std::exp(observables.entropy) << std::endl; 
+            // std::cout 
+            //     << observables.beta << ",\t" 
+            //     << observables.average_energy << ",\t" 
+            //     << observables.population << ",\t \t" 
+            //     << observables.ground_energy << ",\t" 
+            //     << observables.grounded_replicas << ",\t" 
+            //     << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
+            //     << observables.entropy << ",\t" 
+            //     << observables.population/std::exp(observables.entropy) << std::endl; 
         });
     }
 }
