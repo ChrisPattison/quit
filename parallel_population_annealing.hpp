@@ -26,7 +26,5 @@ public:
 
     ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
 
-    ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population, Parallel parallel);
-
     void Run(std::vector<Result>& results);
 };

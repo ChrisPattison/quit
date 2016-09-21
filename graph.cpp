@@ -15,7 +15,7 @@ void Graph::AddEdge(int from, int to, EdgeType coupler) {
     adjacent_.insert(from, to) = coupler;
 }
 
-// This doesn't detect a hanging node
+
 bool Graph::IsConsistent() const {
     bool not_consistent = false;
     for(std::size_t k = 0; k < adjacent_.outerSize(); ++k) {
@@ -43,4 +43,8 @@ Eigen::Matrix<VertexType, Eigen::Dynamic, 1>& Graph::Fields() {
 
 int Graph::size() const {
     return fields_.size();
+}
+
+int Graph::edges() const {
+    return adjacent_.size() / 2;
 }

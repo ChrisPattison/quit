@@ -86,15 +86,15 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
         
         parallel_.ExecRoot([&](){
             results.push_back(observables);
-            // std::cout 
-            //     << observables.beta << ",\t" 
-            //     << observables.average_energy << ",\t" 
-            //     << observables.population << ",\t \t" 
-            //     << observables.ground_energy << ",\t" 
-            //     << observables.grounded_replicas << ",\t" 
-            //     << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
-            //     << observables.entropy << ",\t" 
-            //     << observables.population/std::exp(observables.entropy) << std::endl; 
+            std::cout 
+                << observables.beta << ",\t" 
+                << observables.average_energy << ",\t" 
+                << observables.population << ",\t \t" 
+                << observables.ground_energy << ",\t" 
+                << observables.grounded_replicas << ",\t" 
+                << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
+                << observables.entropy << ",\t" 
+                << observables.population/std::exp(observables.entropy) << std::endl; 
         });
     }
 }

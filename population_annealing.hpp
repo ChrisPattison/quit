@@ -18,6 +18,7 @@ public:
         double beta;
         std::size_t population;
         double average_energy;
+        double average_energy_squared;
         double ground_energy;
         std::size_t grounded_replicas;
         double entropy;
@@ -55,6 +56,8 @@ protected:
     StateVector Quench(const StateVector& replica);
 
     double Overlap(StateVector& alpha, StateVector& beta);
+
+    double LinkOverlap(StateVector& alpha, StateVector& beta);
 
     void OverlapPmd(std::vector<Result::ProbabilityMass>& pmd);
 

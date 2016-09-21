@@ -1,6 +1,6 @@
 #include "parse.hpp"
 #include "graph.hpp"
-#include "population_annealing.hpp"
+#include "parallel_population_annealing.hpp"
 #include "post.hpp"
 #include "types.hpp"
 #include "Eigen/Dense"
@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     std::cout.width(16);
 
     // initializate solver
-    int R = 20000;
+    int R = 50000;
     // int R = 250000;
 
     std::vector<double> betalist = {

@@ -39,12 +39,12 @@ void PopulationAnnealing::OverlapPmd(std::vector<Result::ProbabilityMass>& pmd) 
         auto it = std::lower_bound(pmd.begin(), pmd.end(), v, [&](const Result::ProbabilityMass& a, const double& b) {return kEpsilon < b - a.bin;});
         if(it==pmd.end() || v + kEpsilon <= it->bin) {
             pmd.insert(it, {v, 1.0});
-        }else {
+        } else {
             it->mass++;
         }
     }
     for(auto& pd : pmd) {
-        pd.mass /= overlap_pairs.size();
+        pd.mass *= (structure_.size() + 1) / (2 * static_cast<double>(overlap_pairs.size()));
     }
 }
 
@@ -136,6 +136,17 @@ double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
     return static_cast<double>((alpha.array() * beta.array()).sum()) / structure_.size();
 }
 
+double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
+    double ql = 0;
+    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
+        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
+            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
+            ql += alpha(k) * beta(k) * alpha(it.index()) * alpha(it.index());
+        }
+    }
+    return ql / structure_.edges();
+}
+
 void PopulationAnnealing::Run(std::vector<Result>& results) {
     std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;
     
@@ -169,6 +180,7 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
         observables.beta = beta_;
         observables.population = replicas_.size();
         observables.average_energy = energy.mean();
+        observables.average_energy_squared = energy.array().pow(2).mean();
         observables.ground_energy = energy.minCoeff();
         // Round-off /probably/ isn't an issue here
         observables.grounded_replicas = energy.array().unaryExpr(
