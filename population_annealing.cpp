@@ -30,21 +30,21 @@ std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     return pairs;
 }
 
-void PopulationAnnealing::OverlapPmd(std::vector<Result::ProbabilityMass>& pmd) {
+void PopulationAnnealing::OverlapPmd(std::vector<Result::Histogram>& pmd) {
     std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
     std::vector<double> overlap(overlap_pairs.size());
     std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
         [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
     for(auto v : overlap) {
-        auto it = std::lower_bound(pmd.begin(), pmd.end(), v, [&](const Result::ProbabilityMass& a, const double& b) {return kEpsilon < b - a.bin;});
+        auto it = std::lower_bound(pmd.begin(), pmd.end(), v, [&](const Result::Histogram& a, const double& b) {return kEpsilon < b - a.bin;});
         if(it==pmd.end() || v + kEpsilon <= it->bin) {
             pmd.insert(it, {v, 1.0});
         } else {
-            it->mass++;
+            it->value++;
         }
     }
     for(auto& pd : pmd) {
-        pd.mass *= (structure_.size() + 1) / (2 * static_cast<double>(overlap_pairs.size()));
+        pd.value *= (structure_.size() + 1) / (2 * static_cast<double>(overlap_pairs.size()));
     }
 }
 

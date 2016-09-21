@@ -10,11 +10,11 @@
 class PopulationAnnealing {
 public:
     struct Result {
-        struct ProbabilityMass {
+        struct Histogram {
             double bin;
-            double mass;
+            double value;
         };
-        std::vector<ProbabilityMass> overlap;
+        std::vector<Histogram> overlap;
         double beta;
         std::size_t population;
         double average_energy;
@@ -59,7 +59,7 @@ protected:
 
     double LinkOverlap(StateVector& alpha, StateVector& beta);
 
-    void OverlapPmd(std::vector<Result::ProbabilityMass>& pmd);
+    void OverlapPmd(std::vector<Result::Histogram>& pmd);
 
     void Resample(double new_beta);
 public:

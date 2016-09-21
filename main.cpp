@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     population_annealing.Run(results);
 
     for(auto q : results.back().overlap) {
-        std::cout << q.bin << ",\t" << q.mass << std::endl;
+        std::cout << q.bin << ",\t" << q.value << std::endl;
     }
     return EXIT_SUCCESS;
 }
