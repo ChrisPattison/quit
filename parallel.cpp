@@ -9,6 +9,12 @@ Parallel::Parallel() {
 
     MPI_Comm_size(MPI_COMM_WORLD, &size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+
+    tag_ = 0;
+}
+
+int Parallel::GetTag() {
+    return ++tag_;
 }
 
 int Parallel::rank() {

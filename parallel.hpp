@@ -10,7 +10,10 @@ class Parallel {
     const int kRoot = 0;
     int rank_;
     int size_;
+    int tag_;
     
+    int GetTag();
+
 public:
     Parallel();
 
@@ -30,8 +33,6 @@ public:
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
 
     template<typename T> auto Reduce(T value, std::function<T(std::vector<T>&)> reduce) -> 
-    std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>>;
-    template<typename T> auto ReduceToAll(T value, std::function<T(std::vector<T>&> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>>;
 
 
@@ -86,18 +87,23 @@ std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std:
         int message_size;
         std::vector<T> data_buffers(size());
         data_buffers.front() = value;
+        int tag = GetTag();
+        std::vector<MPI_Request> requests(size()-1);
         
-        // TODO: make this async
-        for(std::size_t k = 1; k < size(); ++k) {
-            MPI_Mprobe(k, 0, MPI_COMM_WORLD, &message, &status);
+        for(std::size_t k = 0; k < size() - 1; ++k) {
+            MPI_Mprobe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &message, &status);
             MPI_Get_count(&status, MPI_BYTE, &message_size);
-            data_buffers[k].resize(message_size);
-            MPI_Mrecv(data_buffers[k].data(), message_size, MPI_BYTE, &message, &status);
+            data_buffers[status.MPI_SOURCE].resize(message_size);
+            MPI_Imrecv(data_buffers[status.MPI_SOURCE].data(), message_size, MPI_BYTE, &message, &status, &requests[k]);
+        }
+
+        for(std::size_t k = 0; k < requests.size(); ++k) {
+            MPI_Wait(&requests[k], MPI_STATUS_IGNORE);
         }
 
         return reduce(data_buffers);
     }else {
-        MPI_Bsend(value.data(), value.size() * sizeof(value.value_type), MPI_BYTE, kRoot, 0, MPI_COMM_WORLD);
+        MPI_Bsend(value.data(), value.size() * sizeof(value.value_type), MPI_BYTE, kRoot, GetTag(), MPI_COMM_WORLD);
         return { };
     }
 }
