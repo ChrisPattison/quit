@@ -9,8 +9,7 @@
 int main(int argc, char** argv) {
     Graph model;
 
-    IjjParse(model, argc, argv);
-    // NativeParse(model, argc, argv);
+    io::IjjParse(model, argc, argv);
 
     std::cout.precision(6);
     std::cout.width(16);

@@ -7,7 +7,7 @@
 // TODO: implement async
 
 class Parallel {
-    const int kRoot = 0;
+    constexpr int kRoot = 0;
     int rank_;
     int size_;
     int tag_;

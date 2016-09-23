@@ -30,22 +30,20 @@ std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     return pairs;
 }
 
-void PopulationAnnealing::OverlapPmd(std::vector<Result::Histogram>& pmd) {
-    std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
-    std::vector<double> overlap(overlap_pairs.size());
-    std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
-        [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
-    for(auto v : overlap) {
-        auto it = std::lower_bound(pmd.begin(), pmd.end(), v, [&](const Result::Histogram& a, const double& b) {return kEpsilon < b - a.bin;});
-        if(it==pmd.end() || v + kEpsilon <= it->bin) {
-            pmd.insert(it, {v, 1.0});
+std::vector<Result::Histogram> BuildHistogram(const std::vector<double>& samples) {
+    std::vector<Result::Histogram> hist;
+    for(auto v : samples) {
+        auto it = std::lower_bound(hist.begin(), hist.end(), v, [&](const Result::Histogram& a, const double& b) {return kEpsilon < b - a.bin;});
+        if(it==hist.end() || v + kEpsilon <= it->bin) {
+            hist.insert(it, {v, 1.0});
         } else {
             it->value++;
         }
     }
-    for(auto& pd : pmd) {
-        pd.value *= (structure_.size() + 1) / (2 * static_cast<double>(overlap_pairs.size()));
+    for(auto& bin : hist) {
+        bin.value /= samples.size();
     }
+    return hist;
 }
 
 std::vector<double> PopulationAnnealing::FamilyCount() {
@@ -190,7 +188,16 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
         std::transform(family_size.begin(),family_size.end(),family_size.begin(),[&](double n){return n * std::log(n);});
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
         // Overlap
-        OverlapPmd(observables.overlap);
+        std::vector<std::pair<int, int>> replica_pairs = BuildReplicaPairs();
+        std::vector<double> overlap_samples(overlap_pairs.size());
+
+        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
+            [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
+        observables.overlap = BuildHistogram(overlap_samples);
+        // Link Overlap
+        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
+            [&](std::pair<int, int> p){return LinkOverlap(replicas_[p.first], replicas_[p.second]);});
+        observables.link_overlap = BuildHistogram(overlap_samples);
 
         results.push_back(observables);
         

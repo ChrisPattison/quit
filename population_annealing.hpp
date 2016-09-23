@@ -15,6 +15,7 @@ public:
             double value;
         };
         std::vector<Histogram> overlap;
+        std::vector<Histogram> link_overlap;
         double beta;
         std::size_t population;
         double average_energy;
@@ -59,7 +60,7 @@ protected:
 
     double LinkOverlap(StateVector& alpha, StateVector& beta);
 
-    void OverlapPmd(std::vector<Result::Histogram>& pmd);
+    std::vector<Result::Histogram> BuildHistogram(const std::vector<double>& samples);
 
     void Resample(double new_beta);
 public:
