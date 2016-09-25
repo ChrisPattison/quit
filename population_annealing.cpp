@@ -7,13 +7,49 @@
 #include <iterator>
 #include <numeric>
 
+
 std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     std::vector<std::pair<int, int>> pairs;
-    pairs.resize(replica_families_.size()/2);
+    pairs.reserve(replica_families_.size()/2);
 
-    for(int k = 0; k < pairs.size(); ++k) {
-        pairs[k] = {k, k + pairs.size()};
+// Find individual families
+
+    struct family {
+        typename std::vector<int>::iterator begin;
+        typename std::vector<int>::iterator end;
+        int single;
+    };
+
+    std::vector<family> families;
+    families.reserve(replica_families_.size());
+    auto i = replica_families_.begin();
+    do {
+        auto i_next = std::find_if(i, replica_families_.end(), [&](const int& v){return v != *i;});
+        families.push_back({i, i_next, std::distance(i,i_next)});
+        i = i_next;
+    }while(i != replica_families_.end());
+
+// Pair member k in family f to first single member in family f + k
+
+    auto wrap = [&](auto index){ return index < families.size() ? index : index - families.size();};
+    for(int f = 0; f < families.size(); ++f) {
+        int k_next = 0;
+        for(auto k = std::distance(families[f].begin, families[f].end) - families[f].single; families[f].single > 0; ++k) {
+            while(f+k+k_next < families.size() && families[f+k+k_next].single == 0) {
+                k_next++;
+            }
+            if(f+k+k_next >= families.size()) {
+                // switch to swapping in later implementation; Quit for now
+                break;
+            }
+            pairs.push_back({std::distance(replica_families_.begin(), families[f].end - families[f].single), 
+                std::distance(replica_families_.begin(), families[f+k+k_next].end - families[f+k+k_next].single)});
+            families[f].single--;
+            families[f+k+k_next].single--;
+        }
     }
+
+// Consistency check
 
     for(auto& it : pairs) {
         // this is highly unlikely to be true
@@ -30,7 +66,7 @@ std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     return pairs;
 }
 
-std::vector<Result::Histogram> BuildHistogram(const std::vector<double>& samples) {
+std::vector<PopulationAnnealing::Result::Histogram> PopulationAnnealing::BuildHistogram(const std::vector<double>& samples) {
     std::vector<Result::Histogram> hist;
     for(auto v : samples) {
         auto it = std::lower_bound(hist.begin(), hist.end(), v, [&](const Result::Histogram& a, const double& b) {return kEpsilon < b - a.bin;});
@@ -46,7 +82,7 @@ std::vector<Result::Histogram> BuildHistogram(const std::vector<double>& samples
     return hist;
 }
 
-std::vector<double> PopulationAnnealing::FamilyCount() {
+std::vector<double> PopulationAnnealing::FamilyFraction() {
     std::vector<double> count;
     count.reserve(replica_families_.size());
     auto i = replica_families_.begin();
@@ -159,20 +195,19 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
     int M = 10;
     Eigen::VectorXd energy;
 
-    auto __begin = ++(betalist_.begin());
-    auto __end = betalist_.end();
-    for(; __begin != __end; ++__begin) {
-        auto new_beta = *__begin;
-
+    for(auto new_beta : betalist_) {
         Result observables;
-        double H;
-        Resample(new_beta);
-        energy.resize(replicas_.size());
+        
+        if(new_beta != beta_) {
+            Resample(new_beta);
+            for(std::size_t k = 0; k < replicas_.size(); ++k) {
+                MonteCarloSweep(replicas_[k], M);
+            }
+        }
 
+        energy.resize(replicas_.size());
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
-            MonteCarloSweep(replicas_[k], M);
-            H = Hamiltonian(replicas_[k]);
-            energy(k) = H;
+            energy(k) = Hamiltonian(replicas_[k]);
         }
         // Basic observables
         observables.beta = beta_;
@@ -184,18 +219,18 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
         observables.grounded_replicas = energy.array().unaryExpr(
             [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
         // Entropy
-        std::vector<double> family_size = FamilyCount();
+        std::vector<double> family_size = FamilyFraction();
         std::transform(family_size.begin(),family_size.end(),family_size.begin(),[&](double n){return n * std::log(n);});
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
         // Overlap
-        std::vector<std::pair<int, int>> replica_pairs = BuildReplicaPairs();
+        std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
         std::vector<double> overlap_samples(overlap_pairs.size());
 
-        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
+        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
             [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
         observables.overlap = BuildHistogram(overlap_samples);
         // Link Overlap
-        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap.begin(),
+        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
             [&](std::pair<int, int> p){return LinkOverlap(replicas_[p.first], replicas_[p.second]);});
         observables.link_overlap = BuildHistogram(overlap_samples);
 

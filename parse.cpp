@@ -8,6 +8,8 @@
 #include <tuple>
 #include "utilities.hpp"
 
+namespace io {
+
 void IjjParse(Graph& model, int& argc, char**& argv) {
     try {
         utilities::Check(argc >= 2, "Input File Expected");

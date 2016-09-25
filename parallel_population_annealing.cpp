@@ -8,6 +8,24 @@
 #include <numeric>
 #include <functional>
 
+std::vector<PopulationAnnealing::Result::Histogram> ParallelPopulationAnnealing::CombineHistogram(const std::vector<std::vector<Result::Histogram>>& histograms) {
+    std::vector<Result::Histogram> result = histograms.front();
+    for(auto r = 1; r < histograms.size(); ++r) {
+        for(auto bin : histograms[r]) {
+            auto it = std::lower_bound(result.begin(), result.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) {return kEpsilon < b.bin - a.bin;});
+            if(it==result.end() || bin.bin + kEpsilon <= it->bin) {
+                result.insert(it, bin);
+            } else {
+                it->value += bin.value;
+            }
+        }
+    }
+    for(auto& r : result) {
+        r.value /= histograms.size();
+    }
+    return result;
+}
+
 ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population) : 
         PopulationAnnealing(structure, betalist, 0) {
         
@@ -24,7 +42,7 @@ ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::
  }
  
 void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
-    // parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
+    parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
     
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {
@@ -37,20 +55,19 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
     int M = 10;
     Eigen::VectorXd energy;
 
-    auto __begin = ++(betalist_.begin());
-    auto __end = betalist_.end();
-    for(; __begin != __end; ++__begin) {
-        auto new_beta = *__begin;
-        
+for(auto new_beta : betalist_) {
         Result observables;
-        double H;
-        Resample(new_beta);
-        energy.resize(replicas_.size());
+        
+        if(new_beta != beta_) {
+            Resample(new_beta);
+            for(std::size_t k = 0; k < replicas_.size(); ++k) {
+                MonteCarloSweep(replicas_[k], M);
+            }
+        }
 
+        energy.resize(replicas_.size());
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
-            MonteCarloSweep(replicas_[k], M);
-            H = Hamiltonian(replicas_[k]);
-            energy(k) = H;
+            energy(k) = Hamiltonian(replicas_[k]);
         }
         
         // Observables
@@ -75,14 +92,25 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         // Entropy
-        std::vector<double> family_size = FamilyCount();
+        std::vector<double> family_size = FamilyFraction();
         std::transform(family_size.begin(), family_size.end(), family_size.begin(), 
             [&](double n) { return n * std::log(n); });
         observables.entropy = -parallel_.Reduce<double>(std::accumulate(family_size.begin(), family_size.end(), 0.0), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
         
-        // Overlap -- do this later
-        // OverlapPmd(observables.overlap);
+        // Overlap
+        std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
+        std::vector<double> overlap_samples(overlap_pairs.size());
+
+        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+            [&](std::pair<int, int> p) { return Overlap(replicas_[p.first], replicas_[p.second]); });
+        observables.overlap = parallel_.Reduce<std::vector<Result::Histogram>>(BuildHistogram(overlap_samples), 
+            [&](std::vector<std::vector<Result::Histogram>>& v) { return CombineHistogram(v); });
+        // Link Overlap
+        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+            [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
+        observables.link_overlap = parallel_.Reduce<std::vector<Result::Histogram>>(BuildHistogram(overlap_samples), 
+            [&](std::vector<std::vector<Result::Histogram>>& v) { return CombineHistogram(v); });
         
         parallel_.ExecRoot([&](){
             results.push_back(observables);

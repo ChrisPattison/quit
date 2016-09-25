@@ -34,14 +34,21 @@ int main(int argc, char** argv) {
     //     betalist[i] = i*10.0/(betalist.size()-1);
     // }
 
-    PopulationAnnealing population_annealing(model, betalist, R);
+    ParallelPopulationAnnealing population_annealing(model, betalist, R);
 
     std::vector<PopulationAnnealing::Result> results;
     //solve
     population_annealing.Run(results);
 
-    for(auto q : results.back().overlap) {
-        std::cout << q.bin << ",\t" << q.value << std::endl;
-    }
+    Parallel parallel;
+    parallel.ExecRoot([&]() {
+        for(auto q : results.back().overlap) {
+            std::cout << q.bin << ",\t" << q.value << std::endl;
+        }
+        std::cout << std::endl;
+        for(auto q : results.back().link_overlap) {
+            std::cout << q.bin << ",\t" << q.value << std::endl;
+        }
+    });
     return EXIT_SUCCESS;
 }

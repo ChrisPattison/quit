@@ -18,6 +18,8 @@ protected:
 
     void Resample(double new_beta);
 
+    std::vector<Result::Histogram> CombineHistogram(const std::vector<std::vector<Result::Histogram>>& histograms);
+
 public:
 
     using Result = PopulationAnnealing::Result;

@@ -7,7 +7,7 @@
 // TODO: implement async
 
 class Parallel {
-    constexpr int kRoot = 0;
+    static constexpr int kRoot = 0;
     int rank_;
     int size_;
     int tag_;
@@ -16,6 +16,8 @@ class Parallel {
 
 public:
     Parallel();
+
+    ~Parallel();
 
     int rank();
 
@@ -93,8 +95,8 @@ std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std:
         for(std::size_t k = 0; k < size() - 1; ++k) {
             MPI_Mprobe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &message, &status);
             MPI_Get_count(&status, MPI_BYTE, &message_size);
-            data_buffers[status.MPI_SOURCE].resize(message_size);
-            MPI_Imrecv(data_buffers[status.MPI_SOURCE].data(), message_size, MPI_BYTE, &message, &status, &requests[k]);
+            data_buffers[status.MPI_SOURCE].resize(message_size/sizeof(typename decltype(value)::value_type));
+            MPI_Imrecv(data_buffers[status.MPI_SOURCE].data(), message_size, MPI_BYTE, &message, &requests[k]);
         }
 
         for(std::size_t k = 0; k < requests.size(); ++k) {
@@ -103,7 +105,7 @@ std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std:
 
         return reduce(data_buffers);
     }else {
-        MPI_Bsend(value.data(), value.size() * sizeof(value.value_type), MPI_BYTE, kRoot, GetTag(), MPI_COMM_WORLD);
+        MPI_Bsend(value.data(), value.size() * sizeof(typename decltype(value)::value_type), MPI_BYTE, kRoot, GetTag(), MPI_COMM_WORLD);
         return { };
     }
 }

@@ -13,6 +13,14 @@ Parallel::Parallel() {
     tag_ = 0;
 }
 
+Parallel::~Parallel() {
+    int finalized;
+    MPI_Finalized(&finalized);
+    if(!finalized) {
+        MPI_Finalize();
+    }
+}
+
 int Parallel::GetTag() {
     return ++tag_;
 }
