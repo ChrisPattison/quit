@@ -82,13 +82,13 @@ std::vector<PopulationAnnealing::Result::Histogram> PopulationAnnealing::BuildHi
     return hist;
 }
 
-std::vector<double> PopulationAnnealing::FamilyFraction() {
+std::vector<double> PopulationAnnealing::FamilyCount() {
     std::vector<double> count;
     count.reserve(replica_families_.size());
     auto i = replica_families_.begin();
     do {
         auto i_next = std::find_if(i, replica_families_.end(), [&](const int& v){return v != *i;});
-        count.push_back(static_cast<double>(std::distance(i, i_next)) / replicas_.size());
+        count.push_back(static_cast<double>(std::distance(i, i_next)));
         i = i_next;
     }while(i != replica_families_.end());
     return count;
@@ -219,8 +219,9 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
         observables.grounded_replicas = energy.array().unaryExpr(
             [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
         // Entropy
-        std::vector<double> family_size = FamilyFraction();
-        std::transform(family_size.begin(),family_size.end(),family_size.begin(),[&](double n){return n * std::log(n);});
+        std::vector<double> family_size = FamilyCount();
+        std::transform(family_size.begin(),family_size.end(),family_size.begin(),
+            [&](double n) -> double {n /= replicas_.size(); return n * std::log(n);});
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
         // Overlap
         std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();

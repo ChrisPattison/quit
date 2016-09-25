@@ -42,7 +42,7 @@ protected:
     // Builds a list of replicas with different Markov Chains
     std::vector<std::pair<int, int>> BuildReplicaPairs();
     // Gets the number of replicas in each family as a fraction of the total population
-    std::vector<double> FamilyFraction();
+    std::vector<double> FamilyCount();
 
     double AcceptanceProbability(double delta_energy) const;
     // Gives the Hamiltonian of the given state

@@ -74,7 +74,7 @@ for(auto new_beta : betalist_) {
         observables.beta = beta_;
 
         // population
-        observables.population = parallel_.Reduce<std::size_t>(replicas_.size(), 
+        observables.population = parallel_.ReduceToAll<std::size_t>(replicas_.size(), 
             [](std::vector<std::size_t>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<std::size_t>()); });
 
         // average energy
@@ -92,10 +92,10 @@ for(auto new_beta : betalist_) {
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         // Entropy
-        std::vector<double> family_size = FamilyFraction();
+        std::vector<double> family_size = FamilyCount();
         std::transform(family_size.begin(), family_size.end(), family_size.begin(), 
-            [&](double n) { return n * std::log(n); });
-        observables.entropy = -parallel_.Reduce<double>(std::accumulate(family_size.begin(), family_size.end(), 0.0), 
+            [&](double n) -> double { n /= observables.population; return n * std::log(n); });
+        observables.entropy = parallel_.Reduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
         
         // Overlap
