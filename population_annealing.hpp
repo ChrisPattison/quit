@@ -17,11 +17,11 @@ public:
         std::vector<Histogram> overlap;
         std::vector<Histogram> link_overlap;
         double beta;
-        std::size_t population;
+        int population;
         double average_energy;
         double average_energy_squared;
         double ground_energy;
-        std::size_t grounded_replicas;
+        int grounded_replicas;
         double entropy;
     };
 

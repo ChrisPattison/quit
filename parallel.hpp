@@ -109,3 +109,13 @@ std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std:
         return { };
     }
 }
+
+template<typename T> auto Parallel::Gather(T value) ->
+    std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
+        std::vector<T> data_buffer;
+        if(is_root()) {
+            data_buffer.resize(size());
+        }
+        MPI_Gather(&value, sizeof(T), MPI_BYTE, data_buffer.data(), sizeof(T), MPI_BYTE, kRoot, MPI_COMM_WORLD);
+        return data_buffer;
+}

@@ -74,8 +74,8 @@ for(auto new_beta : betalist_) {
         observables.beta = beta_;
 
         // population
-        observables.population = parallel_.ReduceToAll<std::size_t>(replicas_.size(), 
-            [](std::vector<std::size_t>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<std::size_t>()); });
+        observables.population = parallel_.ReduceToAll<int>(static_cast<int>(replicas_.size()), 
+            [](std::vector<int>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<int>()); });
 
         // average energy
         observables.average_energy = parallel_.Reduce<double>(energy.array().mean(),
@@ -111,7 +111,7 @@ for(auto new_beta : betalist_) {
             [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
         observables.link_overlap = parallel_.Reduce<std::vector<Result::Histogram>>(BuildHistogram(overlap_samples), 
             [&](std::vector<std::vector<Result::Histogram>>& v) { return CombineHistogram(v); });
-        
+
         parallel_.ExecRoot([&](){
             results.push_back(observables);
             std::cout 
