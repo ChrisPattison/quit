@@ -50,7 +50,7 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
         }
     }
 
-    std::iota(replica_families_.begin(), replica_families_.end(), replicas_.size() * parallel_.rank());
+    std::iota(replica_families_.begin(), replica_families_.end(), average_node_population_ * parallel_.rank());
     beta_ = betalist_.at(0);
     int M = 10;
     Eigen::VectorXd energy;
@@ -60,6 +60,7 @@ for(auto new_beta : betalist_) {
         
         if(new_beta != beta_) {
             Resample(new_beta);
+            Redistribute();
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
                 MonteCarloSweep(replicas_[k], M);
             }
@@ -155,4 +156,67 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
     beta_ = new_beta;
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
+}
+
+void ParallelPopulationAnnealing::Redistribute() {
+    struct rank_population {
+        int rank;
+        int population;
+    };
+
+    std::vector<int> populations = parallel_.AllGather(static_cast<int>(replicas_.size()));
+    std::vector<rank_population> node_populations(populations.size());
+    for(auto p = 0; p < node_populations.size(); ++p) {
+        node_populations[p] = {p, populations[p]};
+    }
+    // Sort population list in ascending order by population and find number of nodes that exceed the population limit
+    std::sort(node_populations.begin(), node_populations.end(), 
+        [](const rank_population& a, const rank_population& b) {return a.population < b.population; });
+    int redist_nodes = std::distance(std::lower_bound(node_populations.begin(), node_populations.end(), static_cast<int>(average_node_population_ * kMaxPopulation),
+        [](const rank_population& a, const int& b) {return a.population < b; }), node_populations.end());
+    redist_nodes = std::min(redist_nodes, parallel_.size() / 2);
+    // Position of current rank and the complementary rank in population list
+    auto position = std::find_if(node_populations.begin(), node_populations.end(), [&](const rank_population& a) { return a.rank == parallel_.rank(); });
+    auto complement_position = --(node_populations.end()) + -std::distance(node_populations.begin(), position);
+    // receiving replicas
+    if(std::distance(node_populations.begin(), position) < redist_nodes) { 
+        int source = complement_position->rank;
+        std::vector<int> packed_replicas = parallel_.Receive<std::vector<int>>(source);
+        std::vector<int> packed_families = parallel_.Receive<std::vector<int>>(source);
+        int pack_size = packed_families.size();
+        // Unpack
+        replicas_.reserve(replicas_.size() + pack_size);
+        for(int k = 0; k < pack_size; ++k) {
+            replicas_.push_back(Eigen::Map<StateVector>(&(packed_replicas[k*structure_.size()]), structure_.size()));
+        }
+        replica_families_.insert(replica_families_.end(), packed_families.begin(), packed_families.end());
+    // sending replicas
+    }else if(std::distance(node_populations.begin(), complement_position) < redist_nodes) { 
+        std::vector<int> packed_replicas;
+        std::vector<int> packed_families;
+
+        int pack_size = replicas_.size() - average_node_population_;
+        auto pack_start_candidate = replica_families_.begin() + rng_.Range(replicas_.size() - pack_size);
+        int pack_start = std::distance(replica_families_.begin(), std::find_if(pack_start_candidate, replica_families_.end(), 
+            [&](const int& a) { return a != *pack_start_candidate; }));
+        // align to family boundary
+        // TODO: look into if breaking up families is preferrable
+        pack_size = 1 + std::distance(replica_families_.begin() + pack_start, std::find_if(replica_families_.begin() + pack_start + pack_size, replica_families_.end(),
+            [&](const int& a) { return a != replica_families_[pack_start + pack_size]; }));
+        packed_replicas.reserve(pack_size * structure_.size());
+        // Pack
+        for(int k = 0; k < pack_size; ++k) {
+            auto& r = replicas_[pack_start + k];
+            packed_replicas.insert(packed_replicas.end(), r.data(), r.data() + r.size());
+        }
+        packed_families.insert(packed_families.end(), replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
+        // Erase sent replicas
+        replica_families_.erase(replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
+        replicas_.erase(replicas_.begin() + pack_start, replicas_.begin() + pack_start + pack_size);
+
+        int target = (complement_position)->rank;
+        // std::cout << pack_size << ":" << parallel_.rank() << "->" << target << std::endl;
+        parallel_.Send<std::vector<int>>(std::move(packed_replicas), target);
+        parallel_.Send<std::vector<int>>(std::move(packed_families), target);
+    }
 }

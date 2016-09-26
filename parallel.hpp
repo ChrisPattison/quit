@@ -27,27 +27,44 @@ public:
     // Executes something on root rank
     void ExecRoot(std::function<void()> target);
     
-    template<typename T> auto Reduce(T value, std::function<T(std::vector<T>&)> reduce) -> 
+    template<typename T> auto Reduce(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-    template<typename T> auto ReduceToAll(T value, std::function<T(std::vector<T>&)> reduce) -> 
+    
+    template<typename T> auto ReduceToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-    template<typename T> auto ReduceRootToAll(T value, std::function<T(std::vector<T>&)> reduce) -> 
+    
+    template<typename T> auto ReduceRootToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
 
-    template<typename T> auto Reduce(T value, std::function<T(std::vector<T>&)> reduce) -> 
-    std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>>;
+    template<typename T> auto Reduce(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
+    std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+    std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>>;
 
 
-    template<typename T> auto Gather(T value) ->
+    template<typename T> auto Gather(T&& value) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
 
-    template<typename T> auto AllGather(T value) ->
+    template<typename T> auto AllGather(T&& value) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
+
+    template<typename T> auto Send(T&& value, int target_rank) ->  
+    std::enable_if_t<std::is_trivially_copyable<T>::value, void>;
+
+    template<typename T> auto Send(T&& value, int target_rank) -> 
+    std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+    std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>>;
+
+    template<typename T> auto Receive(int source_rank) -> 
+    std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
+
+    template<typename T> auto Receive(int source_rank) -> 
+    std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+    std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>>;
 
     void Barrier();
 };
 
-template<typename T> auto Parallel::Reduce(T value, std::function<T(std::vector<T>&)> reduce) -> 
+template<typename T> auto Parallel::Reduce(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     std::vector<T> data_buffer;
     if(is_root()) {
@@ -63,7 +80,7 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     }
 }
 
-template<typename T> auto Parallel::ReduceRootToAll(T value, std::function<T(std::vector<T>&)> reduce) -> 
+template<typename T> auto Parallel::ReduceRootToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     T reducedvalue = Reduce(value, reduce);
 
@@ -71,7 +88,7 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     return reducedvalue;
 }
 
-template<typename T> auto Parallel::ReduceToAll(T value, std::function<T(std::vector<T>&)> reduce) -> 
+template<typename T> auto Parallel::ReduceToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     std::vector<T> data_buffer(sizeof(T) * size());
 
@@ -80,8 +97,9 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     return reduce(data_buffer);
 }
 
-template<typename T> auto Parallel::Reduce(T value, std::function<T(std::vector<T>&)> reduce) -> 
-std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>> {
+template<typename T> auto Parallel::Reduce(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
+std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>> {
     
     if(is_root()) {
         MPI_Status status;
@@ -95,7 +113,7 @@ std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std:
         for(std::size_t k = 0; k < size() - 1; ++k) {
             MPI_Mprobe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &message, &status);
             MPI_Get_count(&status, MPI_BYTE, &message_size);
-            data_buffers[status.MPI_SOURCE].resize(message_size/sizeof(typename decltype(value)::value_type));
+            data_buffers[status.MPI_SOURCE].resize(message_size/sizeof(typename std::remove_reference_t<decltype(value)>::value_type));
             MPI_Imrecv(data_buffers[status.MPI_SOURCE].data(), message_size, MPI_BYTE, &message, &requests[k]);
         }
 
@@ -105,17 +123,57 @@ std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, std:
 
         return reduce(data_buffers);
     }else {
-        MPI_Bsend(value.data(), value.size() * sizeof(typename decltype(value)::value_type), MPI_BYTE, kRoot, GetTag(), MPI_COMM_WORLD);
+        MPI_Bsend(value.data(), value.size() * sizeof(typename std::remove_reference_t<decltype(value)>::value_type), MPI_BYTE, kRoot, GetTag(), MPI_COMM_WORLD);
         return { };
     }
 }
 
-template<typename T> auto Parallel::Gather(T value) ->
-    std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
+template<typename T> auto Parallel::Gather(T&& value) ->
+std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
         std::vector<T> data_buffer;
         if(is_root()) {
             data_buffer.resize(size());
         }
         MPI_Gather(&value, sizeof(T), MPI_BYTE, data_buffer.data(), sizeof(T), MPI_BYTE, kRoot, MPI_COMM_WORLD);
         return data_buffer;
+}
+
+template<typename T> auto Parallel::AllGather(T&& value) ->
+std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
+        std::vector<T> data_buffer(size());
+        MPI_Allgather(&value, sizeof(T), MPI_BYTE, data_buffer.data(), sizeof(T), MPI_BYTE, MPI_COMM_WORLD);
+        return data_buffer;
+}
+
+template<typename T> auto Parallel::Send(T&& value, int target_rank) ->  
+std::enable_if_t<std::is_trivially_copyable<T>::value, void> {
+    MPI_Send(&value, sizeof(T), MPI_BYTE, target_rank, 0, MPI_COMM_WORLD);
+}
+
+template<typename T> auto Parallel::Send(T&& value, int target_rank) -> 
+std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>> {
+    MPI_Send(value.data(), value.size() * sizeof(typename std::remove_reference_t<decltype(value)>::value_type), MPI_BYTE, target_rank, 0, MPI_COMM_WORLD);
+}
+
+template<typename T> auto Parallel::Receive(int source_rank) -> 
+std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
+    T value;
+    MPI_Recv(&value, sizeof(T), MPI_BYTE, source_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    return value;
+}
+
+template<typename T> auto Parallel::Receive(int source_rank) -> 
+std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>> {
+    MPI_Status status;
+    MPI_Message message;
+    int message_size;
+    T data_buffer;
+    
+    MPI_Mprobe(source_rank, 0, MPI_COMM_WORLD, &message, &status);
+    MPI_Get_count(&status, MPI_BYTE, &message_size);
+    data_buffer.resize(message_size);
+    MPI_Mrecv(data_buffer.data(), message_size, MPI_BYTE, &message, MPI_STATUS_IGNORE);
+    return data_buffer;
 }

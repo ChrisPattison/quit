@@ -38,15 +38,28 @@ double RandomNumberGenerator::Probability() {
 }
 
 // See http://stackoverflow.com/q/2509679/
-std::uint16_t RandomNumberGenerator::Range(std::uint16_t N) {
-    assert(UINT16_MAX / 2 > N);
+std::uint32_t RandomNumberGenerator::Range(std::uint32_t N) {
+    assert(UINT32_MAX / 2 > N);
     if(N != last_range_) {
         last_range_ = N;
-        discard_range_ = UINT16_MAX - UINT16_MAX % N;
+        discard_range_ = UINT32_MAX - UINT32_MAX % N;
+    }
+    std::uint32_t value;
+    do {
+        value = this->Get<std::uint32_t>();
+    }while (value >= discard_range_);
+    return value % N;
+}
+
+std::uint16_t RandomNumberGenerator::ShortRange(std::uint16_t N) {
+    assert(UINT16_MAX / 2 > N);
+    if(N != last_short_range_) {
+        last_short_range_ = N;
+        discard_short_range_ = UINT16_MAX - UINT16_MAX % N;
     }
     std::uint16_t value;
     do {
         value = this->Get<std::uint16_t>();
-    }while (value >= discard_range_);
+    }while (value >= discard_short_range_);
     return value % N;
 }

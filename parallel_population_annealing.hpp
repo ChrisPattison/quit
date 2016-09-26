@@ -11,12 +11,15 @@
 
 class ParallelPopulationAnnealing : protected PopulationAnnealing {
 protected:
+    static constexpr double kMaxPopulation = 1.2;
 
     Parallel parallel_;
 
     int average_node_population_;
 
     void Resample(double new_beta);
+
+    void Redistribute();
 
     std::vector<Result::Histogram> CombineHistogram(const std::vector<std::vector<Result::Histogram>>& histograms);
 
