@@ -14,18 +14,14 @@ import itertools
 
 file = 'BT_52'
 
-data = pd.read_csv(file+'.csv',delimiter=',',header=None,names=['beta','energy'])
+data = pd.read_csv(file+'.csv',delimiter=',')
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot(data['beta'],data['energy'],label='Output',marker='.');
+ax.plot(data['beta'],data['MC Walltime'],label='MC',marker='.')
+ax.plot(data['beta'],data['Redist Walltime'],label='Redist',marker='.')
+ax.plot(data['beta'],data['Obs Walltime'],label='Observables',marker='.')
 ##
-
-data = pd.read_csv(file+'_test.csv',delimiter=',',header=None,names=['beta','energy'])
-ax.plot(data['beta'],data['energy'],label='Test Data');
-
-ax.set_xlabel('Beta')
-ax.set_ylabel('Energy')
 
 ax.legend()
 plt.show()

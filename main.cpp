@@ -15,8 +15,7 @@ int main(int argc, char** argv) {
     std::cout.width(16);
 
     // initializate solver
-    int R = 50000;
-    // int R = 250000;
+    int R = 200000;
 
     std::vector<double> betalist = {
         0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 
@@ -36,18 +35,14 @@ int main(int argc, char** argv) {
 
     ParallelPopulationAnnealing population_annealing(model, betalist, R);
 
-    std::vector<PopulationAnnealing::Result> results;
-    //solve
-    population_annealing.Run(results);
+    auto results = population_annealing.Run();
 
     Parallel parallel;
     parallel.ExecRoot([&]() {
-        for(auto q : results.back().overlap) {
-            std::cout << q.bin << ",\t" << q.value << std::endl;
-        }
-        std::cout << std::endl;
-        for(auto q : results.back().link_overlap) {
-            std::cout << q.bin << ",\t" << q.value << std::endl;
+        std::cout << "# R=" << R << " N=" << parallel.size() << std::endl;
+        std::cout << "Beta,\tMC_Walltime,\tRedist_Walltime,\tObs_Walltime" << std::endl;
+        for(auto r : results) {
+            std::cout << r.beta << ",\t" << r.montecarlo_walltime << ",\t" << r.redist_walltime << ",\t" << r.observables_walltime << std::endl;
         }
     });
     return EXIT_SUCCESS;

@@ -69,5 +69,5 @@ public:
 
     PopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
 
-    void Run(std::vector<Result>& results);
+    std::vector<Result> Run();
 };

@@ -181,7 +181,8 @@ double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
     return ql / structure_.edges();
 }
 
-void PopulationAnnealing::Run(std::vector<Result>& results) {
+std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
+    std::vector<Result> results;
     std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;
     
     for(auto& r : replicas_) {
@@ -247,6 +248,7 @@ void PopulationAnnealing::Run(std::vector<Result>& results) {
             << observables.entropy << ",\t" 
             << observables.population/std::exp(observables.entropy) << std::endl;
     }
+    return results;
 }
 
 //TODO: compute the exponential only when necessary

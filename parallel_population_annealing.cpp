@@ -7,23 +7,17 @@
 #include <iterator>
 #include <numeric>
 #include <functional>
+#include <chrono>
 
-std::vector<PopulationAnnealing::Result::Histogram> ParallelPopulationAnnealing::CombineHistogram(const std::vector<std::vector<Result::Histogram>>& histograms) {
-    std::vector<Result::Histogram> result = histograms.front();
-    for(auto r = 1; r < histograms.size(); ++r) {
-        for(auto bin : histograms[r]) {
-            auto it = std::lower_bound(result.begin(), result.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) {return kEpsilon < b.bin - a.bin;});
-            if(it==result.end() || bin.bin + kEpsilon <= it->bin) {
-                result.insert(it, bin);
-            } else {
-                it->value += bin.value;
-            }
+void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram>& target, const std::vector<Result::Histogram>& source) {
+    for(auto bin : source) {
+        auto it = std::lower_bound(target.begin(), target.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) {return kEpsilon < b.bin - a.bin;});
+        if(it==target.end() || bin.bin + kEpsilon <= it->bin) {
+            target.insert(it, bin);
+        } else {
+            it->value += bin.value;
         }
     }
-    for(auto& r : result) {
-        r.value /= histograms.size();
-    }
-    return result;
 }
 
 ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population) : 
@@ -41,8 +35,9 @@ ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::
     }
  }
  
-void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
-    parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
+std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Run() {
+    std::vector<Result> results;
+    // parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
     
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {
@@ -58,13 +53,18 @@ void ParallelPopulationAnnealing::Run(std::vector<Result>& results) {
 for(auto new_beta : betalist_) {
         Result observables;
         
+        auto time_start = std::chrono::high_resolution_clock::now();
         if(new_beta != beta_) {
             Resample(new_beta);
+            auto redist_time_start = std::chrono::high_resolution_clock::now();
             Redistribute();
+            observables.redist_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - redist_time_start).count();
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
                 MonteCarloSweep(replicas_[k], M);
             }
         }
+        observables.montecarlo_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
+        time_start = std::chrono::high_resolution_clock::now();
 
         energy.resize(replicas_.size());
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
@@ -105,27 +105,33 @@ for(auto new_beta : betalist_) {
 
         std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
             [&](std::pair<int, int> p) { return Overlap(replicas_[p.first], replicas_[p.second]); });
-        observables.overlap = parallel_.Reduce<std::vector<Result::Histogram>>(BuildHistogram(overlap_samples), 
-            [&](std::vector<std::vector<Result::Histogram>>& v) { return CombineHistogram(v); });
+        observables.overlap = parallel_.VectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
+            [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
+        std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin() 
+            [&](const Result::Histogram v) Result::Histogram {v.value /= parallel_.size(); return v;});
         // Link Overlap
         std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
             [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
-        observables.link_overlap = parallel_.Reduce<std::vector<Result::Histogram>>(BuildHistogram(overlap_samples), 
-            [&](std::vector<std::vector<Result::Histogram>>& v) { return CombineHistogram(v); });
+        observables.link_overlap = parallel_.VectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
+            [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
+        std::transform(observables.link_overlap.begin(), observables.link_overlap.end(), observables.link_overlap.begin() 
+            [&](const Result::Histogram v) Result::Histogram {v.value /= parallel_.size(); return v;});
 
         parallel_.ExecRoot([&](){
             results.push_back(observables);
-            std::cout 
-                << observables.beta << ",\t" 
-                << observables.average_energy << ",\t" 
-                << observables.population << ",\t \t" 
-                << observables.ground_energy << ",\t" 
-                << observables.grounded_replicas << ",\t" 
-                << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
-                << observables.entropy << ",\t" 
-                << observables.population/std::exp(observables.entropy) << std::endl; 
+            // std::cout 
+            //     << observables.beta << ",\t" 
+            //     << observables.average_energy << ",\t" 
+            //     << observables.population << ",\t \t" 
+            //     << observables.ground_energy << ",\t" 
+            //     << observables.grounded_replicas << ",\t" 
+            //     << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
+            //     << observables.entropy << ",\t" 
+            //     << observables.population/std::exp(observables.entropy) << std::endl; 
         });
+        observables.observables_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
     }
+    return results;
 }
 
 void ParallelPopulationAnnealing::Resample(double new_beta) {

@@ -21,15 +21,19 @@ protected:
 
     void Redistribute();
 
-    std::vector<Result::Histogram> CombineHistogram(const std::vector<std::vector<Result::Histogram>>& histograms);
+    void CombineHistogram(std::vector<Result::Histogram>& target, const std::vector<Result::Histogram>& source);
 
 public:
 
-    using Result = PopulationAnnealing::Result;
+    struct Result : PopulationAnnealing::Result {
+        double montecarlo_walltime;
+        double redist_walltime;
+        double observables_walltime;
+    };
 
     ParallelPopulationAnnealing(const ParallelPopulationAnnealing&) = delete;
 
     ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
 
-    void Run(std::vector<Result>& results);
+    std::vector<Result> Run();
 };

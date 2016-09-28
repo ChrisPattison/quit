@@ -5,6 +5,7 @@
 #include <mpi.h>
 
 // TODO: implement async
+// TODO: implement heirarchial reduction
 
 class Parallel {
     static constexpr int kRoot = 0;
@@ -32,14 +33,9 @@ public:
     
     template<typename T> auto ReduceToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-    
-    template<typename T> auto ReduceRootToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
-    std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
 
-    template<typename T> auto Reduce(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
-    std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
-    std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>>;
-
+    template<typename T> auto VectorReduce(std::vector<T>&& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) -> 
+    std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
 
     template<typename T> auto Gather(T&& value) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
@@ -80,14 +76,6 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     }
 }
 
-template<typename T> auto Parallel::ReduceRootToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
-std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
-    T reducedvalue = Reduce(value, reduce);
-
-    MPI_BCAST(&reducedvalue, sizeof(T), MPI_BYTE, kRoot, MPI_COMM_WORLD);
-    return reducedvalue;
-}
-
 template<typename T> auto Parallel::ReduceToAll(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     std::vector<T> data_buffer(sizeof(T) * size());
@@ -97,33 +85,42 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     return reduce(data_buffer);
 }
 
-template<typename T> auto Parallel::Reduce(T&& value, std::function<T(std::vector<T>&)> reduce) -> 
-std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
-std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>> {
-    
+template<typename T> auto Parallel::VectorReduce(std::vector<T>&& value, std::function<void (std::vector<T>&, const std::vector<T>&)> reduce) -> 
+std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
     if(is_root()) {
         MPI_Status status;
         MPI_Message message;
         int message_size;
-        std::vector<T> data_buffers(size());
-        data_buffers.front() = value;
+        std::vector<T> accumulator;
+        std::vector<std::vector<T>> data_buffers(size());
         int tag = GetTag();
         std::vector<MPI_Request> requests(size()-1);
-        
+
         for(std::size_t k = 0; k < size() - 1; ++k) {
             MPI_Mprobe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &message, &status);
             MPI_Get_count(&status, MPI_BYTE, &message_size);
-            data_buffers[status.MPI_SOURCE].resize(message_size/sizeof(typename std::remove_reference_t<decltype(value)>::value_type));
+            data_buffers[status.MPI_SOURCE].resize(message_size/sizeof(T));
             MPI_Imrecv(data_buffers[status.MPI_SOURCE].data(), message_size, MPI_BYTE, &message, &requests[k]);
         }
 
-        for(std::size_t k = 0; k < requests.size(); ++k) {
-            MPI_Wait(&requests[k], MPI_STATUS_IGNORE);
-        }
+        std::vector<MPI_Status> finished_status(requests.size());
+        std::vector<int> finished_index(requests.size());
+        int finished_count;
+        
+        reduce(accumulator, value);
+        std::size_t reduced_ranks = 1;
+        do {
+            MPI_Waitsome(requests.size(), requests.data(), &finished_count, finished_index.data(), finished_status.data());
+            for(std::size_t k = 0; k < finished_count; ++k) {
+                reduce(accumulator, data_buffers[finished_index[k]]);
+                data_buffers[finished_index[k]].clear();
+            }
+            reduced_ranks += finished_count;
+        } while(reduced_ranks < size());
 
-        return reduce(data_buffers);
+        return accumulator;
     }else {
-        MPI_Bsend(value.data(), value.size() * sizeof(typename std::remove_reference_t<decltype(value)>::value_type), MPI_BYTE, kRoot, GetTag(), MPI_COMM_WORLD);
+        MPI_Send(value.data(), value.size() * sizeof(T), MPI_BYTE, kRoot, GetTag(), MPI_COMM_WORLD);
         return { };
     }
 }
