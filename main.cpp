@@ -40,9 +40,20 @@ int main(int argc, char** argv) {
     Parallel parallel;
     parallel.ExecRoot([&]() {
         std::cout << "# R=" << R << " N=" << parallel.size() << std::endl;
-        std::cout << "Beta,\tMC_Walltime,\tRedist_Walltime,\tObs_Walltime" << std::endl;
+        std::cout << "Beta,\tMC_Walltime,\tRedist_Walltime,\tObs_Walltime,\t<E>,\tR,\tE_MIN,\tR_MIN,\tR_MIN/R,\tS,\tR/e^S" << std::endl;
         for(auto r : results) {
-            std::cout << r.beta << ",\t" << r.montecarlo_walltime << ",\t" << r.redist_walltime << ",\t" << r.observables_walltime << std::endl;
+            std::cout 
+                << r.beta << ",\t" 
+                << r.montecarlo_walltime << ",\t" 
+                << r.redist_walltime << ",\t" 
+                << r.observables_walltime << ",\t"
+                << r.average_energy << ",\t" 
+                << r.population << ",\t" 
+                << r.ground_energy << ",\t" 
+                << r.grounded_replicas << ",\t" 
+                << static_cast<double>(r.grounded_replicas)/r.population << ",\t" 
+                << r.entropy << ",\t" 
+                << r.population/std::exp(r.entropy) << std::endl; 
         }
     });
     return EXIT_SUCCESS;

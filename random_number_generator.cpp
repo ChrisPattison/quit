@@ -15,6 +15,7 @@ RandomNumberGenerator::RandomNumberGenerator(int rank) {
     generator_.discard(generator_.state_size*100000);
     pool_size_ = 0;
     last_range_ = 0;
+    last_short_range_ = 0;
 }
 
 RandomNumberGenerator::RandomNumberGenerator() {
@@ -27,6 +28,7 @@ RandomNumberGenerator::RandomNumberGenerator() {
     generator_.discard(generator_.state_size*100000);
     pool_size_ = 0;
     last_range_ = 0;
+    last_short_range_ = 0;
 }
 
 decltype(RandomNumberGenerator::generator_()) RandomNumberGenerator::operator()() {

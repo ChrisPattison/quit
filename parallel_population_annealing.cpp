@@ -107,15 +107,21 @@ for(auto new_beta : betalist_) {
             [&](std::pair<int, int> p) { return Overlap(replicas_[p.first], replicas_[p.second]); });
         observables.overlap = parallel_.VectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
             [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
-        std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin() 
-            [&](const Result::Histogram v) Result::Histogram {v.value /= parallel_.size(); return v;});
+        std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
+            [&](Result::Histogram v) -> Result::Histogram {
+                v.value /= parallel_.size(); 
+                return v;
+            });
         // Link Overlap
         std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
             [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
         observables.link_overlap = parallel_.VectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
             [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
-        std::transform(observables.link_overlap.begin(), observables.link_overlap.end(), observables.link_overlap.begin() 
-            [&](const Result::Histogram v) Result::Histogram {v.value /= parallel_.size(); return v;});
+        std::transform(observables.link_overlap.begin(), observables.link_overlap.end(), observables.link_overlap.begin(), 
+            [&](Result::Histogram v) -> Result::Histogram {
+                v.value /= parallel_.size(); 
+                return v;
+            });
 
         parallel_.ExecRoot([&](){
             results.push_back(observables);
@@ -207,7 +213,7 @@ void ParallelPopulationAnnealing::Redistribute() {
             [&](const int& a) { return a != *pack_start_candidate; }));
         // align to family boundary
         // TODO: look into if breaking up families is preferrable
-        pack_size = 1 + std::distance(replica_families_.begin() + pack_start, std::find_if(replica_families_.begin() + pack_start + pack_size, replica_families_.end(),
+        pack_size = std::distance(replica_families_.begin() + pack_start, std::find_if(replica_families_.begin() + std::min(static_cast<std::size_t>(pack_start + pack_size), replica_families_.size()), replica_families_.end(),
             [&](const int& a) { return a != replica_families_[pack_start + pack_size]; }));
         packed_replicas.reserve(pack_size * structure_.size());
         // Pack
@@ -221,8 +227,7 @@ void ParallelPopulationAnnealing::Redistribute() {
         replicas_.erase(replicas_.begin() + pack_start, replicas_.begin() + pack_start + pack_size);
 
         int target = (complement_position)->rank;
-        // std::cout << pack_size << ":" << parallel_.rank() << "->" << target << std::endl;
-        parallel_.Send<std::vector<int>>(std::move(packed_replicas), target);
-        parallel_.Send<std::vector<int>>(std::move(packed_families), target);
+        parallel_.Send<std::vector<int>>(packed_replicas, target);
+        parallel_.Send<std::vector<int>>(packed_families, target);
     }
 }
