@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     std::cout.width(16);
 
     // initializate solver
-    int R = 200000;
+    int R = 1'000'000;
 
     std::vector<double> betalist = {
         0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 
@@ -54,6 +54,14 @@ int main(int argc, char** argv) {
                 << static_cast<double>(r.grounded_replicas)/r.population << ",\t" 
                 << r.entropy << ",\t" 
                 << r.population/std::exp(r.entropy) << std::endl; 
+        }
+        std::cout << std::endl << std::endl << "q" << std::endl;
+        for(auto q : results.back().overlap) {
+            std::cout << q.bin << ",\t" << q.value << std::endl;
+        }
+        std::cout << std::endl << std::endl << "ql" << std::endl;
+        for(auto q : results.back().link_overlap) {
+            std::cout << q.bin << ",\t" << q.value << std::endl;
         }
     });
     return EXIT_SUCCESS;

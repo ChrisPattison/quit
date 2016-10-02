@@ -62,6 +62,8 @@ for(auto new_beta : betalist_) {
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
                 MonteCarloSweep(replicas_[k], M);
             }
+        }else {
+            observables.redist_walltime = 0.0;
         }
         observables.montecarlo_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
         time_start = std::chrono::high_resolution_clock::now();
@@ -75,20 +77,20 @@ for(auto new_beta : betalist_) {
         observables.beta = beta_;
 
         // population
-        observables.population = parallel_.ReduceToAll<int>(static_cast<int>(replicas_.size()), 
+        observables.population = parallel_.HeirarchyReduceToAll<int>(static_cast<int>(replicas_.size()), 
             [](std::vector<int>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<int>()); });
 
         // average energy
-        observables.average_energy = parallel_.Reduce<double>(energy.array().mean(),
+        observables.average_energy = parallel_.HeirarchyReduce<double>(energy.array().mean(),
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
 
         // ground energy
-        observables.ground_energy = parallel_.ReduceToAll<double>(energy.minCoeff(), 
+        observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy.minCoeff(), 
             [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
 
         // Round-off /probably/ isn't an issue here. Make this better in the future
         // number of replicas with energy = ground energy
-        observables.grounded_replicas = parallel_.Reduce<double>(
+        observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
             energy.array().unaryExpr([&](double E) { return E == observables.ground_energy ? 1 : 0; }).sum(),
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
@@ -96,7 +98,7 @@ for(auto new_beta : betalist_) {
         std::vector<double> family_size = FamilyCount();
         std::transform(family_size.begin(), family_size.end(), family_size.begin(), 
             [&](double n) -> double { n /= observables.population; return n * std::log(n); });
-        observables.entropy = parallel_.Reduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
+        observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
         
         // Overlap
@@ -105,7 +107,7 @@ for(auto new_beta : betalist_) {
 
         std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
             [&](std::pair<int, int> p) { return Overlap(replicas_[p.first], replicas_[p.second]); });
-        observables.overlap = parallel_.VectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
+        observables.overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
             [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
         std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
             [&](Result::Histogram v) -> Result::Histogram {
@@ -115,7 +117,7 @@ for(auto new_beta : betalist_) {
         // Link Overlap
         std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
             [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
-        observables.link_overlap = parallel_.VectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
+        observables.link_overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
             [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
         std::transform(observables.link_overlap.begin(), observables.link_overlap.end(), observables.link_overlap.begin(), 
             [&](Result::Histogram v) -> Result::Histogram {
@@ -151,7 +153,7 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
         weighting(k) = std::exp(-(new_beta-beta_) * Hamiltonian(replicas_[k]));
     }
 
-    double summed_weights = parallel_.ReduceToAll<double>(weighting.sum(), [] (std::vector<double>& v) {
+    double summed_weights = parallel_.HeirarchyReduceToAll<double>(weighting.sum(), [] (std::vector<double>& v) {
         return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>());
     });
     

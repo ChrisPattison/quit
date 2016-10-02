@@ -175,7 +175,7 @@ double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            ql += alpha(k) * beta(k) * alpha(it.index()) * alpha(it.index());
+            ql += alpha(k) * beta(k) * alpha(it.index()) * beta(it.index());
         }
     }
     return ql / structure_.edges();

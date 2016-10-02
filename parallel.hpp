@@ -69,9 +69,15 @@ public:
 
     void ExecRoot(std::function<void()> target) { ExecRoot(target, MPI_COMM_WORLD); }
 
+    template<typename T> auto HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
+    std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
+
     template<typename T> auto Reduce(const T& value, std::function<T(std::vector<T>&)> reduce) { return Reduce<T>(value, reduce, MPI_COMM_WORLD); }
     
     template<typename T> auto ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) { return ReduceToAll<T>(value, reduce, MPI_COMM_WORLD); }
+
+    template<typename T> auto HeirarchyReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
+    std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
 
     template<typename T> auto VectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) { return VectorReduce<T>(value, reduce, MPI_COMM_WORLD); }
 
@@ -106,6 +112,19 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     }
 }
 
+template<typename T> auto Parallel::HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
+std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
+    T data = value;
+    for(auto comm : comm_heirarchy_) {
+        data = Reduce(data, reduce, comm);
+    }
+    if(is_root(MPI_COMM_WORLD)) {
+        return data;
+    }else {
+        return { };
+    }
+}
+
 template<typename T> auto Parallel::ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     std::vector<T> data_buffer(sizeof(T) * size(comm));
@@ -113,6 +132,13 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     MPI_Allgather(&value, sizeof(T), MPI_BYTE, data_buffer.data(), sizeof(T), MPI_BYTE, comm);
 
     return reduce(data_buffer);
+}
+
+template<typename T> auto Parallel::HeirarchyReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
+std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
+    T data = HeirarchyReduce(value, reduce);
+    MPI_Bcast(&data, sizeof(T), MPI_BYTE, kRoot, MPI_COMM_WORLD);
+    return data;
 }
 
 template<typename T> auto Parallel::VectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>&, const std::vector<T>&)> reduce, MPI_Comm comm) -> 
