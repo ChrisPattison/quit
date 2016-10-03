@@ -46,5 +46,5 @@ int Graph::size() const {
 }
 
 int Graph::edges() const {
-    return adjacent_.size() / 2;
+    return adjacent_.nonZeros() / 2;
 }

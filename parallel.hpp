@@ -7,15 +7,37 @@
 // TODO: implement async
 // TODO: implement heirarchial reduction
 
+class Heirarchy {
+    int levels_;
+    int base_;
+    std::vector<MPI_Comm> comms_;
+
+    int rank(MPI_Comm comm);
+public:
+    Heirarchy();
+    Heirarchy(const Heirarchy& source) = delete;
+    Heirarchy(int base);
+    ~Heirarchy();
+
+    const std::vector<MPI_Comm>& comms();
+    int global_levels();
+    int local_levels();
+    int base();
+};
+
 class Parallel {
     static constexpr int kRoot = 0;
-    static constexpr int kHeirarchyBase = 20;
+    static constexpr int kVectorHeirarchyBase = 10;
+    static constexpr int kScalarHeirarchyBase = 40;
     int world_rank_;
     int world_size_;
     int tag_;
-    std::vector<MPI_Comm> comm_heirarchy_;
+    Heirarchy vector_heirarchy;
+    Heirarchy scalar_heirarchy;
 
     int GetTag();
+
+    void IncrTag(int count);
 
     int rank(MPI_Comm comm);
 
@@ -115,7 +137,7 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
 template<typename T> auto Parallel::HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     T data = value;
-    for(auto comm : comm_heirarchy_) {
+    for(auto comm : scalar_heirarchy.comms()) {
         data = Reduce(data, reduce, comm);
     }
     if(is_root(MPI_COMM_WORLD)) {
@@ -187,9 +209,10 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
 template<typename T> auto Parallel::HeirarchyVectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
     std::vector<T> data = value;
-    for(auto comm : comm_heirarchy_) {
+    for(auto comm : vector_heirarchy.comms()) {
         data = VectorReduce(data, reduce, comm);
     }
+    IncrTag(vector_heirarchy.global_levels() - vector_heirarchy.local_levels());
     if(is_root(MPI_COMM_WORLD)) {
         return data;
     }else {
