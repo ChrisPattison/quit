@@ -7,7 +7,7 @@
 #include <iterator>
 #include <numeric>
 
-
+// Fix this to do something with the single replicas
 std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     std::vector<std::pair<int, int>> pairs;
     pairs.reserve(replica_families_.size()/2);
@@ -94,7 +94,7 @@ std::vector<double> PopulationAnnealing::FamilyCount() {
     return count;
 }
 
-PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population) {
+PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population) {
     betalist_ = betalist;
     beta_ = NAN;
     structure_ = structure;
@@ -192,15 +192,15 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     }
 
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
-    beta_ = betalist_.at(0);
+    beta_ = betalist_.at(0).beta;
     int M = 10;
     Eigen::VectorXd energy;
 
     for(auto new_beta : betalist_) {
         Result observables;
         
-        if(new_beta != beta_) {
-            Resample(new_beta);
+        if(new_beta.beta != beta_) {
+            Resample(new_beta.beta);
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
                 MonteCarloSweep(replicas_[k], M);
             }
@@ -224,17 +224,20 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         std::transform(family_size.begin(),family_size.end(),family_size.begin(),
             [&](double n) -> double {n /= replicas_.size(); return n * std::log(n);});
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
-        // Overlap
-        std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
-        std::vector<double> overlap_samples(overlap_pairs.size());
 
-        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-            [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
-        observables.overlap = BuildHistogram(overlap_samples);
-        // Link Overlap
-        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-            [&](std::pair<int, int> p){return LinkOverlap(replicas_[p.first], replicas_[p.second]);});
-        observables.link_overlap = BuildHistogram(overlap_samples);
+        if(new_beta.histograms) {
+            // Overlap
+            std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
+            std::vector<double> overlap_samples(overlap_pairs.size());
+
+            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
+            observables.overlap = BuildHistogram(overlap_samples);
+            // Link Overlap
+            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                [&](std::pair<int, int> p){return LinkOverlap(replicas_[p.first], replicas_[p.second]);});
+            observables.link_overlap = BuildHistogram(overlap_samples);
+        }
 
         results.push_back(observables);
         

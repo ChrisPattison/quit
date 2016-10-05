@@ -20,7 +20,7 @@ void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram
     }
 }
 
-ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population) : 
+ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population) : 
         PopulationAnnealing(structure, betalist, 0) {
         
     average_node_population_ = average_population / parallel_.size();
@@ -46,16 +46,17 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     }
 
     std::iota(replica_families_.begin(), replica_families_.end(), average_node_population_ * parallel_.rank());
-    beta_ = betalist_.at(0);
-    int M = 10;
+    beta_ = betalist_.at(0).beta;
+    const int M = 10;
+    const int max_family_size_limit = average_node_population_ / 2;
     Eigen::VectorXd energy;
 
-for(auto new_beta : betalist_) {
+    for(auto new_beta : betalist_) {
         Result observables;
         
         auto time_start = std::chrono::high_resolution_clock::now();
-        if(new_beta != beta_) {
-            Resample(new_beta);
+        if(new_beta.beta != beta_) {
+            Resample(new_beta.beta);
             auto redist_time_start = std::chrono::high_resolution_clock::now();
             Redistribute();
             observables.redist_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - redist_time_start).count();
@@ -94,37 +95,46 @@ for(auto new_beta : betalist_) {
             energy.array().unaryExpr([&](double E) { return E == observables.ground_energy ? 1 : 0; }).sum(),
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
-        // Entropy
+        // Largest Family
         std::vector<double> family_size = FamilyCount();
+        observables.max_family_size = *std::max_element(family_size.begin(), family_size.end());
+        // Entropy
         std::transform(family_size.begin(), family_size.end(), family_size.begin(), 
             [&](double n) -> double { n /= observables.population; return n * std::log(n); });
         observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
         
-        // Overlap
-        std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
-        std::vector<double> overlap_samples(overlap_pairs.size());
+        if(new_beta.histograms) {            
+            // Overlap
+            std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
+            std::vector<double> overlap_samples(overlap_pairs.size());
 
-        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-            [&](std::pair<int, int> p) { return Overlap(replicas_[p.first], replicas_[p.second]); });
-        observables.overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
-            [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
-        std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
-            [&](Result::Histogram v) -> Result::Histogram {
-                v.value /= parallel_.size(); 
-                return v;
-            });
-        // Link Overlap
-        std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-            [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
-        observables.link_overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
-            [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
-        std::transform(observables.link_overlap.begin(), observables.link_overlap.end(), observables.link_overlap.begin(), 
-            [&](Result::Histogram v) -> Result::Histogram {
-                v.value /= parallel_.size(); 
-                return v;
-            });
+            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                [&](std::pair<int, int> p) { return Overlap(replicas_[p.first], replicas_[p.second]); });
+            observables.overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
+                [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
+            std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
+                [&](Result::Histogram v) -> Result::Histogram {
+                    v.value /= parallel_.size(); 
+                    return v;
+                });
+            // Link Overlap
+            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
+            observables.link_overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
+                [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
+            std::transform(observables.link_overlap.begin(), observables.link_overlap.end(), observables.link_overlap.begin(), 
+                [&](Result::Histogram v) -> Result::Histogram {
+                    v.value /= parallel_.size(); 
+                    return v;
+                });
+        }
 
+        char family_size_exceeded = parallel_.HeirarchyReduceToAll<char>(observables.max_family_size > max_family_size_limit, 
+            [](std::vector<char>& v) { return std::accumulate(v.begin(), v.end(), 0, [](const char& lhs, const char& rhs) { return (lhs | rhs) != 0 ? 1 : 0; }); });
+
+        observables.observables_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
+        
         parallel_.ExecRoot([&](){
             results.push_back(observables);
             // std::cout 
@@ -137,7 +147,10 @@ for(auto new_beta : betalist_) {
             //     << observables.entropy << ",\t" 
             //     << observables.population/std::exp(observables.entropy) << std::endl; 
         });
-        observables.observables_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
+
+        if(family_size_exceeded) {
+            break;
+        }
     }
     return results;
 }

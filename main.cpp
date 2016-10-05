@@ -4,20 +4,26 @@
 #include "post.hpp"
 #include "types.hpp"
 #include "Eigen/Dense"
+#include "utilities.hpp"
+#include <fstream>
 #include <iostream>
+#include <iomanip>
 
 int main(int argc, char** argv) {
     Graph model;
 
-    io::IjjParse(model, argc, argv);
-
-    std::cout.precision(6);
-    std::cout.width(16);
+    utilities::Check(argc >= 2, "Input File Expected");
+    auto file = std::ifstream(argv[1]);
+    io::IjjParse(model, file);
+    file.close();
 
     // initializate solver
     int R = 1'000'000;
+    // int R = 50000;
+    constexpr int kWidth = 18;
+    constexpr int kHeaderWidth = kWidth + 1;
 
-    std::vector<double> betalist = {
+    std::vector<double> hardbetalist = {
         0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 
         0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 
         1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 
@@ -28,10 +34,15 @@ int main(int argc, char** argv) {
         3.55, 3.6, 3.65, 3.7, 3.75, 3.8, 3.85, 3.9, 3.95, 4, 
         4.05, 4.1, 4.15, 4.2, 4.25, 4.3, 4.35, 4.4, 4.45, 4.5, 
         4.55, 4.6, 4.65, 4.7, 4.75, 4.8, 4.85, 4.9, 4.95, 5,};
-    // std::vector<double> betalist(201);
+    std::vector<PopulationAnnealing::Temperature> betalist;
+    for(auto b : hardbetalist) {
+        betalist.push_back({b});
+    }
     // for(std::size_t i = 0; i < betalist.size(); ++i) {
-    //     betalist[i] = i*10.0/(betalist.size()-1);
+    //     betalist[i].beta = i*10.0/(betalist.size()-1);
     // }
+
+    betalist.back().histograms = true;
 
     ParallelPopulationAnnealing population_annealing(model, betalist, R);
 
@@ -39,29 +50,50 @@ int main(int argc, char** argv) {
 
     Parallel parallel;
     parallel.ExecRoot([&]() {
+        std::cout << "# Massively Parallel Population Annealing Monte Carlo" << std::endl;
+        std::cout << "# C. Pattison" << std::endl;
+        std::cout << "# Built: " << __DATE__ << " " << __TIME__ << std::endl;
         std::cout << "# R=" << R << " N=" << parallel.size() << std::endl;
-        std::cout << "Beta,\tMC_Walltime,\tRedist_Walltime,\tObs_Walltime,\t<E>,\tR,\tE_MIN,\tR_MIN,\tR_MIN/R,\tS,\tR/e^S" << std::endl;
+        std::cout << std::right << std::setw(kHeaderWidth)
+            << "Beta," << std::setw(kHeaderWidth)
+            << "MC_Walltime," << std::setw(kHeaderWidth) 
+            << "Redist_Walltime," << std::setw(kHeaderWidth) 
+            << "Obs_Walltime," << std::setw(kHeaderWidth) 
+            << "<E>," << std::setw(kHeaderWidth) 
+            << "R," << std::setw(kHeaderWidth) 
+            << "E_MIN," << std::setw(kHeaderWidth) 
+            << "R_MIN," << std::setw(kHeaderWidth) 
+            << "R_MIN/R," << std::setw(kHeaderWidth) 
+            << "S," << std::setw(kHeaderWidth) 
+            << "R/e^S" << std::endl;
         for(auto r : results) {
-            std::cout 
-                << r.beta << ",\t" 
-                << r.montecarlo_walltime << ",\t" 
-                << r.redist_walltime << ",\t" 
-                << r.observables_walltime << ",\t"
-                << r.average_energy << ",\t" 
-                << r.population << ",\t" 
-                << r.ground_energy << ",\t" 
-                << r.grounded_replicas << ",\t" 
-                << static_cast<double>(r.grounded_replicas)/r.population << ",\t" 
-                << r.entropy << ",\t" 
+            std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
+                << r.beta << "," << std::setw(kWidth) 
+                << r.montecarlo_walltime << "," << std::setw(kWidth) 
+                << r.redist_walltime << "," << std::setw(kWidth) 
+                << r.observables_walltime << "," << std::setw(kWidth)
+                << r.average_energy << "," << std::setw(kWidth) 
+                << r.population << "," << std::setw(kWidth) 
+                << r.ground_energy << "," << std::setw(kWidth) 
+                << r.grounded_replicas << "," << std::setw(kWidth) 
+                << static_cast<double>(r.grounded_replicas)/r.population << "," << std::setw(kWidth) 
+                << r.entropy << "," << std::setw(kWidth) 
                 << r.population/std::exp(r.entropy) << std::endl; 
         }
-        std::cout << std::endl << std::endl << "q" << std::endl;
-        for(auto q : results.back().overlap) {
-            std::cout << q.bin << ",\t" << q.value << std::endl;
-        }
-        std::cout << std::endl << std::endl << "ql" << std::endl;
-        for(auto q : results.back().link_overlap) {
-            std::cout << q.bin << ",\t" << q.value << std::endl;
+        std::cout << "%%%---%%%" << std::endl;
+        for(auto r : results) {
+            for(auto q : r.overlap) {
+                std::cout << "|q, " 
+                    << std::setprecision(4) << std::fixed << r.beta << ","
+                    << std::setprecision(10) << std::scientific << std::setw(kWidth) << q.bin << ","
+                    << std::setw(kWidth) << q.value << std::endl;
+            }
+            for(auto ql : r.link_overlap) {
+                std::cout << "|ql, " 
+                    << std::setprecision(4) << std::fixed << r.beta << ","
+                    << std::setprecision(10) << std::scientific << std::setw(kWidth) << ql.bin << ","
+                    << std::setw(kWidth) << ql.value << std::endl;
+            }
         }
     });
     return EXIT_SUCCESS;

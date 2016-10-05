@@ -25,6 +25,10 @@ public:
         double entropy;
     };
 
+    struct Temperature {
+        double beta;
+        bool histograms = false;
+    };
     
 protected:
     Graph structure_;
@@ -36,7 +40,7 @@ protected:
     std::vector<int> replica_families_;
 
     int average_population_;
-    std::vector<double> betalist_;
+    std::vector<Temperature> betalist_;
     double beta_;
 
     // Builds a list of replicas with different Markov Chains
@@ -67,7 +71,7 @@ public:
 
     PopulationAnnealing() = delete;
 
-    PopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
+    PopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population);
 
     std::vector<Result> Run();
 };

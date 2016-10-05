@@ -29,11 +29,12 @@ public:
         double montecarlo_walltime;
         double redist_walltime;
         double observables_walltime;
+        int max_family_size;
     };
 
     ParallelPopulationAnnealing(const ParallelPopulationAnnealing&) = delete;
 
-    ParallelPopulationAnnealing(Graph& structure, std::vector<double> betalist, int average_population);
+    ParallelPopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population);
 
     std::vector<Result> Run();
 };

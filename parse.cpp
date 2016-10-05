@@ -1,19 +1,15 @@
 #include "parse.hpp"
 #include <vector>
-#include <fstream>
 #include <algorithm>
 #include <iterator>
 #include <exception>
-#include <iostream>
 #include <tuple>
 #include "utilities.hpp"
 
 namespace io {
 
-void IjjParse(Graph& model, int& argc, char**& argv) {
+void IjjParse(Graph& model, std::istream& file) {
     try {
-        utilities::Check(argc >= 2, "Input File Expected");
-        auto file = std::ifstream(argv[1]);
         std::string buffer(kBufferSize, '\0');
         std::vector<std::string> tokens;
         
@@ -36,13 +32,31 @@ void IjjParse(Graph& model, int& argc, char**& argv) {
         
         model.Resize(stoi(header[0]), values.size());
         for(auto& v : values) {
-            model.AddEdge(std::get<0>(v), std::get<1>(v), std::get<2>(v));
-            model.AddEdge(std::get<1>(v), std::get<0>(v), std::get<2>(v));
+            if(model.Adjacent().coeffRef(std::get<0>(v), std::get<1>(v)) == 0) {
+                model.AddEdge(std::get<0>(v), std::get<1>(v), std::get<2>(v));
+            }else {
+                utilities::Check(model.Adjacent().coeffRef(std::get<0>(v), std::get<1>(v)) == std::get<2>(v), "Coupler assigned two different values");
+            }
+            if(model.Adjacent().coeffRef(std::get<1>(v), std::get<0>(v)) == 0) {
+                model.AddEdge(std::get<1>(v), std::get<0>(v), std::get<2>(v));
+            }else {
+                utilities::Check(model.Adjacent().coeffRef(std::get<1>(v), std::get<0>(v)) == std::get<2>(v), "Coupler assigned two different values");
+            }
         }
         utilities::Check(model.IsConsistent(), "Missing edge somewhere.");
         utilities::Check(model.Adjacent().size() > 0, "No Elements.");
     } catch(std::exception& e) {
         utilities::Check(false, "Parsing failed.");
+    }
+}
+
+void IjjDump(Graph& model, std::ostream& stream) {
+    stream << model.size() << kOutputSeperator << kOutputCouplerCoeff;
+    for(std::size_t k = 0; k < model.Adjacent().outerSize(); ++k) {
+        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
+            it(model.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
+            stream << k << kOutputSeperator << it.index() << kOutputSeperator << kOutputCouplerCoeff * it.value();
+        }
     }
 }
 }
