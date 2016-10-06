@@ -12,8 +12,7 @@ void Graph::SetField(int vertex, EdgeType field) {
 }
 
 void Graph::AddEdge(int from, int to, EdgeType coupler) {
-    adjacent_.coeffRef(from, to);
-    adjacent_.coeffRef(from, to) = coupler;
+    adjacent_.insert(from, to) = coupler;
 }
 
 

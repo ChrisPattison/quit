@@ -18,8 +18,8 @@ int main(int argc, char** argv) {
     file.close();
 
     // initializate solver
-    int R = 1'000'000;
-    // int R = 50000;
+    //int R = 1'000'000;
+    int R = 50000;
     constexpr int kWidth = 18;
     constexpr int kHeaderWidth = kWidth + 1;
 

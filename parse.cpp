@@ -32,16 +32,8 @@ void IjjParse(Graph& model, std::istream& file) {
         
         model.Resize(stoi(header[0]), values.size());
         for(auto& v : values) {
-            if(model.Adjacent().coeffRef(std::get<0>(v), std::get<1>(v)) == 0) {
-                model.AddEdge(std::get<0>(v), std::get<1>(v), std::get<2>(v));
-            }else {
-                utilities::Check(model.Adjacent().coeffRef(std::get<0>(v), std::get<1>(v)) == std::get<2>(v), "Coupler assigned two different values");
-            }
-            if(model.Adjacent().coeffRef(std::get<1>(v), std::get<0>(v)) == 0) {
-                model.AddEdge(std::get<1>(v), std::get<0>(v), std::get<2>(v));
-            }else {
-                utilities::Check(model.Adjacent().coeffRef(std::get<1>(v), std::get<0>(v)) == std::get<2>(v), "Coupler assigned two different values");
-            }
+            model.AddEdge(std::get<0>(v), std::get<1>(v), std::get<2>(v));
+            model.AddEdge(std::get<1>(v), std::get<0>(v), std::get<2>(v));
         }
         utilities::Check(model.IsConsistent(), "Missing edge somewhere.");
         utilities::Check(model.Adjacent().size() > 0, "No Elements.");
