@@ -10,46 +10,14 @@
 // Fix this to do something with the single replicas
 std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     std::vector<std::pair<int, int>> pairs;
-    pairs.reserve(replica_families_.size()/2);
+    int num_pairs = replica_families_.size()/2;
+    pairs.reserve(num_pairs);
 
-// Find individual families
-
-    struct family {
-        typename std::vector<int>::iterator begin;
-        typename std::vector<int>::iterator end;
-        int single;
-    };
-
-    std::vector<family> families;
-    families.reserve(replica_families_.size());
-    auto i = replica_families_.begin();
-    do {
-        auto i_next = std::find_if(i, replica_families_.end(), [&](const int& v){return v != *i;});
-        families.push_back({i, i_next, std::distance(i,i_next)});
-        i = i_next;
-    }while(i != replica_families_.end());
-
-// Pair member k in family f to first single member in family f + k
-
-    auto wrap = [&](auto index){ return index < families.size() ? index : index - families.size();};
-    for(int f = 0; f < families.size(); ++f) {
-        int k_next = 0;
-        for(auto k = std::distance(families[f].begin, families[f].end) - families[f].single; families[f].single > 0; ++k) {
-            while(f+k+k_next < families.size() && families[f+k+k_next].single == 0) {
-                k_next++;
-            }
-            if(f+k+k_next >= families.size()) {
-                // switch to swapping in later implementation; Quit for now
-                break;
-            }
-            pairs.push_back({std::distance(replica_families_.begin(), families[f].end - families[f].single), 
-                std::distance(replica_families_.begin(), families[f+k+k_next].end - families[f+k+k_next].single)});
-            families[f].single--;
-            families[f+k+k_next].single--;
-        }
+    for(int k = 0; k < num_pairs; ++k) {
+        pairs.push_back({k, k + num_pairs});
     }
 
-// Consistency check
+    // Consistency check
 
     for(auto& it : pairs) {
         // this is highly unlikely to be true
