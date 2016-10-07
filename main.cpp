@@ -18,8 +18,7 @@ int main(int argc, char** argv) {
     file.close();
 
     // initializate solver
-    //int R = 1'000'000;
-    int R = 50000;
+    int R = 1'000'000;
     constexpr int kWidth = 18;
     constexpr int kHeaderWidth = kWidth + 1;
 
@@ -65,7 +64,7 @@ int main(int argc, char** argv) {
             << "R_MIN," << std::setw(kHeaderWidth) 
             << "R_MIN/R," << std::setw(kHeaderWidth) 
             << "S," << std::setw(kHeaderWidth) 
-            << "R/e^S" << std::endl;
+            << "R_f_MAX" << std::endl;
         for(auto r : results) {
             std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
                 << r.beta << "," << std::setw(kWidth) 
@@ -78,7 +77,7 @@ int main(int argc, char** argv) {
                 << r.grounded_replicas << "," << std::setw(kWidth) 
                 << static_cast<double>(r.grounded_replicas)/r.population << "," << std::setw(kWidth) 
                 << r.entropy << "," << std::setw(kWidth) 
-                << r.population/std::exp(r.entropy) << std::endl; 
+                << r.max_family_size << std::endl; 
         }
         std::cout << "%%%---%%%" << std::endl;
         for(auto r : results) {

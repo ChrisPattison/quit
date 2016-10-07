@@ -39,6 +39,10 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     std::vector<Result> results;
     // parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
     
+    if(parallel_.size() / 2 * 2 != parallel_.size()) {
+        return results;
+    }
+
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {
             r(k) = rng_.Get<bool>() ? 1 : -1;
@@ -48,7 +52,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     std::iota(replica_families_.begin(), replica_families_.end(), average_node_population_ * parallel_.rank());
     beta_ = betalist_.at(0).beta;
     const int M = 10;
-    const int max_family_size_limit = average_node_population_ / 2;
+    const int max_family_size_limit = average_node_population_;
     Eigen::VectorXd energy;
 
     for(auto new_beta : betalist_) {
@@ -104,13 +108,24 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
         
-        if(new_beta.histograms) {            
-            // Overlap
-            std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
-            std::vector<double> overlap_samples(overlap_pairs.size());
+        if(new_beta.histograms) {
+            // Import or Export replicas to complementary node
+            std::vector<StateVector> imported_replicas;
+            if(parallel_.rank() < parallel_.size()/2) {
+                std::vector<VertexType> replica_pack = parallel_.Receive<std::vector<VertexType>>(parallel_.rank() + parallel_.size()/2);
+                imported_replicas = Unpack(replica_pack);
+            }else {
+                std::vector<VertexType> replica_pack = Pack(replicas_);
+                parallel_.Send(replica_pack, parallel_.rank() - parallel_.size()/2);
+            }
 
-            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-                [&](std::pair<int, int> p) { return Overlap(replicas_[p.first], replicas_[p.second]); });
+            int sample_size = std::min(replicas_.size(), imported_replicas.size()); 
+            std::vector<double> overlap_samples(sample_size);
+            
+            // Overlap
+            for(int k = 0; k < sample_size; ++k) {
+                overlap_samples[k] = Overlap(replicas_[k], imported_replicas[k]);
+            }
             observables.overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
                 [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
             std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
@@ -118,9 +133,11 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                     v.value /= parallel_.size(); 
                     return v;
                 });
+
             // Link Overlap
-            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-                [&](std::pair<int, int> p) { return LinkOverlap(replicas_[p.first], replicas_[p.second]); });
+            for(int k = 0; k < sample_size; ++k) {
+                overlap_samples[k] = LinkOverlap(replicas_[k], imported_replicas[k]);
+            }
             observables.link_overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
                 [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
             std::transform(observables.link_overlap.begin(), observables.link_overlap.end(), observables.link_overlap.begin(), 
@@ -130,8 +147,8 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                 });
         }
 
-        char family_size_exceeded = parallel_.HeirarchyReduceToAll<char>(observables.max_family_size > max_family_size_limit, 
-            [](std::vector<char>& v) { return std::accumulate(v.begin(), v.end(), 0, [](const char& lhs, const char& rhs) { return (lhs | rhs) != 0 ? 1 : 0; }); });
+        observables.max_family_size = parallel_.HeirarchyReduceToAll<int>(observables.max_family_size, 
+            [](std::vector<int>& v) { return *std::max_element(v.begin(), v.end()); });
 
         observables.observables_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
         
@@ -148,7 +165,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             //     << observables.population/std::exp(observables.entropy) << std::endl; 
         });
 
-        if(family_size_exceeded) {
+        if(observables.max_family_size > max_family_size_limit) {
             break;
         }
     }
@@ -245,4 +262,27 @@ void ParallelPopulationAnnealing::Redistribute() {
         parallel_.Send<std::vector<int>>(packed_replicas, target);
         parallel_.Send<std::vector<int>>(packed_families, target);
     }
+}
+
+std::vector<VertexType> ParallelPopulationAnnealing::Pack(const std::vector<StateVector>& source) {
+    std::vector<VertexType> destination;
+    destination.reserve(source.size() * structure_.size());
+
+    for(int k = 0; k < source.size(); ++k) {
+        auto& r = source[k];
+        destination.insert(destination.end(), r.data(), r.data() + r.size());
+    }
+    return destination;
+}
+
+std::vector<PopulationAnnealing::StateVector> ParallelPopulationAnnealing::Unpack(std::vector<VertexType>& source) {
+    assert(source.size() % structure_.size() == 0);
+    int pack_size = source.size() / structure_.size();
+
+    std::vector<StateVector> destination;
+    destination.reserve(pack_size);
+    for(int k = 0; k < pack_size; ++k) {
+        destination.push_back(Eigen::Map<StateVector>(&(source[k*structure_.size()]), structure_.size()));
+    }
+    return destination;
 }
