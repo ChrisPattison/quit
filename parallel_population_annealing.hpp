@@ -23,6 +23,8 @@ protected:
 
     void CombineHistogram(std::vector<Result::Histogram>& target, const std::vector<Result::Histogram>& source);
 
+    std::vector<double> FamilyCount();
+
     std::vector<VertexType> Pack(const std::vector<StateVector>& source);
 
     std::vector<StateVector> Unpack(std::vector<VertexType>& source);

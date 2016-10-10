@@ -26,6 +26,12 @@ public:
 };
 
 class Parallel {
+public:
+    template<typename T, typename = std::enable_if_t<std::is_trivially_copyable<T>::value, void>> struct Packet {
+        int rank;
+        std::vector<T> data;
+    };
+private:
     static constexpr int kRoot = 0;
     static constexpr int kVectorHeirarchyBase = 10;
     static constexpr int kScalarHeirarchyBase = 40;
@@ -94,6 +100,8 @@ public:
     template<typename T> auto HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
 
+    template<typename T> auto PartialReduce(const std::vector<Packet<T>>& packets) -> std::vector<T>;
+
     template<typename T> auto Reduce(const T& value, std::function<T(std::vector<T>&)> reduce) { return Reduce<T>(value, reduce, MPI_COMM_WORLD); }
     
     template<typename T> auto ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) { return ReduceToAll<T>(value, reduce, MPI_COMM_WORLD); }
@@ -145,6 +153,50 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     }else {
         return { };
     }
+}
+
+template<typename T> auto Parallel::PartialReduce(const std::vector<Packet<T>>& packets) -> std::vector<T> {
+    // make this constant better
+    constexpr int kMaxBuffer = 5000;
+    std::vector<MPI_Request> requests(packets.size()+2); // Recv and Barrier
+    MPI_Status wait_status;
+    for(std::size_t k = 0; k < packets.size(); ++k) {
+        MPI_Isend(packets[k].data.data(), packets[k].data.size() * sizeof(T), MPI_BYTE, packets[k].rank, 0, MPI_COMM_WORLD, &requests[k]);
+    }
+    
+    std::vector<T> data_buffer(kMaxBuffer);
+    bool send_complete = packets.size() == 0;
+    bool barrier_reached = false;
+    int finished_index;
+    do {
+        MPI_Irecv(data_buffer.data() + data_buffer.size() - kMaxBuffer, kMaxBuffer * sizeof(T), MPI_BYTE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &requests[requests.size() - 2]);
+        // Handle Send finishes
+        do {
+            // TODO: make this loop prettier
+            if(send_complete && !barrier_reached) {
+                MPI_Ibarrier(MPI_COMM_WORLD, &requests[requests.size() - 1]); 
+                barrier_reached = true;
+            }
+            MPI_Waitany(requests.size() - (send_complete ? 0 : 1), requests.data(), &finished_index, &wait_status);
+            if(!send_complete) {
+                int flag = 0;
+                MPI_Testall(requests.size() - 2, requests.data(), &flag, MPI_STATUS_IGNORE);
+                if(flag) {
+                    send_complete = true;
+                }
+            }
+        } while(finished_index < requests.size() - 2);
+        // Recieve Data
+        if(finished_index == requests.size() - 2) {
+            int count;
+            MPI_Get_count(&wait_status, MPI_BYTE, &count);
+            data_buffer.resize(data_buffer.size() + count / sizeof(T) + kMaxBuffer);
+        }
+    } while(finished_index != requests.size() - 1);
+    
+    MPI_Cancel(&requests[requests.size() - 2]);
+    data_buffer.resize(data_buffer.size() - kMaxBuffer);
+    return data_buffer;
 }
 
 template<typename T> auto Parallel::ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
