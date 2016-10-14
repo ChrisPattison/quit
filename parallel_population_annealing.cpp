@@ -57,8 +57,8 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 
     for(auto new_beta : betalist_) {
         Result observables;
-        
         auto time_start = std::chrono::high_resolution_clock::now();
+        // Population Annealing
         if(new_beta.beta != beta_) {
             Resample(new_beta.beta);
             auto redist_time_start = std::chrono::high_resolution_clock::now();
@@ -77,7 +77,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
             energy(k) = Hamiltonian(replicas_[k]);
         }
-        
+        // This breaks if all the population belonging to a node is killed off at once
         // Observables
         observables.beta = beta_;
 
@@ -101,7 +101,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 
         // Largest Family
         std::vector<double> family_size = FamilyCount();
-        observables.max_family_size = *std::max_element(family_size.begin(), family_size.end());
+        observables.max_family_size = family_size.size() > 0 ? *std::max_element(family_size.begin(), family_size.end()) : 0;
         // Entropy
         std::transform(family_size.begin(), family_size.end(), family_size.begin(), 
             [&](double n) -> double { n /= observables.population; return n * std::log(n); });
@@ -203,6 +203,7 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
 }
 
 void ParallelPopulationAnnealing::Redistribute() {
+    parallel_.Barrier();
     struct rank_population {
         int rank;
         int population;
@@ -243,7 +244,7 @@ void ParallelPopulationAnnealing::Redistribute() {
         std::vector<VertexType> packed_replicas = parallel_.Receive<std::vector<VertexType>>(recv_source->rank);
         std::vector<int> packed_families = parallel_.Receive<std::vector<int>>(recv_source->rank);
 
-        assert(packed_replicas.size() == packed_replicas.size() / structure_.size());
+        assert(packed_families.size() == packed_replicas.size() / structure_.size());
         int pack_size = packed_families.size();
         // Unpack
         replicas_.reserve(replicas_.size() + pack_size);
@@ -253,6 +254,7 @@ void ParallelPopulationAnnealing::Redistribute() {
         }
         replica_families_.insert(replica_families_.begin(), packed_families.begin(), packed_families.end());
     }
+    parallel_.Barrier();
 }
 
 std::vector<VertexType> ParallelPopulationAnnealing::Pack(const std::vector<StateVector>& source) {
@@ -280,6 +282,7 @@ std::vector<PopulationAnnealing::StateVector> ParallelPopulationAnnealing::Unpac
 
 // This suffers from problems if there are non-contiguous families on the owner's node
 std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
+    parallel_.Barrier();
     struct Family {
         int tag;
         int count;
@@ -288,14 +291,17 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
     std::vector<Family> local_families;
     families.reserve(replicas_.size());
 
+    // count families
     auto i = replica_families_.begin();
     do {
-        auto i_next = std::find_if(i, replica_families_.end(), [&](const int& v){return v != *i;});
+        auto i_next = std::find_if(i+1, replica_families_.end(), [&](const int& v){return v != *i;});
         families.push_back({*i, std::distance(i, i_next)});
         i = i_next;
     }while(i != replica_families_.end());
-
+    // package for sending to originator
+    local_families.reserve(families.size());
     std::vector<Parallel::Packet<Family>> packets;
+    
     for(auto& f : families) {
         int source_rank = f.tag / average_node_population_;
         if(source_rank != parallel_.rank()) {
@@ -309,15 +315,15 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
             local_families.push_back(f);
         }
     }
-
+    // send and count recieved families
     auto it = local_families.begin();
-    std::vector<Family> import_familes = parallel_.PartialReduce(packets);
-    for(auto& f : import_familes) {
-        if(it+1 != local_families.end() && it->tag == f.tag) {
-            ++it;
-        }else {
-            it = std::find_if(local_families.begin(), local_families.end(), [&](const Family match) {return match.tag == f.tag; });
+    std::vector<Family> import_families = parallel_.PartialReduce(packets);
+    for(auto& f : import_families) {
+        // find iterator to matching family with optimization for successive families
+        if(!(++it < local_families.end() && it->tag == f.tag)) {
+            it = std::find_if(local_families.begin(), local_families.end(), [&](const Family& match) { return match.tag == f.tag; });
         }
+        
         if(it == local_families.end()) {
             local_families.push_back(f);
         }else {
@@ -327,5 +333,6 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
 
     std::vector<double> result(local_families.size());
     std::transform(local_families.begin(), local_families.end(), result.begin(), [](const Family& f) { return static_cast<double>(f.count); });
+    parallel_.Barrier();
     return result;
 }

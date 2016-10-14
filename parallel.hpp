@@ -2,6 +2,7 @@
 #include <functional>
 #include <vector>
 #include <type_traits>
+#include <cassert>
 #include <mpi.h>
 
 // TODO: implement async
@@ -190,12 +191,12 @@ template<typename T> auto Parallel::PartialReduce(const std::vector<Packet<T>>& 
         if(finished_index == requests.size() - 2) {
             int count;
             MPI_Get_count(&wait_status, MPI_BYTE, &count);
-            data_buffer.resize(data_buffer.size() + count / sizeof(T) + kMaxBuffer);
+            data_buffer.insert(data_buffer.end(), count/sizeof(T), T());
         }
     } while(finished_index != requests.size() - 1);
     
     MPI_Cancel(&requests[requests.size() - 2]);
-    data_buffer.resize(data_buffer.size() - kMaxBuffer);
+    data_buffer.erase(data_buffer.end() - kMaxBuffer, data_buffer.end());
     return data_buffer;
 }
 
@@ -317,7 +318,7 @@ std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>
     
     MPI_Mprobe(source_rank, 0, comm, &message, &status);
     MPI_Get_count(&status, MPI_BYTE, &message_size);
-    data_buffer.resize(message_size);
+    data_buffer.resize(message_size/sizeof(typename T::value_type));
     MPI_Mrecv(data_buffer.data(), message_size, MPI_BYTE, &message, MPI_STATUS_IGNORE);
     return data_buffer;
 }
