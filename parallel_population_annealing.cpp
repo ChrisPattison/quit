@@ -203,7 +203,6 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
 }
 
 void ParallelPopulationAnnealing::Redistribute() {
-    parallel_.Barrier();
     struct rank_population {
         int rank;
         int population;
@@ -254,7 +253,6 @@ void ParallelPopulationAnnealing::Redistribute() {
         }
         replica_families_.insert(replica_families_.begin(), packed_families.begin(), packed_families.end());
     }
-    parallel_.Barrier();
 }
 
 std::vector<VertexType> ParallelPopulationAnnealing::Pack(const std::vector<StateVector>& source) {
@@ -282,7 +280,6 @@ std::vector<PopulationAnnealing::StateVector> ParallelPopulationAnnealing::Unpac
 
 // This suffers from problems if there are non-contiguous families on the owner's node
 std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
-    parallel_.Barrier();
     struct Family {
         int tag;
         int count;
@@ -333,6 +330,5 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
 
     std::vector<double> result(local_families.size());
     std::transform(local_families.begin(), local_families.end(), result.begin(), [](const Family& f) { return static_cast<double>(f.count); });
-    parallel_.Barrier();
     return result;
 }

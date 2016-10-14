@@ -135,7 +135,7 @@ PopulationAnnealing::StateVector PopulationAnnealing::Quench(const StateVector& 
 }
 
 double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
-    return static_cast<double>((alpha.array() * beta.array()).sum()) / structure_.size();
+    return (alpha.array() * beta.array()).cast<double>().sum() / structure_.size();
 }
 
 double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
