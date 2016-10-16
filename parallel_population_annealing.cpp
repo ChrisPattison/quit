@@ -202,6 +202,7 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
     replica_families_ = resampled_families;
 }
 
+// TODO: implement reverse transfer, maybe higher order terms in transfer rate
 void ParallelPopulationAnnealing::Redistribute() {
     struct rank_population {
         int rank;
@@ -218,11 +219,15 @@ void ParallelPopulationAnnealing::Redistribute() {
     auto send_target = position != node_populations.end() - 1 ? position + 1 : node_populations.begin();
     auto recv_source = position != node_populations.begin() ? position - 1 : node_populations.end() - 1;
     // sending replicas
-    if(position->population > average_node_population_ * kMaxPopulation) {
+    if(position->population > average_node_population_ * kMaxPopulation || 
+    send_target->population < average_node_population_ * kMinPopulation) {
         std::vector<VertexType> packed_replicas;
         std::vector<int> packed_families;
         // This may need some "Dampening" to keep a large population wave from moving through the nodes
-        int pack_size = std::abs((position->population - send_target->population)/2);
+        int pack_size = std::min(std::min(
+            std::max(0, (position->population - send_target->population)/2),
+            std::max(0, position->population - static_cast<int>(average_node_population_ * kMinPopulation))),
+            static_cast<int>(replicas_.size()/2));
         int pack_start = replicas_.size() - pack_size;
         packed_replicas.reserve(pack_size * structure_.size());
         // Pack
@@ -239,7 +244,8 @@ void ParallelPopulationAnnealing::Redistribute() {
         parallel_.Send<std::vector<int>>(packed_families, send_target->rank);
     }
     // receiving replicas
-    if(recv_source->population > average_node_population_ * kMaxPopulation) {
+    if(recv_source->population > average_node_population_ * kMaxPopulation ||
+    position->population < average_node_population_ * kMinPopulation) {
         std::vector<VertexType> packed_replicas = parallel_.Receive<std::vector<VertexType>>(recv_source->rank);
         std::vector<int> packed_families = parallel_.Receive<std::vector<int>>(recv_source->rank);
 

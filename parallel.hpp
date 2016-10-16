@@ -34,8 +34,8 @@ public:
     };
 private:
     static constexpr int kRoot = 0;
-    static constexpr int kVectorHeirarchyBase = 10;
-    static constexpr int kScalarHeirarchyBase = 40;
+    static constexpr int kVectorHeirarchyBase = 4;
+    static constexpr int kScalarHeirarchyBase = 20;
     int world_rank_;
     int world_size_;
     int tag_;
