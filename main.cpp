@@ -64,7 +64,8 @@ int main(int argc, char** argv) {
             << "R_MIN," << std::setw(kHeaderWidth) 
             << "R_MIN/R," << std::setw(kHeaderWidth) 
             << "S," << std::setw(kHeaderWidth) 
-            << "R_f_MAX" << std::endl;
+            << "R_f_MAX" << std::setw(kHeaderWidth) 
+            << "R_N_MIN" << std::endl;
         for(auto r : results) {
             std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
                 << r.beta << "," << std::setw(kWidth) 
@@ -77,7 +78,8 @@ int main(int argc, char** argv) {
                 << r.grounded_replicas << "," << std::setw(kWidth) 
                 << static_cast<double>(r.grounded_replicas)/r.population << "," << std::setw(kWidth) 
                 << r.entropy << "," << std::setw(kWidth) 
-                << r.max_family_size << std::endl; 
+                << r.max_family_size << std::setw(kWidth) 
+                << r.min_node_population << std::endl; 
         }
         std::cout << "%%%---%%%" << std::endl;
         for(auto r : results) {

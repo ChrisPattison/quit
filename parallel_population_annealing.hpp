@@ -36,6 +36,7 @@ public:
         double redist_walltime;
         double observables_walltime;
         int max_family_size;
+        int min_node_population;
     };
 
     ParallelPopulationAnnealing(const ParallelPopulationAnnealing&) = delete;

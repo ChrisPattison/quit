@@ -86,17 +86,21 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             [](std::vector<int>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<int>()); });
 
         // average energy
-        observables.average_energy = parallel_.HeirarchyReduce<double>(energy.array().mean(),
+        observables.average_energy = parallel_.HeirarchyReduce<double>(energy.size() ? energy.array().mean() : std::numeric_limits<double>::quiet_NaN(),
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
 
         // ground energy
-        observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy.minCoeff(), 
+        observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy.size() ? energy.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
             [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
+
+        // smallest node population
+        observables.min_node_population = 0;/*parallel_.HeirarchyReduceToAll<int>(static_cast<int>(replicas_.size()),
+            [](std::vector<int>& v) { return *std::min_element(v.begin(), v.end()); });*/
 
         // Round-off /probably/ isn't an issue here. Make this better in the future
         // number of replicas with energy = ground energy
         observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
-            energy.array().unaryExpr([&](double E) { return E == observables.ground_energy ? 1 : 0; }).sum(),
+            energy.size() ? energy.array().unaryExpr([&](double E) { return E == observables.ground_energy ? 1 : 0; }).sum() : 0,
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         // Largest Family
