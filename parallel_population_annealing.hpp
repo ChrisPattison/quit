@@ -14,7 +14,7 @@ protected:
     static constexpr double kMaxPopulation = 1.2;
     static constexpr double kMinPopulation = 0.7;
 
-    Parallel parallel_;
+    parallel::Mpi parallel_;
 
     int average_node_population_;
 

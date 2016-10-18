@@ -2,7 +2,9 @@
 #include <cmath>
 #include <cassert>
 
-Parallel::Parallel() {
+namespace parallel
+{
+Mpi::Mpi() {
     int initialized;
     MPI_Initialized(&initialized);
     if(!initialized) {
@@ -23,7 +25,7 @@ Parallel::Parallel() {
     scalar_heirarchy = Heirarchy(kScalarHeirarchyBase);
 }
 
-Parallel::~Parallel() {
+Mpi::~Mpi() {
     int finalized;
     MPI_Finalized(&finalized);
     if(!finalized) {
@@ -31,55 +33,55 @@ Parallel::~Parallel() {
     }
 }
 
-int Parallel::GetTag() {
+int Mpi::GetTag() {
     ++tag_;
     return tag_;
 }
 
-void Parallel::IncrTag(int count) {
+void Mpi::IncrTag(int count) {
     assert(count >= 0 );
     tag_ += count;
 }
 
-int Parallel::rank() {
+int Mpi::rank() {
     return world_rank_;
 }
 
-int Parallel::rank(MPI_Comm comm) {
+int Mpi::rank(MPI_Comm comm) {
     int rank;
     MPI_Comm_rank(comm, &rank);
     return rank;
 }
 
-int Parallel::size() {
+int Mpi::size() {
     return world_size_;
 }
 
-int Parallel::size(MPI_Comm comm) {
+int Mpi::size(MPI_Comm comm) {
     int size;
     MPI_Comm_size(comm, &size);
     return size;
 }
 
-bool Parallel::is_root() {
+bool Mpi::is_root() {
     return rank() == kRoot;
 }
 
-bool Parallel::is_root(MPI_Comm comm) {
+bool Mpi::is_root(MPI_Comm comm) {
     return rank(comm) == kRoot;
 }
 
-void Parallel::ExecRoot(std::function<void()> target, MPI_Comm comm) {
+void Mpi::ExecRoot(std::function<void()> target, MPI_Comm comm) {
     if(is_root(comm)) {
         target();
     }
 }
 
-void Parallel::Barrier(MPI_Comm comm) {
+void Mpi::Barrier(MPI_Comm comm) {
     MPI_Barrier(comm);
 }
 
-void Parallel::Barrier() {
+void Mpi::Barrier() {
     Barrier(MPI_COMM_WORLD);
 }
 
@@ -156,4 +158,5 @@ Heirarchy::~Heirarchy() {
     // for(auto comm : comms_) {
     //     MPI_Comm_free(&comm);
     // }
+}
 }

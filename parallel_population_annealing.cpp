@@ -307,12 +307,12 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
     }while(i != replica_families_.end());
     // package for sending to originator
     local_families.reserve(families.size());
-    std::vector<Parallel::Packet<Family>> packets;
+    std::vector<parallel::Packet<Family>> packets;
     
     for(auto& f : families) {
         int source_rank = f.tag / average_node_population_;
         if(source_rank != parallel_.rank()) {
-            auto it = std::find_if(packets.begin(), packets.end(), [&](const Parallel::Packet<Family> p) { return p.rank == source_rank; });
+            auto it = std::find_if(packets.begin(), packets.end(), [&](const parallel::Packet<Family> p) { return p.rank == source_rank; });
             if(it != packets.end()) {
                 it->data.push_back(f);
             }else {

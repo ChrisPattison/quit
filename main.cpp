@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 
     auto results = population_annealing.Run();
 
-    Parallel parallel;
+    parallel::Mpi parallel;
     parallel.ExecRoot([&]() {
         std::cout << "# Massively Parallel Population Annealing Monte Carlo" << std::endl;
         std::cout << "# C. Pattison" << std::endl;

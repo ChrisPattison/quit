@@ -8,6 +8,8 @@
 // TODO: implement async
 // TODO: implement heirarchial reduction
 
+namespace parallel
+{
 class Heirarchy {
     int levels_;
     int base_;
@@ -26,12 +28,14 @@ public:
     int base();
 };
 
-class Parallel {
+template<typename T, typename = std::enable_if_t<std::is_trivially_copyable<T>::value, void>> struct Packet {
+    int rank;
+    std::vector<T> data;
+};
+
+class Mpi {
 public:
-    template<typename T, typename = std::enable_if_t<std::is_trivially_copyable<T>::value, void>> struct Packet {
-        int rank;
-        std::vector<T> data;
-    };
+
 private:
     static constexpr int kRoot = 0;
     static constexpr int kVectorHeirarchyBase = 4;
@@ -76,6 +80,10 @@ private:
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
     std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>>;
 
+    template<typename T> auto SendAsync(const T& value, int target_rank, MPI_Comm comm) -> 
+    std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+    std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>>;
+
     template<typename T> auto Receive(int source_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
 
@@ -86,9 +94,9 @@ private:
     void Barrier(MPI_Comm comm);
     
 public:
-    Parallel();
+    Mpi();
 
-    ~Parallel();
+    ~Mpi();
 
     int rank();
 
@@ -127,7 +135,7 @@ public:
 };
 
 
-template<typename T> auto Parallel::Reduce(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
+template<typename T> auto Mpi::Reduce(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     std::vector<T> data_buffer;
     if(is_root(comm)) {
@@ -143,7 +151,7 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     }
 }
 
-template<typename T> auto Parallel::HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
+template<typename T> auto Mpi::HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     T data = value;
     for(auto comm : scalar_heirarchy.comms()) {
@@ -156,7 +164,7 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     }
 }
 
-template<typename T> auto Parallel::PartialReduce(const std::vector<Packet<T>>& packets) -> std::vector<T> {
+template<typename T> auto Mpi::PartialReduce(const std::vector<Packet<T>>& packets) -> std::vector<T> {
     // make this constant better
     constexpr int kMaxBuffer = 5000;
     std::vector<MPI_Request> requests(packets.size()+2); // Recv and Barrier
@@ -200,7 +208,7 @@ template<typename T> auto Parallel::PartialReduce(const std::vector<Packet<T>>& 
     return data_buffer;
 }
 
-template<typename T> auto Parallel::ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
+template<typename T> auto Mpi::ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     std::vector<T> data_buffer(sizeof(T) * size(comm));
 
@@ -209,14 +217,14 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     return reduce(data_buffer);
 }
 
-template<typename T> auto Parallel::HeirarchyReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
+template<typename T> auto Mpi::HeirarchyReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     T data = HeirarchyReduce(value, reduce);
     MPI_Bcast(&data, sizeof(T), MPI_BYTE, kRoot, MPI_COMM_WORLD);
     return data;
 }
 
-template<typename T> auto Parallel::VectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>&, const std::vector<T>&)> reduce, MPI_Comm comm) -> 
+template<typename T> auto Mpi::VectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>&, const std::vector<T>&)> reduce, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
     if(is_root(comm)) {
         MPI_Status status;
@@ -259,7 +267,7 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
     }
 }
 
-template<typename T> auto Parallel::HeirarchyVectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) -> 
+template<typename T> auto Mpi::HeirarchyVectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
     std::vector<T> data = value;
     for(auto comm : vector_heirarchy.comms()) {
@@ -273,7 +281,7 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
     }
 }
 
-template<typename T> auto Parallel::Gather(const T& value, MPI_Comm comm) ->
+template<typename T> auto Mpi::Gather(const T& value, MPI_Comm comm) ->
 std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
         std::vector<T> data_buffer;
         if(is_root(comm)) {
@@ -283,32 +291,32 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
         return data_buffer;
 }
 
-template<typename T> auto Parallel::AllGather(const T& value, MPI_Comm comm) ->
+template<typename T> auto Mpi::AllGather(const T& value, MPI_Comm comm) ->
 std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
         std::vector<T> data_buffer(size(comm));
         MPI_Allgather(&value, sizeof(T), MPI_BYTE, data_buffer.data(), sizeof(T), MPI_BYTE, comm);
         return data_buffer;
 }
 
-template<typename T> auto Parallel::Send(const T& value, int target_rank, MPI_Comm comm) ->  
+template<typename T> auto Mpi::Send(const T& value, int target_rank, MPI_Comm comm) ->  
 std::enable_if_t<std::is_trivially_copyable<T>::value, void> {
     MPI_Send(&value, sizeof(T), MPI_BYTE, target_rank, 0, comm);
 }
 
-template<typename T> auto Parallel::Send(const T& value, int target_rank, MPI_Comm comm) -> 
+template<typename T> auto Mpi::Send(const T& value, int target_rank, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
 std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>> {
     MPI_Send(value.data(), value.size() * sizeof(typename std::remove_reference_t<decltype(value)>::value_type), MPI_BYTE, target_rank, 0, comm);
 }
 
-template<typename T> auto Parallel::Receive(int source_rank, MPI_Comm comm) -> 
+template<typename T> auto Mpi::Receive(int source_rank, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>> {
     T value;
     MPI_Recv(&value, sizeof(T), MPI_BYTE, source_rank, 0, comm, MPI_STATUS_IGNORE);
     return value;
 }
 
-template<typename T> auto Parallel::Receive(int source_rank, MPI_Comm comm) -> 
+template<typename T> auto Mpi::Receive(int source_rank, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
 std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>> {
     MPI_Status status;
@@ -321,4 +329,5 @@ std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>
     data_buffer.resize(message_size/sizeof(typename T::value_type));
     MPI_Mrecv(data_buffer.data(), message_size, MPI_BYTE, &message, MPI_STATUS_IGNORE);
     return data_buffer;
+}
 }
