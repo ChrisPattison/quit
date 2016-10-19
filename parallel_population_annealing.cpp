@@ -223,6 +223,8 @@ void ParallelPopulationAnnealing::Redistribute() {
     auto send_target = position != node_populations.end() - 1 ? position + 1 : node_populations.begin();
     auto recv_source = position != node_populations.begin() ? position - 1 : node_populations.end() - 1;
     // sending replicas
+    parallel::AsyncOp<VertexType> send_replicas;
+    parallel::AsyncOp<int> send_families;
     if(position->population > average_node_population_ * kMaxPopulation || 
     send_target->population < average_node_population_ * kMinPopulation) {
         std::vector<VertexType> packed_replicas;
@@ -244,8 +246,8 @@ void ParallelPopulationAnnealing::Redistribute() {
         replica_families_.erase(replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
         replicas_.erase(replicas_.begin() + pack_start, replicas_.begin() + pack_start + pack_size);
 
-        parallel_.Send<std::vector<VertexType>>(packed_replicas, send_target->rank);
-        parallel_.Send<std::vector<int>>(packed_families, send_target->rank);
+        send_replicas = parallel_.SendAsync<std::vector<VertexType>>(packed_replicas, send_target->rank);
+        send_families = parallel_.SendAsync<std::vector<int>>(packed_families, send_target->rank);
     }
     // receiving replicas
     if(recv_source->population > average_node_population_ * kMaxPopulation ||

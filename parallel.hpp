@@ -4,38 +4,13 @@
 #include <type_traits>
 #include <cassert>
 #include <mpi.h>
+#include "parallel_types.hpp"
 
 // TODO: implement async
-// TODO: implement heirarchial reduction
 
 namespace parallel
 {
-class Heirarchy {
-    int levels_;
-    int base_;
-    std::vector<MPI_Comm> comms_;
-
-    int rank(MPI_Comm comm);
-public:
-    Heirarchy();
-    Heirarchy(const Heirarchy& source) = delete;
-    Heirarchy(int base);
-    ~Heirarchy();
-
-    const std::vector<MPI_Comm>& comms();
-    int global_levels();
-    int local_levels();
-    int base();
-};
-
-template<typename T, typename = std::enable_if_t<std::is_trivially_copyable<T>::value, void>> struct Packet {
-    int rank;
-    std::vector<T> data;
-};
-
 class Mpi {
-public:
-
 private:
     static constexpr int kRoot = 0;
     static constexpr int kVectorHeirarchyBase = 4;
@@ -80,9 +55,12 @@ private:
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
     std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>>;
 
+    template<typename T> auto SendAsync(const T& value, int target_rank, MPI_Comm comm) ->  
+    std::enable_if_t<std::is_trivially_copyable<T>::value, AsyncOp<T>>;
+
     template<typename T> auto SendAsync(const T& value, int target_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
-    std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>>;
+    std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, AsyncOp<typename T::value_type>>>;
 
     template<typename T> auto Receive(int source_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
@@ -125,6 +103,8 @@ public:
     template<typename T> auto AllGather(const T& value) { return AllGather<T>(value, MPI_COMM_WORLD); }
 
     template<typename T> auto Send(const T& value, int target_rank) { return Send<T>(value, target_rank, MPI_COMM_WORLD); }
+
+    template<typename T> auto SendAsync(const T& value, int target_rank) { return SendAsync<T>(value, target_rank, MPI_COMM_WORLD); }
 
     template<typename T> auto Receive(int source_rank) { return Receive<T>(source_rank, MPI_COMM_WORLD); }
     // Make this more discriptive. Version of VectorReduce that scales O(logN)
@@ -306,7 +286,24 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, void> {
 template<typename T> auto Mpi::Send(const T& value, int target_rank, MPI_Comm comm) -> 
 std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
 std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>> {
-    MPI_Send(value.data(), value.size() * sizeof(typename std::remove_reference_t<decltype(value)>::value_type), MPI_BYTE, target_rank, 0, comm);
+    MPI_Send(value.data(), value.size() * sizeof(typename T::value_type), MPI_BYTE, target_rank, 0, comm);
+}
+
+template<typename T> auto Mpi::SendAsync(const T& value, int target_rank, MPI_Comm comm) ->  
+std::enable_if_t<std::is_trivially_copyable<T>::value, AsyncOp<T>> {
+    AsyncOp<T> op;
+    op.buffer_ = std::vector<T>({value});
+    MPI_Send(op.buffer_.data(), sizeof(T), MPI_BYTE, target_rank, 0, comm, &op.request_);
+    return op;
+}
+
+template<typename T> auto Mpi::SendAsync(const T& value, int target_rank, MPI_Comm comm) -> 
+std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
+std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, AsyncOp<typename T::value_type>>> {
+    AsyncOp<typename T::value_type> op;
+    op.buffer_ = value;
+    MPI_Isend(op.buffer_.data(), op.buffer_.size() * sizeof(typename T::value_type), MPI_BYTE, target_rank, 0, comm, &op.request_);
+    return op;
 }
 
 template<typename T> auto Mpi::Receive(int source_rank, MPI_Comm comm) -> 
