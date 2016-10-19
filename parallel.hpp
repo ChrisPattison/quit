@@ -62,6 +62,9 @@ private:
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
     std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, AsyncOp<typename T::value_type>>>;
 
+    template<typename T> auto SendAsync(std::vector<T>* value, int target_rank, MPI_Comm comm) ->
+    std::enable_if_t<std::is_trivially_copyable<T>::value, AsyncOp<T>>;
+
     template<typename T> auto Receive(int source_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
 
@@ -105,6 +108,8 @@ public:
     template<typename T> auto Send(const T& value, int target_rank) { return Send<T>(value, target_rank, MPI_COMM_WORLD); }
 
     template<typename T> auto SendAsync(const T& value, int target_rank) { return SendAsync<T>(value, target_rank, MPI_COMM_WORLD); }
+
+    template<typename T> auto SendAsync(std::vector<T>* value, int target_rank) { return SendAsync<T>(value, target_rank, MPI_COMM_WORLD); }
 
     template<typename T> auto Receive(int source_rank) { return Receive<T>(source_rank, MPI_COMM_WORLD); }
     // Make this more discriptive. Version of VectorReduce that scales O(logN)
@@ -293,7 +298,7 @@ template<typename T> auto Mpi::SendAsync(const T& value, int target_rank, MPI_Co
 std::enable_if_t<std::is_trivially_copyable<T>::value, AsyncOp<T>> {
     AsyncOp<T> op;
     op.buffer_ = std::vector<T>({value});
-    MPI_Send(op.buffer_.data(), sizeof(T), MPI_BYTE, target_rank, 0, comm, &op.request_);
+    MPI_ISend(op.buffer_.data(), sizeof(T), MPI_BYTE, target_rank, 0, comm, &op.request_);
     return op;
 }
 
@@ -303,6 +308,14 @@ std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, As
     AsyncOp<typename T::value_type> op;
     op.buffer_ = value;
     MPI_Isend(op.buffer_.data(), op.buffer_.size() * sizeof(typename T::value_type), MPI_BYTE, target_rank, 0, comm, &op.request_);
+    return op;
+}
+
+template<typename T> auto Mpi::SendAsync(std::vector<T>* value, int target_rank, MPI_Comm comm) -> 
+std::enable_if_t<std::is_trivially_copyable<T>::value, AsyncOp<T>> {
+    AsyncOp<T> op;
+    op.buffer_.swap(*value);
+    MPI_Isend(op.buffer_.data(), op.buffer_.size() * sizeof(T), MPI_BYTE, target_rank, 0, comm, &op.request_);
     return op;
 }
 

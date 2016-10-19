@@ -213,6 +213,14 @@ void ParallelPopulationAnnealing::Redistribute() {
         int population;
     };
 
+    struct rank_package {
+        int rank;
+        std::vector<VertexType> replicas;
+        std::vector<int> families;
+        parallel::AsyncOp<VertexType> send_replicas_op;
+        parallel::AsyncOp<int> send_families_op;
+    };
+
     std::vector<int> populations = parallel_.AllGather(static_cast<int>(replicas_.size()));
     std::vector<rank_population> node_populations(populations.size());
     for(auto p = 0; p < node_populations.size(); ++p) {
@@ -223,35 +231,50 @@ void ParallelPopulationAnnealing::Redistribute() {
     auto send_target = position != node_populations.end() - 1 ? position + 1 : node_populations.begin();
     auto recv_source = position != node_populations.begin() ? position - 1 : node_populations.end() - 1;
     // sending replicas
-    parallel::AsyncOp<VertexType> send_replicas;
-    parallel::AsyncOp<int> send_families;
-    if(position->population > average_node_population_ * kMaxPopulation || 
+    std::vector<rank_package> packages;
+
+    if(position->population > average_node_population_ * kMaxPopulation ||
     send_target->population < average_node_population_ * kMinPopulation) {
-        std::vector<VertexType> packed_replicas;
-        std::vector<int> packed_families;
+        // Get all nodes with 0 population infront of current node
+        do {
+            packages.emplace_back();
+            packages.back().rank = send_target->rank;
+            send_target++;
+        }while(send_target->population == 0);
+
+        // Compute pack size (limited gradient)
         // This may need some "Dampening" to keep a large population wave from moving through the nodes
         int pack_size = std::min(std::min(
             std::max(0, (position->population - send_target->population)/2),
             std::max(0, position->population - static_cast<int>(average_node_population_ * kMinPopulation))),
-            static_cast<int>(replicas_.size()/2));
-        int pack_start = replicas_.size() - pack_size;
-        packed_replicas.reserve(pack_size * structure_.size());
-        // Pack
-        for(int k = 0; k < pack_size; ++k) {
-            auto& r = replicas_[pack_start + k];
-            packed_replicas.insert(packed_replicas.end(), r.data(), r.data() + r.size());
-        }
-        packed_families.insert(packed_families.end(), replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
-        // Erase sent replicas
-        replica_families_.erase(replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
-        replicas_.erase(replicas_.begin() + pack_start, replicas_.begin() + pack_start + pack_size);
+            static_cast<int>(replicas_.size()/2)) / packages.size();
+        for(auto pack = packages.rbegin(); pack != packages.rend(); pack++) {
+            int pack_start = replicas_.size() - pack_size;
+            pack->replicas.reserve(pack_size * structure_.size());
 
-        send_replicas = parallel_.SendAsync<std::vector<VertexType>>(packed_replicas, send_target->rank);
-        send_families = parallel_.SendAsync<std::vector<int>>(packed_families, send_target->rank);
+            // Pack
+            for(int k = 0; k < pack_size; ++k) {
+                auto& r = replicas_[pack_start + k];
+                pack->replicas.insert(pack->replicas.end(), r.data(), r.data() + r.size());
+            }
+            pack->families.insert(pack->families.end(), replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
+            
+            // Erase sent replicas
+            replica_families_.erase(replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
+            replicas_.erase(replicas_.begin() + pack_start, replicas_.begin() + pack_start + pack_size);
+
+            pack->send_replicas_op = parallel_.SendAsync(&pack->replicas, pack->rank);
+            pack->send_families_op = parallel_.SendAsync(&pack->families, pack->rank);
+        }
     }
     // receiving replicas
     if(recv_source->population > average_node_population_ * kMaxPopulation ||
     position->population < average_node_population_ * kMinPopulation) {
+        if(position->population == 0) {
+            while(recv_source->population == 0) {
+                recv_source++;
+            }
+        }
         std::vector<VertexType> packed_replicas = parallel_.Receive<std::vector<VertexType>>(recv_source->rank);
         std::vector<int> packed_families = parallel_.Receive<std::vector<int>>(recv_source->rank);
 
