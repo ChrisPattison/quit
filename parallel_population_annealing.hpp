@@ -28,6 +28,8 @@ protected:
 
     std::vector<VertexType> Pack(const std::vector<StateVector>& source);
 
+    std::vector<VertexType> Pack(const std::vector<StateVector>::const_iterator begin_iterator, const std::vector<StateVector>::const_iterator end_iterator);
+
     std::vector<StateVector> Unpack(std::vector<VertexType>& source);
 public:
 
@@ -36,7 +38,6 @@ public:
         double redist_walltime;
         double observables_walltime;
         int max_family_size;
-        int min_node_population;
     };
 
     ParallelPopulationAnnealing(const ParallelPopulationAnnealing&) = delete;

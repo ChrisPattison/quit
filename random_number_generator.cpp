@@ -5,31 +5,20 @@
 #include <cassert>
 
 RandomNumberGenerator::RandomNumberGenerator(int rank) {
-    generator_ = std::mt19937_64(static_cast<std::mt19937_64::result_type>(
-        time(NULL) ^
+    auto seed = time(NULL) ^
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() ^
         std::hash<std::thread::id>()(std::this_thread::get_id()) ^
         rand() ^
         rank ^
-        std::random_device()()));
+        std::random_device()();
+    generator_ = std::mt19937_64(static_cast<std::mt19937_64::result_type>(seed));
     generator_.discard(generator_.state_size*100000);
     pool_size_ = 0;
     last_range_ = 0;
     last_short_range_ = 0;
 }
 
-RandomNumberGenerator::RandomNumberGenerator() {
-    generator_ = std::mt19937_64(static_cast<std::mt19937_64::result_type>(
-        time(NULL) ^
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() ^
-        std::hash<std::thread::id>()(std::this_thread::get_id()) ^
-        rand() ^
-        std::random_device()()));
-    generator_.discard(generator_.state_size*100000);
-    pool_size_ = 0;
-    last_range_ = 0;
-    last_short_range_ = 0;
-}
+RandomNumberGenerator::RandomNumberGenerator() : RandomNumberGenerator(0) {};
 
 decltype(RandomNumberGenerator::generator_()) RandomNumberGenerator::operator()() {
     return generator_();

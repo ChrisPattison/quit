@@ -3,6 +3,8 @@
 #include <vector>
 #include <type_traits>
 #include <cassert>
+#include <numeric>
+#include <iostream>
 #include <mpi.h>
 #include "parallel_types.hpp"
 
@@ -90,7 +92,9 @@ public:
     template<typename T> auto HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
 
-    template<typename T> auto PartialReduce(const std::vector<Packet<T>>& packets) -> std::vector<T>;
+    template<typename T> auto PartialGather(const std::vector<Packet<T>>& packets) -> std::vector<T>;
+
+    template<typename T> auto PartialVectorGather(const std::vector<Packet<T>>& packets) -> std::vector<Packet<T>>;
 
     template<typename T> auto Reduce(const T& value, std::function<T(std::vector<T>&)> reduce) { return Reduce<T>(value, reduce, MPI_COMM_WORLD); }
     
@@ -149,47 +153,68 @@ std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
     }
 }
 
-template<typename T> auto Mpi::PartialReduce(const std::vector<Packet<T>>& packets) -> std::vector<T> {
-    // make this constant better
-    constexpr int kMaxBuffer = 5000;
-    std::vector<MPI_Request> requests(packets.size()+2); // Recv and Barrier
-    MPI_Status wait_status;
-    for(std::size_t k = 0; k < packets.size(); ++k) {
-        MPI_Isend(packets[k].data.data(), packets[k].data.size() * sizeof(T), MPI_BYTE, packets[k].rank, 0, MPI_COMM_WORLD, &requests[k]);
+template<typename T> auto Mpi::PartialGather(const std::vector<Packet<T>>& packets) -> std::vector<T> {
+    auto data_buffer = PartialVectorGather(packets);
+    // combine into one vector / throw out rank information
+    int count = std::accumulate(data_buffer.begin(), data_buffer.end(), 0, [](int& acc, auto& packet) {return acc + packet.data.size(); });
+    std::vector<T> collated_data;
+    collated_data.reserve(count);
+    for(auto& data_packet : data_buffer) {
+        collated_data.insert(collated_data.end(), data_packet.data.begin(), data_packet.data.end());
     }
-    
-    std::vector<T> data_buffer(kMaxBuffer);
-    bool send_complete = packets.size() == 0;
+    return collated_data;
+}
+
+// There may still be a race condition here
+template<typename T> auto Mpi::PartialVectorGather(const std::vector<Packet<T>>& packets) -> std::vector<Packet<T>> {
+    int tag = GetTag();
+    std::vector<MPI_Request> send_requests(packets.size());
+    // Send off all data
+    for(std::size_t k = 0; k < packets.size(); ++k) {
+        MPI_Issend(packets[k].data.data(), packets[k].data.size() * sizeof(T), MPI_BYTE, packets[k].rank, tag, MPI_COMM_WORLD, &send_requests[k]);
+    }
+    // Find some way to inform targets
+
+    std::vector<MPI_Request> recv_requests;
+    MPI_Request barrier_request;
+    std::vector<Packet<T>> data_buffer;
     bool barrier_reached = false;
-    int finished_index;
+    int all_sent;
+    int barrier_done = 0;
+
+    // Busy Wait
     do {
-        MPI_Irecv(data_buffer.data() + data_buffer.size() - kMaxBuffer, kMaxBuffer * sizeof(T), MPI_BYTE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &requests[requests.size() - 2]);
-        // Handle Send finishes
-        do {
-            // TODO: make this loop prettier
-            if(send_complete && !barrier_reached) {
-                MPI_Ibarrier(MPI_COMM_WORLD, &requests[requests.size() - 1]); 
-                barrier_reached = true;
-            }
-            MPI_Waitany(requests.size() - (send_complete ? 0 : 1), requests.data(), &finished_index, &wait_status);
-            if(!send_complete) {
-                int flag = 0;
-                MPI_Testall(requests.size() - 2, requests.data(), &flag, MPI_STATUS_IGNORE);
-                if(flag) {
-                    send_complete = true;
-                }
-            }
-        } while(finished_index < requests.size() - 2);
-        // Recieve Data
-        if(finished_index == requests.size() - 2) {
+        int message_ready;
+        MPI_Message message;
+        MPI_Status message_status;
+        // Check if incoming request
+        MPI_Improbe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &message_ready, &message, &message_status);
+        if(message_ready) {
+            // Get message size, allocate buffer and receive
             int count;
-            MPI_Get_count(&wait_status, MPI_BYTE, &count);
-            data_buffer.insert(data_buffer.end(), count/sizeof(T), T());
+            data_buffer.emplace_back();
+            MPI_Get_count(&message_status, MPI_BYTE, &count);
+            assert(count % sizeof(T) == 0);
+            data_buffer.back().data.resize(count/sizeof(T));
+            data_buffer.back().rank = message_status.MPI_SOURCE;
+            recv_requests.emplace_back();
+            MPI_Imrecv(data_buffer.back().data.data(), count, MPI_BYTE, &message, &recv_requests.back());
         }
-    } while(finished_index != requests.size() - 1);
+        // Check if all outbound sends completed
+        // Warning: Completion of outbound sends does not imply that the reciever has completed the corresponding recv
+        MPI_Testall(send_requests.size(), send_requests.data(), &all_sent, MPI_STATUSES_IGNORE);
+        if(all_sent && !barrier_reached) {
+            MPI_Ibarrier(MPI_COMM_WORLD, &barrier_request); 
+            barrier_reached = true;
+        }
+        // Check if everyone has reached the barrier
+        if(barrier_reached) {
+            MPI_Test(&barrier_request, &barrier_done, MPI_STATUS_IGNORE);
+        }
+    } while(!barrier_done);
     
-    MPI_Cancel(&requests[requests.size() - 2]);
-    data_buffer.erase(data_buffer.end() - kMaxBuffer, data_buffer.end());
+    // Wait for all receives to complete
+    MPI_Waitall(recv_requests.size(), recv_requests.data(), MPI_STATUSES_IGNORE);
     return data_buffer;
 }
 

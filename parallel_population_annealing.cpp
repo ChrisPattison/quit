@@ -50,7 +50,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     }
 
     std::iota(replica_families_.begin(), replica_families_.end(), average_node_population_ * parallel_.rank());
-    beta_ = betalist_.at(0).beta;
+    beta_ = betalist_.front().beta;
     const int M = 10;
     const int max_family_size_limit = average_population_ / 2;
     Eigen::VectorXd energy;
@@ -93,10 +93,6 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy.size() ? energy.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
             [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
 
-        // smallest node population
-        observables.min_node_population = 0;/*parallel_.HeirarchyReduceToAll<int>(static_cast<int>(replicas_.size()),
-            [](std::vector<int>& v) { return *std::min_element(v.begin(), v.end()); });*/
-
         // Round-off /probably/ isn't an issue here. Make this better in the future
         // number of replicas with energy = ground energy
         observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
@@ -105,13 +101,13 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 
         // Largest Family
         std::vector<double> family_size = FamilyCount();
-        observables.max_family_size = family_size.size() > 0 ? *std::max_element(family_size.begin(), family_size.end()) : 0;
+        observables.max_family_size = family_size.size() > 0 ? static_cast<int>(*std::max_element(family_size.begin(), family_size.end())) : 0;
         // Entropy
         std::transform(family_size.begin(), family_size.end(), family_size.begin(), 
             [&](double n) -> double { n /= observables.population; return n * std::log(n); });
         observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
-        
+
         if(new_beta.histograms) {
             // Import or Export replicas to complementary node
             std::vector<StateVector> imported_replicas;
@@ -158,15 +154,6 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         
         parallel_.ExecRoot([&](){
             results.push_back(observables);
-            // std::cout 
-            //     << observables.beta << ",\t" 
-            //     << observables.average_energy << ",\t" 
-            //     << observables.population << ",\t \t" 
-            //     << observables.ground_energy << ",\t" 
-            //     << observables.grounded_replicas << ",\t" 
-            //     << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
-            //     << observables.entropy << ",\t" 
-            //     << observables.population/std::exp(observables.entropy) << std::endl; 
         });
 
         if(observables.max_family_size > max_family_size_limit) {
@@ -208,95 +195,103 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
 
 // TODO: implement reverse transfer, maybe higher order terms in transfer rate
 void ParallelPopulationAnnealing::Redistribute() {
-    struct rank_population {
-        int rank;
-        int population;
-    };
-
+    // REMOVE
+    auto prev_pop = replicas_.size();
+    // REMOVE
     struct rank_package {
         int rank;
+        int pack_start;
+        int pack_end;
         std::vector<VertexType> replicas;
         std::vector<int> families;
-        parallel::AsyncOp<VertexType> send_replicas_op;
-        parallel::AsyncOp<int> send_families_op;
     };
 
-    std::vector<int> populations = parallel_.AllGather(static_cast<int>(replicas_.size()));
-    std::vector<rank_population> node_populations(populations.size());
-    for(auto p = 0; p < node_populations.size(); ++p) {
-        node_populations[p] = {p, populations[p]};
-    }
-    // Position of current rank and the targets in population list
+    std::vector<int> node_populations = parallel_.AllGather(static_cast<int>(replicas_.size()));
+    // Position of current rank
     auto position = node_populations.begin() + parallel_.rank();
-    auto send_target = position != node_populations.end() - 1 ? position + 1 : node_populations.begin();
-    auto recv_source = position != node_populations.begin() ? position - 1 : node_populations.end() - 1;
-    // sending replicas
+    // used for determining the global replica index
+    int left_count = std::accumulate(node_populations.begin(), position, 0);
+    int total_count = std::accumulate(position, node_populations.end(), left_count);
+    int node_count = std::ceil(static_cast<double>(total_count) / parallel_.size());
+    // Assemble packages
     std::vector<rank_package> packages;
-
-    if(position->population > average_node_population_ * kMaxPopulation ||
-    send_target->population < average_node_population_ * kMinPopulation) {
-        // Get all nodes with 0 population infront of current node
-        do {
+    auto it = replica_families_.begin();
+    auto it_end = std::min(it + node_count - left_count % node_count, replica_families_.end());
+    do {
+        int rank = (std::distance(replica_families_.begin(), it) + left_count) / node_count;
+        if(rank != parallel_.rank() && it != it_end) {
             packages.emplace_back();
-            packages.back().rank = send_target->rank;
-            send_target++;
-        }while(send_target->population == 0);
-
-        // Compute pack size (limited gradient)
-        // This may need some "Dampening" to keep a large population wave from moving through the nodes
-        int pack_size = std::min(std::min(
-            std::max(0, (position->population - send_target->population)/2),
-            std::max(0, position->population - static_cast<int>(average_node_population_ * kMinPopulation))),
-            static_cast<int>(replicas_.size()/2)) / packages.size();
-        for(auto pack = packages.rbegin(); pack != packages.rend(); pack++) {
-            int pack_start = replicas_.size() - pack_size;
-            pack->replicas.reserve(pack_size * structure_.size());
-
-            // Pack
-            for(int k = 0; k < pack_size; ++k) {
-                auto& r = replicas_[pack_start + k];
-                pack->replicas.insert(pack->replicas.end(), r.data(), r.data() + r.size());
-            }
-            pack->families.insert(pack->families.end(), replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
-            
-            // Erase sent replicas
-            replica_families_.erase(replica_families_.begin() + pack_start, replica_families_.begin() + pack_start + pack_size);
-            replicas_.erase(replicas_.begin() + pack_start, replicas_.begin() + pack_start + pack_size);
-
-            pack->send_replicas_op = parallel_.SendAsync(&pack->replicas, pack->rank);
-            pack->send_families_op = parallel_.SendAsync(&pack->families, pack->rank);
+            auto& package = packages.back();
+            package.rank = rank;
+            package.pack_start = std::distance(replica_families_.begin(), it);
+            package.pack_end = std::distance(replica_families_.begin(), it_end);
+            package.families.insert(package.families.end(), replica_families_.begin() + package.pack_start, replica_families_.begin() + package.pack_end);
+            package.replicas = Pack(replicas_.begin() + package.pack_start, replicas_.begin() + package.pack_end);
+            assert(package.families.size() == package.replicas.size() / structure_.size());
         }
+        it = it_end;
+        it_end = std::min(it_end + node_count, replica_families_.end());
+    }while(it != replica_families_.end());
+    
+    // delete copied packages
+    for(auto it = packages.rbegin(); it != packages.rend(); ++it) {
+        replicas_.erase(replicas_.begin() + it->pack_start, replicas_.begin() + it->pack_end);
+        replica_families_.erase(replica_families_.begin() + it->pack_start, replica_families_.begin() + it->pack_end);
     }
-    // receiving replicas
-    if(recv_source->population > average_node_population_ * kMaxPopulation ||
-    position->population < average_node_population_ * kMinPopulation) {
-        if(position->population == 0) {
-            while(recv_source->population == 0) {
-                recv_source++;
-            }
-        }
-        std::vector<VertexType> packed_replicas = parallel_.Receive<std::vector<VertexType>>(recv_source->rank);
-        std::vector<int> packed_families = parallel_.Receive<std::vector<int>>(recv_source->rank);
+    // Break apart to send over the wire
+    std::vector<parallel::Packet<int>> packed_families;
+    std::vector<parallel::Packet<VertexType>> packed_replicas;
+    packed_families.reserve(packages.size());
+    packed_replicas.reserve(packages.size());
+    for(auto& pack : packages) {
+        packed_families.emplace_back();
+        packed_families.back().data.swap(pack.families);
+        packed_families.back().rank = pack.rank;
+        packed_replicas.emplace_back();
+        packed_replicas.back().data.swap(pack.replicas);
+        packed_replicas.back().rank = pack.rank;
+    }
+    packages.clear();
+    
+    assert(packed_families.size() == packed_replicas.size());
+    // send
+    auto family_packets = parallel_.PartialVectorGather(packed_families);
+    auto replica_packets = parallel_.PartialVectorGather(packed_replicas);
 
-        assert(packed_families.size() == packed_replicas.size() / structure_.size());
-        int pack_size = packed_families.size();
-        // Unpack
-        replicas_.reserve(replicas_.size() + pack_size);
-        replicas_.insert(replicas_.begin(), pack_size, {});
-        for(int k = 0; k < pack_size; ++k) {
-            replicas_[k] = Eigen::Map<StateVector>(&(packed_replicas[k*structure_.size()]), structure_.size());
+    packed_families.clear();
+    packed_replicas.clear();
+
+    assert(family_packets.size() == replica_packets.size());
+    std::sort(replica_packets.begin(), replica_packets.end(), [](const auto& left, const auto& right) { return left.rank < right.rank; });
+    std::sort(family_packets.begin(), family_packets.end(), [](const auto& left, const auto& right) { return left.rank < right.rank; });
+
+
+    // assimilate. sorting guarantees order preservation
+    for(int k = 0; k < replica_packets.size(); ++k) {
+        assert(family_packets[k].rank == replica_packets[k].rank);
+        assert(family_packets[k].data.size() == replica_packets[k].data.size() / structure_.size());
+
+        auto unpacked_replicas = Unpack(replica_packets[k].data);
+        if(family_packets[k].rank < parallel_.rank()) {
+            replicas_.insert(replicas_.begin(), std::make_move_iterator(unpacked_replicas.begin()), std::make_move_iterator(unpacked_replicas.end()));
+            replica_families_.insert(replica_families_.begin(), family_packets[k].data.begin(), family_packets[k].data.end());
+        }else {
+            replicas_.insert(replicas_.end(), std::make_move_iterator(unpacked_replicas.begin()), std::make_move_iterator(unpacked_replicas.end()));
+            replica_families_.insert(replica_families_.end(), family_packets[k].data.begin(), family_packets[k].data.end());
         }
-        replica_families_.insert(replica_families_.begin(), packed_families.begin(), packed_families.end());
     }
 }
 
 std::vector<VertexType> ParallelPopulationAnnealing::Pack(const std::vector<StateVector>& source) {
-    std::vector<VertexType> destination;
-    destination.reserve(source.size() * structure_.size());
+    return Pack(source.begin(), source.end());
+}
 
-    for(int k = 0; k < source.size(); ++k) {
-        auto& r = source[k];
-        destination.insert(destination.end(), r.data(), r.data() + r.size());
+std::vector<VertexType> ParallelPopulationAnnealing::Pack(const std::vector<StateVector>::const_iterator begin_iterator, const std::vector<StateVector>::const_iterator end_iterator) {
+    std::vector<VertexType> destination;
+    destination.reserve(std::distance(begin_iterator, end_iterator) * structure_.size());
+
+    for(auto it = begin_iterator; it != end_iterator; ++it) {
+        destination.insert(destination.end(), it->data(), it->data() + it->size());
     }
     return destination;
 }
@@ -308,7 +303,7 @@ std::vector<PopulationAnnealing::StateVector> ParallelPopulationAnnealing::Unpac
     std::vector<StateVector> destination;
     destination.reserve(pack_size);
     for(int k = 0; k < pack_size; ++k) {
-        destination.push_back(Eigen::Map<StateVector>(&(source[k*structure_.size()]), structure_.size()));
+        destination.push_back(PopulationAnnealing::StateVector(Eigen::Map<StateVector>(&(source[k*structure_.size()]), structure_.size())));
     }
     return destination;
 }
@@ -349,12 +344,15 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
     }
     // send and count recieved families
     auto it = local_families.begin();
-    std::vector<Family> import_families = parallel_.PartialReduce(packets);
+    std::vector<Family> import_families = parallel_.PartialGather(packets);
     for(auto& f : import_families) {
         // find iterator to matching family with optimization for successive families
-        if(!(++it < local_families.end() && it->tag == f.tag)) {
+        // This optimization generates memcheck errors
+        // ++it;
+        // !(it < local_families.end() && it->tag == f.tag)
+        // if(it >= local_families.end() || it->tag != f.tag) {
             it = std::find_if(local_families.begin(), local_families.end(), [&](const Family& match) { return match.tag == f.tag; });
-        }
+        // }
         
         if(it == local_families.end()) {
             local_families.push_back(f);
