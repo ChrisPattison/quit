@@ -11,8 +11,7 @@
 
 class ParallelPopulationAnnealing : protected PopulationAnnealing {
 protected:
-    static constexpr double kMaxPopulation = 1.2;
-    static constexpr double kMinPopulation = 0.7;
+    static constexpr double kMaxPopulation = 1.10;
 
     parallel::Mpi parallel_;
 
