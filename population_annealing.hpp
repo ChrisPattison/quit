@@ -8,6 +8,9 @@
 #include "Eigen/Dense"
 
 class PopulationAnnealing {
+protected:
+    int const lookup_table_size_ = 1024;
+    std::vector<double> log_lookup_table_;
 public:
     struct Result {
         struct Histogram {
@@ -48,7 +51,7 @@ protected:
     // Gets the number of replicas in each family as a fraction of the total population
     std::vector<double> FamilyCount();
 
-    double AcceptanceProbability(double delta_energy) const;
+    bool AcceptedMove(double delta_energy);
     // Gives the Hamiltonian of the given state
     double Hamiltonian(StateVector& replica);
     // Change in energy associated with a single change in state

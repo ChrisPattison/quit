@@ -73,6 +73,10 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Temperatu
         r = StateVector();
         r.resize(structure_.size());
     }
+    log_lookup_table_.resize(lookup_table_size_);
+    for(int k = 0; k < log_lookup_table_.size(); ++k) {
+        log_lookup_table_[k] = std::log(static_cast<double>(k) / (log_lookup_table_.size() - 1));
+    }
  }
 
 double PopulationAnnealing::Hamiltonian(StateVector& replica) {
@@ -101,10 +105,9 @@ void PopulationAnnealing::MonteCarloSweep(StateVector& replica, int sweeps) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
             int vertex = rng_.ShortRange(replica.size());
             double delta_energy = DeltaEnergy(replica, vertex);
-            double acceptance_probability = AcceptanceProbability(delta_energy);
             
             //round-off isn't a concern here
-            if(acceptance_probability==1.0 || acceptance_probability > rng_.Probability()) {
+            if(AcceptedMove(delta_energy)) {
                 replica(vertex) *= -1;
             }
         }
@@ -222,9 +225,27 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     return results;
 }
 
-//TODO: compute the exponential only when necessary
-double PopulationAnnealing::AcceptanceProbability(double delta_energy) const {
-    return delta_energy < 0.0 ? 1.0 : std::exp(-delta_energy*beta_);
+bool PopulationAnnealing::AcceptedMove(double delta_energy) {
+    if(delta_energy < 0.0) {
+        return true;
+    }
+    // Get probability exponent and test probability
+    double acceptance_prob_exp = -delta_energy*beta_;
+    double test = rng_.Probability();
+
+    // Compute bound on log of test number
+    int lower_index = std::floor(test * (log_lookup_table_.size() - 1));
+    double test_log_lower_bound = log_lookup_table_.at(lower_index);
+    double test_log_upper_bound = log_lookup_table_.at(lower_index+1);
+
+    // return acceptance_prob_exp > log(test);
+    if(test_log_upper_bound < acceptance_prob_exp) {
+        return true;
+    }else if(test_log_lower_bound > acceptance_prob_exp) {
+        return false;
+    }
+    // Compute exp if LUT can't resolve it
+    return std::exp(acceptance_prob_exp) > test;
 }
 
 void PopulationAnnealing::Resample(double new_beta) {
