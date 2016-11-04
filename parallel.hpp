@@ -124,6 +124,9 @@ public:
     template<typename T> auto HeirarchyVectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
 
+    template<typename T> auto Broadcast(const T& value) ->
+    std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
+
     void Barrier();
 };
 
@@ -365,5 +368,12 @@ std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>
     data_buffer.resize(message_size/sizeof(typename T::value_type));
     MPI_Mrecv(data_buffer.data(), message_size, MPI_BYTE, &message, MPI_STATUS_IGNORE);
     return data_buffer;
+}
+
+template<typename T> auto Mpi::Broadcast(const T& value) ->
+std::enable_if_t<std::is_trivially_copyable<T>::value, T> {
+    T data = value;
+    MPI_Bcast(&data, sizeof(T), MPI_BYTE, kRoot, MPI_COMM_WORLD);
+    return data;
 }
 }

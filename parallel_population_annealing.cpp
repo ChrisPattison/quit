@@ -21,11 +21,13 @@ void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram
 }
 
 ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population) : 
-        PopulationAnnealing(structure, betalist, 0) {
-        
+PopulationAnnealing(structure, betalist, 0) {
+    
     average_node_population_ = average_population / parallel_.size();
     average_population_ = average_node_population_ * parallel_.size();
-    rng_ = RandomNumberGenerator(parallel_.rank());
+    auto seed = rng_.RandomSeed();
+    seed = parallel_.Broadcast(seed);
+    rng_ = RandomNumberGenerator(seed ^ parallel_.rank());
 
     replicas_.resize(average_node_population_);
     replica_families_.resize(average_node_population_);
@@ -45,7 +47,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {
-            r(k) = rng_.Get<bool>() ? 1 : -1;
+            r(k) = rng_.Probability() < 0.5 ? 1 : -1;
         }
     }
 

@@ -103,7 +103,7 @@ double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
 void PopulationAnnealing::MonteCarloSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
-            int vertex = rng_.ShortRange(replica.size());
+            int vertex = rng_.Range(replica.size());
             double delta_energy = DeltaEnergy(replica, vertex);
             
             //round-off isn't a concern here
@@ -128,7 +128,7 @@ PopulationAnnealing::StateVector PopulationAnnealing::Quench(const StateVector& 
     StateVector quenched_replica = replica;
     do {
         for(std::size_t k = 0; k < sweeps * quenched_replica.size(); ++k) {
-            int vertex = rng_.ShortRange(quenched_replica.size());
+            int vertex = rng_.Range(quenched_replica.size());
             if(DeltaEnergy(quenched_replica, vertex) < 0) {
                 quenched_replica(vertex) *= -1;
             }
@@ -158,7 +158,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {
-            r(k) = rng_.Get<bool>() ? 1 : -1;
+            r(k) = rng_.Probability() < 0.5 ? 1 : -1;
         }
     }
 
