@@ -154,13 +154,13 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
     beta_ = betalist_.at(0).beta;
     int M = 10;
-    Eigen::VectorXd energy;
+    std::vector<double> energy;
 
     for(auto new_beta : betalist_) {
         Result observables;
         
         if(new_beta.beta != beta_) {
-            Resample(new_beta.beta);
+            observables.norm_factor = Resample(new_beta.beta);
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
                 MonteCarloSweep(replicas_[k], M);
             }
@@ -168,16 +168,17 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
         energy.resize(replicas_.size());
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
-            energy(k) = Hamiltonian(replicas_[k]);
+            energy[k] = Hamiltonian(replicas_[k]);
         }
+        Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
         // Basic observables
         observables.beta = beta_;
         observables.population = replicas_.size();
-        observables.average_energy = energy.mean();
-        observables.average_energy_squared = energy.array().pow(2).mean();
-        observables.ground_energy = energy.minCoeff();
+        observables.average_energy = energy_map.mean();
+        observables.average_energy_squared = energy_map.array().pow(2).mean();
+        observables.ground_energy = energy_map.minCoeff();
         // Round-off /probably/ isn't an issue here
-        observables.grounded_replicas = energy.array().unaryExpr(
+        observables.grounded_replicas = energy_map.array().unaryExpr(
             [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
         // Entropy
         std::vector<double> family_size = FamilyCount();
@@ -186,6 +187,8 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
 
         if(new_beta.histograms) {
+            // Energy
+            observables.energy_distribution = BuildHistogram(energy);
             // Overlap
             std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
             std::vector<double> overlap_samples(overlap_pairs.size());
@@ -228,7 +231,7 @@ bool PopulationAnnealing::AcceptedMove(double delta_energy) {
     return std::exp(acceptance_prob_exp) > test;
 }
 
-void PopulationAnnealing::Resample(double new_beta) {
+double PopulationAnnealing::Resample(double new_beta) {
     std::vector<StateVector> resampled_replicas;
     std::vector<int> resampled_families;
     resampled_replicas.reserve(replicas_.size());
@@ -252,4 +255,5 @@ void PopulationAnnealing::Resample(double new_beta) {
     beta_ = new_beta;
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
+    return normalize;
 }

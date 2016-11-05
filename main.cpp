@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
             << "Redist_Walltime," << std::setw(kHeaderWidth) 
             << "Obs_Walltime," << std::setw(kHeaderWidth) 
             << "<E>," << std::setw(kHeaderWidth) 
+            << "Q," << std::setw(kHeaderWidth) 
             << "R," << std::setw(kHeaderWidth) 
             << "E_MIN," << std::setw(kHeaderWidth) 
             << "R_MIN," << std::setw(kHeaderWidth) 
@@ -60,6 +61,7 @@ int main(int argc, char** argv) {
                 << r.redist_walltime << "," << std::setw(kWidth) 
                 << r.observables_walltime << "," << std::setw(kWidth)
                 << r.average_energy << "," << std::setw(kWidth) 
+                << r.norm_factor << "," << std::setw(kWidth) 
                 << r.population << "," << std::setw(kWidth) 
                 << r.ground_energy << "," << std::setw(kWidth) 
                 << r.grounded_replicas << "," << std::setw(kWidth) 
@@ -79,6 +81,12 @@ int main(int argc, char** argv) {
                     << std::setprecision(4) << std::fixed << r.beta << ","
                     << std::setprecision(10) << std::scientific << std::setw(kWidth) << ql.bin << ","
                     << std::setw(kWidth) << ql.value << std::endl;
+            }
+            for(auto E : r.energy_distribution) {
+                std::cout << "|E, "
+                    << std::setprecision(4) << std::fixed << r.beta << ","
+                    << std::setprecision(10) << std::scientific << std::setw(kWidth) << E.bin << ","
+                    << std::setw(kWidth) << E.value << std::endl;
             }
         }
     });

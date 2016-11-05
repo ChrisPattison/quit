@@ -55,14 +55,14 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     beta_ = betalist_.front().beta;
     const int M = 10;
     const int max_family_size_limit = average_population_ / 2;
-    Eigen::VectorXd energy;
+    std::vector<double> energy;
 
     for(auto new_beta : betalist_) {
         Result observables;
         auto time_start = std::chrono::high_resolution_clock::now();
         // Population Annealing
         if(new_beta.beta != beta_) {
-            Resample(new_beta.beta);
+            observables.norm_factor = Resample(new_beta.beta);
             auto redist_time_start = std::chrono::high_resolution_clock::now();
             Redistribute();
             observables.redist_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - redist_time_start).count();
@@ -77,9 +77,9 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 
         energy.resize(replicas_.size());
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
-            energy(k) = Hamiltonian(replicas_[k]);
+            energy[k] = Hamiltonian(replicas_[k]);
         }
-        // This breaks if all the population belonging to a node is killed off at once
+        Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
         // Observables
         observables.beta = beta_;
 
@@ -87,18 +87,20 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         observables.population = parallel_.HeirarchyReduceToAll<int>(static_cast<int>(replicas_.size()), 
             [](std::vector<int>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<int>()); });
 
-        // average energy
-        observables.average_energy = parallel_.HeirarchyReduce<double>(energy.size() ? energy.array().mean() : std::numeric_limits<double>::quiet_NaN(),
+        // energy averages
+        observables.average_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().mean() : std::numeric_limits<double>::quiet_NaN(),
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
-
+        
+        observables.average_energy_squared = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().pow(2).mean() : std::numeric_limits<double>::quiet_NaN(),
+            [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
         // ground energy
-        observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy.size() ? energy.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
+        observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy_map.size() ? energy_map.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
             [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
 
         // Round-off /probably/ isn't an issue here. Make this better in the future
         // number of replicas with energy = ground energy
         observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
-            energy.size() ? energy.array().unaryExpr([&](double E) { return E == observables.ground_energy ? 1 : 0; }).sum() : 0,
+            energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return E == observables.ground_energy ? 1 : 0; }).sum() : 0,
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         // Largest Family
@@ -111,6 +113,15 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         if(new_beta.histograms) {
+            // Energy Distribution
+            observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
+                [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
+            std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
+                [&](Result::Histogram v) -> Result::Histogram {
+                    v.value /= parallel_.size(); 
+                    return v;
+                });
+
             // Import or Export replicas to complementary node
             std::vector<StateVector> imported_replicas;
             if(parallel_.rank() < parallel_.size()/2) {
@@ -167,7 +178,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     return results;
 }
 
-void ParallelPopulationAnnealing::Resample(double new_beta) {
+double ParallelPopulationAnnealing::Resample(double new_beta) {
     std::vector<StateVector> resampled_replicas;
     std::vector<int> resampled_families;
     resampled_replicas.reserve(replicas_.size());
@@ -195,6 +206,7 @@ void ParallelPopulationAnnealing::Resample(double new_beta) {
     beta_ = new_beta;
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
+    return normalize;
 }
 
 void ParallelPopulationAnnealing::Redistribute() {

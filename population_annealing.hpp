@@ -19,8 +19,10 @@ public:
         };
         std::vector<Histogram> overlap;
         std::vector<Histogram> link_overlap;
+        std::vector<Histogram> energy_distribution;
         double beta;
         int population;
+        double norm_factor;
         double average_energy;
         double average_energy_squared;
         double ground_energy;
@@ -69,8 +71,8 @@ protected:
     double LinkOverlap(StateVector& alpha, StateVector& beta);
 
     std::vector<Result::Histogram> BuildHistogram(const std::vector<double>& samples);
-
-    void Resample(double new_beta);
+    // Resamples the population and gives the normalization factor as a byproduct
+    double Resample(double new_beta);
 public:
 
     PopulationAnnealing() = delete;

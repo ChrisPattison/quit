@@ -17,7 +17,7 @@ protected:
 
     int average_node_population_;
 
-    void Resample(double new_beta);
+    double Resample(double new_beta);
 
     void Redistribute();
 
