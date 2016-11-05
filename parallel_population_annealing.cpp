@@ -1,4 +1,5 @@
 #include "parallel_population_annealing.hpp"
+#include "compare.hpp"
 #include <cmath>
 #include <cassert>
 #include <iostream>
@@ -11,8 +12,8 @@
 
 void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram>& target, const std::vector<Result::Histogram>& source) {
     for(auto bin : source) {
-        auto it = std::lower_bound(target.begin(), target.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) {return kEpsilon < b.bin - a.bin;});
-        if(it==target.end() || bin.bin + kEpsilon <= it->bin) {
+        auto it = std::lower_bound(target.begin(), target.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) { return a.bin < b.bin && !FuzzyCompare(a.bin, b.bin); });
+        if(it==target.end() || !FuzzyCompare(bin.bin, it->bin)) {
             target.insert(it, bin);
         } else {
             it->value += bin.value;
@@ -97,10 +98,9 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy_map.size() ? energy_map.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
             [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
 
-        // Round-off /probably/ isn't an issue here. Make this better in the future
         // number of replicas with energy = ground energy
         observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
-            energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return E == observables.ground_energy ? 1 : 0; }).sum() : 0,
+            energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return FuzzyCompare(E, observables.ground_energy) ? 1 : 0; }).sum() : 0,
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         // Largest Family
