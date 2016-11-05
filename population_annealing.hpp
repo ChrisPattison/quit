@@ -33,7 +33,8 @@ public:
 
     struct Temperature {
         double beta;
-        bool histograms = false;
+        bool overlap_dist = false;
+        bool energy_dist = false;
     };
     
 protected:

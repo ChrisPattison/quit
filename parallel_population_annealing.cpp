@@ -112,8 +112,8 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
-        if(new_beta.histograms) {
-            // Energy Distribution
+        // Energy Distribution
+        if(new_beta.energy_dist) {
             observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
                 [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
             std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
@@ -121,7 +121,9 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                     v.value /= parallel_.size(); 
                     return v;
                 });
+        }
 
+        if(new_beta.overlap_dist) {
             // Import or Export replicas to complementary node
             std::vector<StateVector> imported_replicas;
             if(parallel_.rank() < parallel_.size()/2) {

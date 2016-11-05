@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
         betalist[i].beta = i*5.0/(betalist.size()-1);
     }
 
-    betalist.back().histograms = true;
+    betalist.back().overlap_dist = true;
 
     ParallelPopulationAnnealing population_annealing(model, betalist, R);
 

@@ -187,9 +187,12 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
             [&](double n) -> double {n /= replicas_.size(); return n * std::log(n);});
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
 
-        if(new_beta.histograms) {
+        if(new_beta.energy_dist) {
             // Energy
             observables.energy_distribution = BuildHistogram(energy);
+        }
+        
+        if(new_beta.overlap_dist) {
             // Overlap
             std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
             std::vector<double> overlap_samples(overlap_pairs.size());
