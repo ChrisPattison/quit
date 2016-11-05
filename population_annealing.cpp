@@ -200,17 +200,8 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
             observables.link_overlap = BuildHistogram(overlap_samples);
         }
 
+        observables.seed = rng_.GetSeed();
         results.push_back(observables);
-        
-        std::cout 
-            << beta_ << ",\t" 
-            << observables.average_energy << ",\t" 
-            << observables.population << ",\t \t" 
-            << observables.ground_energy << ",\t" 
-            << observables.grounded_replicas << ",\t" 
-            << static_cast<double>(observables.grounded_replicas)/observables.population << ",\t \t" 
-            << observables.entropy << ",\t" 
-            << observables.population/std::exp(observables.entropy) << std::endl;
     }
     return results;
 }

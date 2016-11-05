@@ -6,6 +6,7 @@
 #include <cassert>
 
 RandomNumberGenerator::RandomNumberGenerator(std::uint64_t seed) {
+    seed_ = seed;
     vslNewStream(&stream_, VSL_BRNG_SFMT19937, seed);
     vslSkipAheadStream(stream_, 2492*100000);
 }
@@ -28,6 +29,10 @@ std::uint64_t RandomNumberGenerator::RandomSeed() {
         std::hash<std::thread::id>()(std::this_thread::get_id()) ^
         rand() ^
         std::random_device()();
+}
+
+std::uint64_t RandomNumberGenerator::GetSeed() {
+    return seed_;
 }
 
 int RandomNumberGenerator::Range(int N) {

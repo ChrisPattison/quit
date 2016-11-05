@@ -149,11 +149,13 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                 });
         }
 
+        observables.seed = rng_.GetSeed();
+
         observables.max_family_size = parallel_.HeirarchyReduceToAll<int>(observables.max_family_size, 
             [](std::vector<int>& v) { return *std::max_element(v.begin(), v.end()); });
 
         observables.observables_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
-        
+
         parallel_.ExecRoot([&](){
             results.push_back(observables);
         });
