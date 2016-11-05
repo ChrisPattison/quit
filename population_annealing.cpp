@@ -66,6 +66,7 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Temperatu
     betalist_ = betalist;
     beta_ = NAN;
     structure_ = structure;
+    structure_.Adjacent().makeCompressed();
     average_population_ = average_population;
     replicas_.resize(average_population_);
     replica_families_.resize(average_population_);
@@ -80,22 +81,11 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Temperatu
  }
 
 double PopulationAnnealing::Hamiltonian(StateVector& replica) {
-    double energy = 0.0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += replica(k) * it.value() * replica(it.index());
-        }
-        // energy -= replica(k) * structure_.Fields()(k);
-    }
-    return energy;
+    return ((structure_.Adjacent().triangularView<Eigen::Upper>() * replica.cast<EdgeType>()).array() * replica.cast<EdgeType>().array()).sum();
 }
 
 double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
-    double h = 0.0;
-    for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
-        h += it.value() * replica(it.index());
-    }
+    double h = structure_.Adjacent().innerVector(vertex).dot(replica.cast<EdgeType>());
     // h -= structure_.Fields()(vertex);
     return -2 * replica(vertex) * h;
 }
