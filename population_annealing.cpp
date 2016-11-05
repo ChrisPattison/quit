@@ -144,7 +144,6 @@ double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
 
 std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     std::vector<Result> results;
-    std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;
     
     for(auto& r : replicas_) {
         for(std::size_t k = 0; k < r.size(); ++k) {

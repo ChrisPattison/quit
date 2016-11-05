@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
             << "E_MIN," << std::setw(kHeaderWidth) 
             << "R_MIN," << std::setw(kHeaderWidth) 
             << "S," << std::setw(kHeaderWidth) 
-            << "R_f_MAX" << std::setw(kHeaderWidth) 
+            << "R_f_MAX" << std::setw(kHeaderWidth) << std::endl;
         for(auto r : results) {
             std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
                 << r.beta << "," << std::setw(kWidth) 
