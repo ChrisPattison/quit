@@ -21,8 +21,8 @@ void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram
     }
 }
 
-ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population) : 
-PopulationAnnealing(structure, betalist, 0) {
+ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population) : 
+PopulationAnnealing(structure, schedule, 0) {
     
     average_node_population_ = average_population / parallel_.size();
     average_population_ = average_node_population_ * parallel_.size();
@@ -40,7 +40,6 @@ PopulationAnnealing(structure, betalist, 0) {
  
 std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Run() {
     std::vector<Result> results;
-    // parallel_.ExecRoot([&](){std::cout << "beta\t<E>\t \tR\t \tE_MIN\t \tR_MIN\tR_MIN/R\t \tS\tR/e^S" << std::endl;});
     
     if(parallel_.size() / 2 * 2 != parallel_.size()) {
         return results;
@@ -53,22 +52,21 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     }
 
     std::iota(replica_families_.begin(), replica_families_.end(), average_node_population_ * parallel_.rank());
-    beta_ = betalist_.front().beta;
-    const int M = 10;
+    beta_ = schedule_.at(0).beta;
     const int max_family_size_limit = average_population_ / 2;
     std::vector<double> energy;
 
-    for(auto new_beta : betalist_) {
+    for(auto step : schedule_) {
         Result observables;
         auto time_start = std::chrono::high_resolution_clock::now();
         // Population Annealing
-        if(new_beta.beta != beta_) {
-            observables.norm_factor = Resample(new_beta.beta);
+        if(step.beta != beta_) {
+            observables.norm_factor = Resample(step.beta);
             auto redist_time_start = std::chrono::high_resolution_clock::now();
             Redistribute();
             observables.redist_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - redist_time_start).count();
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                MonteCarloSweep(replicas_[k], M);
+                MonteCarloSweep(replicas_[k], step.sweeps);
             }
         }else {
             observables.redist_walltime = 0.0;
@@ -113,7 +111,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         // Energy Distribution
-        if(new_beta.energy_dist) {
+        if(step.energy_dist) {
             observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
                 [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
             std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
@@ -123,7 +121,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                 });
         }
 
-        if(new_beta.overlap_dist) {
+        if(step.overlap_dist) {
             // Import or Export replicas to complementary node
             std::vector<StateVector> imported_replicas;
             if(parallel_.rank() < parallel_.size()/2) {

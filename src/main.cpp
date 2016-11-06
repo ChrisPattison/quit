@@ -22,14 +22,14 @@ int main(int argc, char** argv) {
     constexpr int kWidth = 18;
     constexpr int kHeaderWidth = kWidth + 1;
 
-    std::vector<PopulationAnnealing::Temperature> betalist(101);
-    for(std::size_t i = 0; i < betalist.size(); ++i) {
-        betalist[i].beta = i*5.0/(betalist.size()-1);
+    std::vector<PopulationAnnealing::Schedule> schedule(101);
+    for(std::size_t i = 0; i < schedule.size(); ++i) {
+        schedule[i].beta = i*5.0/(schedule.size()-1);
     }
 
-    betalist.back().overlap_dist = true;
+    schedule.back().overlap_dist = true;
 
-    ParallelPopulationAnnealing population_annealing(model, betalist, R);
+    ParallelPopulationAnnealing population_annealing(model, schedule, R);
 
     auto results = population_annealing.Run();
 

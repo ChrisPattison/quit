@@ -31,8 +31,9 @@ public:
         std::uint64_t seed;
     };
 
-    struct Temperature {
+    struct Schedule {
         double beta;
+        int sweeps = 10;
         bool overlap_dist = false;
         bool energy_dist = false;
     };
@@ -47,7 +48,7 @@ protected:
     std::vector<int> replica_families_;
 
     int average_population_;
-    std::vector<Temperature> betalist_;
+    std::vector<Schedule> schedule_;
     double beta_;
 
     // Builds a list of replicas with different Markov Chains
@@ -78,7 +79,7 @@ public:
 
     PopulationAnnealing() = delete;
 
-    PopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population);
+    PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population);
 
     std::vector<Result> Run();
 };

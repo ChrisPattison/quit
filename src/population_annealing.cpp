@@ -63,8 +63,8 @@ std::vector<double> PopulationAnnealing::FamilyCount() {
     return count;
 }
 
-PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Temperature> betalist, int average_population) {
-    betalist_ = betalist;
+PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population) {
+    schedule_ = schedule;
     beta_ = NAN;
     structure_ = structure;
     structure_.Adjacent().makeCompressed();
@@ -153,17 +153,16 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     }
 
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
-    beta_ = betalist_.at(0).beta;
-    int M = 10;
+    beta_ = schedule_.front().beta;
     std::vector<double> energy;
 
-    for(auto new_beta : betalist_) {
+    for(auto step : schedule_) {
         Result observables;
         
-        if(new_beta.beta != beta_) {
-            observables.norm_factor = Resample(new_beta.beta);
+        if(step.beta != beta_) {
+            observables.norm_factor = Resample(step.beta);
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                MonteCarloSweep(replicas_[k], M);
+                MonteCarloSweep(replicas_[k], step.sweeps);
             }
         }
 
@@ -187,12 +186,12 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
             [&](double n) -> double {n /= replicas_.size(); return n * std::log(n);});
         observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
 
-        if(new_beta.energy_dist) {
+        if(step.energy_dist) {
             // Energy
             observables.energy_distribution = BuildHistogram(energy);
         }
         
-        if(new_beta.overlap_dist) {
+        if(step.overlap_dist) {
             // Overlap
             std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
             std::vector<double> overlap_samples(overlap_pairs.size());
