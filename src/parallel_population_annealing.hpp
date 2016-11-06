@@ -7,7 +7,7 @@
 #include "random_number_generator.hpp"
 #include "population_annealing.hpp"
 #include "parallel.hpp"
-#include "Eigen/Dense"
+#include <Eigen/Dense>
 
 class ParallelPopulationAnnealing : protected PopulationAnnealing {
 protected:

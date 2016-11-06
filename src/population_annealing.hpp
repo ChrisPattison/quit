@@ -5,7 +5,7 @@
 #include "graph.hpp"
 #include "types.hpp"
 #include "random_number_generator.hpp"
-#include "Eigen/Dense"
+#include <Eigen/Dense>
 
 class PopulationAnnealing {
 protected:

@@ -1,0 +1,10 @@
+#pragma once
+
+namespace version
+{
+static const int kMajor = @MPPAMC_VERSION_MAJOR@;
+static const int kMinor = @MPPAMC_VERSION_MINOR@;
+static const auto kRefSpec = "@GIT_REFSPEC@";
+static const auto kCommitHash = "@GIT_SHA1@";
+static const auto kBuildTime = "@BUILD_TIME@";
+}

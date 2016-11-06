@@ -1,7 +1,7 @@
 #pragma once
 #include "types.hpp"
-#include "Eigen/Sparse"
-#include "Eigen/Dense"
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
 
 class Graph {
     Eigen::SparseMatrix<EdgeType> adjacent_;

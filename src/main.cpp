@@ -1,10 +1,10 @@
 #include "parse.hpp"
 #include "graph.hpp"
 #include "parallel_population_annealing.hpp"
-#include "post.hpp"
 #include "types.hpp"
-#include "Eigen/Dense"
 #include "utilities.hpp"
+#include "version.hpp"
+#include <Eigen/Dense>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -35,9 +35,11 @@ int main(int argc, char** argv) {
 
     parallel::Mpi parallel;
     parallel.ExecRoot([&]() {
-        std::cout << "# Massively Parallel Population Annealing Monte Carlo" << std::endl;
+        std::cout << "# Massively Parallel Population Annealing Monte Carlo V" << version::kMajor << "." << version::kMinor << std::endl;
         std::cout << "# C. Pattison" << std::endl;
-        std::cout << "# Built: " << __DATE__ << " " << __TIME__ << std::endl;
+        std::cout << "# Branch: " << version::kRefSpec << std::endl;
+        std::cout << "# Commit: " << version::kCommitHash << std::endl;
+        std::cout << "# Built: " << version::kBuildTime << std::endl;
         std::cout << "# Input: " << argv[1] << std::endl;
         std::cout << "# Seed: " << std::hex << results.front().seed << std::dec << std::endl; 
         std::cout << "# R=" << R << std::endl;
