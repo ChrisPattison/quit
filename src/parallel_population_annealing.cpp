@@ -21,12 +21,15 @@ void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram
     }
 }
 
-ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population) : 
-PopulationAnnealing(structure, schedule, 0) {
+ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population, std::uint64_t seed) : 
+PopulationAnnealing(structure, schedule, 0, seed) {
     
     average_node_population_ = average_population / parallel_.size();
     average_population_ = average_node_population_ * parallel_.size();
-    auto seed = rng_.RandomSeed();
+    
+    if(seed == 0) {
+        seed = rng_.RandomSeed();
+    }
     seed = parallel_.Broadcast(seed);
     rng_ = RandomNumberGenerator(seed ^ parallel_.rank());
 

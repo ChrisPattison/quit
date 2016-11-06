@@ -63,12 +63,17 @@ std::vector<double> PopulationAnnealing::FamilyCount() {
     return count;
 }
 
-PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population) {
+PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population, std::uint64_t seed) {
+    if(seed != 0) {
+        rng_ = RandomNumberGenerator(seed);
+    }
+
     schedule_ = schedule;
     beta_ = NAN;
     structure_ = structure;
     structure_.Adjacent().makeCompressed();
     average_population_ = average_population;
+    
     replicas_.resize(average_population_);
     replica_families_.resize(average_population_);
     for(auto& r : replicas_) {

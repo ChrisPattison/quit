@@ -4,11 +4,17 @@
 #include <iterator>
 #include <exception>
 #include <tuple>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include "utilities.hpp"
 
-namespace io {
-
-void IjjParse(Graph& model, std::istream& file) {
+namespace io 
+{
+Graph IjjParse(std::istream& file) {
+    Graph model;
     try {
         std::string buffer(kBufferSize, '\0');
         std::vector<std::string> tokens;
@@ -38,8 +44,9 @@ void IjjParse(Graph& model, std::istream& file) {
         utilities::Check(model.IsConsistent(), "Missing edge somewhere.");
         utilities::Check(model.Adjacent().size() > 0, "No Elements.");
     } catch(std::exception& e) {
-        utilities::Check(false, "Parsing failed.");
+        utilities::Check(false, "Input parsing failed.");
     }
+    return model;
 }
 
 void IjjDump(Graph& model, std::ostream& stream) {
@@ -50,5 +57,28 @@ void IjjDump(Graph& model, std::ostream& stream) {
             stream << k << kOutputSeperator << it.index() << kOutputSeperator << kOutputCouplerCoeff * it.value();
         }
     }
+}
+
+
+Config ConfigParse(std::istream& file) {
+    Config config;
+    try {
+        boost::property_tree::ptree tree;
+        boost::property_tree::read_json(file, tree);
+
+        config.population = tree.get<int>("population");
+        std::stringstream converter(tree.get<std::string>("seed", "0"));
+        converter >> std::hex >> config.seed;
+        for(auto& item : tree.get_child("schedule")) {
+            config.schedule.emplace_back();
+            config.schedule.back().beta = item.second.get<double>("beta");
+            config.schedule.back().sweeps = item.second.get("sweeps", 10);
+            config.schedule.back().overlap_dist = item.second.get("overlap_hist", false);
+            config.schedule.back().energy_dist = item.second.get("energy_hist", false);
+        }
+    } catch(std::exception& e) {
+        utilities::Check(false, "Config parsing failed.");
+    }
+    return config;
 }
 }

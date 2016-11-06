@@ -10,28 +10,23 @@
 #include <iomanip>
 
 int main(int argc, char** argv) {
-    Graph model;
-
-    utilities::Check(argc >= 2, "Input File Expected");
+    // Parse input and configuration files
+    utilities::Check(argc >= 3, "Config and input files Expected");
     auto file = std::ifstream(argv[1]);
-    io::IjjParse(model, file);
+    auto config = io::ConfigParse(file);
     file.close();
 
-    // initializate solver
-    int R = 40000;
+    file = std::ifstream(argv[2]);
+    Graph model = io::IjjParse(file);
+    file.close();
+
+    // initializate solver and run
+    ParallelPopulationAnnealing population_annealing(model, config.schedule, config.population, config.seed);
+    auto results = population_annealing.Run();
+
+    // Output formatting
     constexpr int kWidth = 18;
     constexpr int kHeaderWidth = kWidth + 1;
-
-    std::vector<PopulationAnnealing::Schedule> schedule(101);
-    for(std::size_t i = 0; i < schedule.size(); ++i) {
-        schedule[i].beta = i*5.0/(schedule.size()-1);
-    }
-
-    schedule.back().overlap_dist = true;
-
-    ParallelPopulationAnnealing population_annealing(model, schedule, R);
-
-    auto results = population_annealing.Run();
 
     parallel::Mpi parallel;
     parallel.ExecRoot([&]() {
@@ -40,10 +35,11 @@ int main(int argc, char** argv) {
         std::cout << "# Branch: " << version::kRefSpec << std::endl;
         std::cout << "# Commit: " << version::kCommitHash << std::endl;
         std::cout << "# Built: " << version::kBuildTime << std::endl;
-        std::cout << "# Input: " << argv[1] << std::endl;
+        std::cout << "# Config: " << argv[1] << std::endl;
+        std::cout << "# Input: " << argv[2] << std::endl;
         std::cout << "# Seed: " << std::hex << results.front().seed << std::dec << std::endl; 
-        std::cout << "# R=" << R << std::endl;
-        std::cout << "# N=" << parallel.size() << std::endl;
+        std::cout << "# Population: " << config.population << std::endl;
+        std::cout << "# Cores: " << parallel.size() << std::endl;
         std::cout << std::right << std::setw(kHeaderWidth)
             << "Beta," << std::setw(kHeaderWidth)
             << "MC_Walltime," << std::setw(kHeaderWidth) 

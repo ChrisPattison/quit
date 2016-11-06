@@ -41,7 +41,7 @@ public:
 
     ParallelPopulationAnnealing(const ParallelPopulationAnnealing&) = delete;
 
-    ParallelPopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population);
+    ParallelPopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population, std::uint64_t seed);
 
     std::vector<Result> Run();
 };

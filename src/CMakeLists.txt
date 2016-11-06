@@ -29,6 +29,9 @@ set_target_properties(mppamc PROPERTIES
     CXX_EXTENSIONS NO
 )
 
+find_package(Boost REQUIRED)
+include_directories(${BOOST_INCLUDE_DIRS})
+
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 

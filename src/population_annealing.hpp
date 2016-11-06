@@ -79,7 +79,8 @@ public:
 
     PopulationAnnealing() = delete;
 
-    PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population);
+    // This should be replaced by a struct in the future
+    PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population, std::uint64_t seed);
 
     std::vector<Result> Run();
 };
