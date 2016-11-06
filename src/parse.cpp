@@ -50,11 +50,18 @@ Graph IjjParse(std::istream& file) {
 }
 
 void IjjDump(Graph& model, std::ostream& stream) {
-    stream << model.size() << kOutputSeperator << kOutputCouplerCoeff;
+    stream << model.size() << kOutputSeperator << kOutputCouplerCoeff << std::endl;
     for(std::size_t k = 0; k < model.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(model.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            stream << k << kOutputSeperator << it.index() << kOutputSeperator << kOutputCouplerCoeff * it.value();
+            auto value = kOutputCouplerCoeff * it.value();
+            stream << k << kOutputSeperator << it.index() << kOutputSeperator;
+            if(std::floor(value) == value) {
+                stream << static_cast<int>(value);
+            }else {
+                stream << value;
+            }
+            stream << std::endl;
         }
     }
 }
