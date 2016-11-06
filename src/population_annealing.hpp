@@ -7,11 +7,16 @@
 #include "random_number_generator.hpp"
 #include <Eigen/Dense>
 
+/** Implementation of Population Annealing Monte Carlo.
+ * Replicas have an associated entry in the family vector indicating lineage.
+ */
 class PopulationAnnealing {
 protected:
     int const lookup_table_size_ = 1024;
     std::vector<double> log_lookup_table_;
 public:
+/** Observables for a single step.
+ */
     struct Result {
         struct Histogram {
             double bin;
@@ -30,7 +35,8 @@ public:
         double entropy;
         std::uint64_t seed;
     };
-
+/** Parameters for a single step.
+ */
     struct Schedule {
         double beta;
         int sweeps = 10;
@@ -51,36 +57,65 @@ protected:
     std::vector<Schedule> schedule_;
     double beta_;
 
-    // Builds a list of replicas with different Markov Chains
+/** Determinstically builds a list of replicas with different Markov Chains.
+ */
     std::vector<std::pair<int, int>> BuildReplicaPairs();
-    // Gets the number of replicas in each family as a fraction of the total population
+/** Gets the number of replicas in each family as a fraction of the total population
+ */
     std::vector<double> FamilyCount();
-
+/** Returns true if a move is accepted according to detailed balance.
+ * Uses a look up table to compute a bound on the logarithm of a random number 
+ * and compares to the exponent of the acceptance probability.
+ * If the probability is inside the bound given by the look table, 
+ * true exponetnial is computed and compared.
+ */
     bool AcceptedMove(double delta_energy);
-    // Gives the Hamiltonian of the given state
+/** Returns the energy of a replica
+ * Implemented as the sum of elementwise multiplication of the replica vector with the 
+ * product of matrix multiplication between the upper half of the adjacency matrix
+ * and the replica.
+ */
     double Hamiltonian(StateVector& replica);
-    // Change in energy associated with a single change in state
+/** Returns the energy change associated with flipping spin vertex.
+ * Implemented as the dot product of row vertex of the adjacency matrix 
+ * with the replica vector multiplied by the spin at vertex.
+ */
     double DeltaEnergy(StateVector& replica, int vertex); 
-
+/** Carries out moves monte carlo sweeps of replica.
+ */
     void MonteCarloSweep(StateVector& replica, int moves);
-
+/** Returns true if a move may be made that reduces the total energy.
+ */
     bool IsLocalMinimum(StateVector& replica);
-
+/** Greadily attempts to find ground state i.e. T=0.
+ */
     StateVector Quench(const StateVector& replica);
-
+/** Returns the overlap between replicas alpha and beta.
+ */
     double Overlap(StateVector& alpha, StateVector& beta);
-
+/** Returns the link overlap between replicas alpha and beta.
+ */
     double LinkOverlap(StateVector& alpha, StateVector& beta);
-
+/** Given computes a histogram of the samples.
+ * Does not attempt to find the bins that are zero.
+ * Normalizes the values so that the sum of the values is 1.
+ */
     std::vector<Result::Histogram> BuildHistogram(const std::vector<double>& samples);
-    // Resamples the population and gives the normalization factor as a byproduct
+/** Resamples population according to the Boltzmann distribution.
+ * Attempts to maintain approximately the same population as detailed in arXiv:1508.05647
+ * Returns the normalization factor Q as a byproduct.
+ */
     double Resample(double new_beta);
 public:
 
     PopulationAnnealing() = delete;
-
-    // This should be replaced by a struct in the future
+/** Intializes solver.
+ * The inputs will be replaced by a struct in the future.
+ * schedule specifies the annealing schedule, sweep counts, and histogram generation at each step.
+ * seed may be zero in which case one will be generated.
+ */
     PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population, std::uint64_t seed);
-
+/** Run solver and return results.
+ */
     std::vector<Result> Run();
 };

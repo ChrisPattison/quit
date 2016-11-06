@@ -5,20 +5,30 @@
 #include <climits>
 #include <mkl_vsl.h>
 
+/** Wrapper around the Math Kernel Library implementation of SFMT19937.
+ */
 class RandomNumberGenerator {
     VSLStreamStatePtr stream_;
     std::uint64_t seed_;
 public:
+/** Seed generator with given value.
+ */
     RandomNumberGenerator(std::uint64_t seed);
+/** Seed generator with value from RandomSeed.
+ */
     RandomNumberGenerator();
     ~RandomNumberGenerator();
 
-    // Gets a random seed value
+/** Returns a random value suitable for seeding.
+ */
     std::uint64_t RandomSeed();
-    // Returns the seed used for this instance
+/** Returns the value used to seed this instance.
+ */
     std::uint64_t GetSeed();
-    // random number in [0.0, 1.0]
+/** Returns a double uniformly distributed in [0,1).
+ */
     double Probability();
-    // random integer in range [0,N)
+/** Returns an integer uniformly distributed in [0,N).
+ */
     int Range(int N);
 };

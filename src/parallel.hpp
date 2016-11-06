@@ -9,14 +9,21 @@
 #include <mpi.h>
 #include "parallel_types.hpp"
 
-// TODO: implement async
-
 namespace parallel
 {
+/** Wrapper around MPI C bindings.
+ * Implements operations useful to MC codes with special attention to templating
+ */
 class Mpi {
 private:
+/** Rank of root process.
+ */
     static constexpr int kRoot = 0;
+/** Size of FAN-IN of HeirarchyVectorReduce 
+ */
     static constexpr int kVectorHeirarchyBase = 4;
+/** Size of FAN-IN of HeirarchReduce 
+ */
     static constexpr int kScalarHeirarchyBase = 20;
     int world_rank_;
     int world_size_;
@@ -24,109 +31,174 @@ private:
     Heirarchy vector_heirarchy;
     Heirarchy scalar_heirarchy;
 
+/** Gives a tag for synchronizing asynchronous collective operations.
+ */
     int GetTag();
-
+/** Mechanism for synchronizing tags.
+ */
     void IncrTag(int count);
-
+/** Gets rank of current process on communicator comm.
+ */
     int rank(MPI_Comm comm);
-
+/** Gets size of communicator comm.
+ */
     int size(MPI_Comm comm);
-    
+/** Returns true if current process is the root process on the communicator (rank = kRoot).
+ */
     bool is_root(MPI_Comm comm);
-    // Executes something on root rank
+/** Executes target on root rank.
+ */
     void ExecRoot(std::function<void()> target, MPI_Comm comm);
-    
+/** Applies reduce over the vector of all values in communicator on root process.
+ * Returns default constructed value for non-root processes
+ */
     template<typename T> auto Reduce(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-    
+/** Applies reduce over the vector of all values in communicator on all processes.
+ */
     template<typename T> auto ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-
+/** Vector version of Reduce.
+ * The size of value is not required to be the same across processes.
+ * Probes on the root rank for an evelope and allocates a buffer accordingly.
+ * Applies reduce on the received vectors with an accumulator.
+ * Returns default constructed value for non-root processes.
+ */
     template<typename T> auto VectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
-
+/** Sends/Receives variable length data in Packets to the specified destinations.
+ * Uses an intial Alltoall to send data length then
+ * allocates a buffer and intiates an Alltoallv.
+ * Returns raw buffer and displacments, respectively.
+ */
     template<typename T> auto SparseGather(const std::vector<Packet<T>>& packets) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::pair<std::vector<T>, std::vector<int>>>;
-
+/** Pass through MPI_Gather.
+ */
     template<typename T> auto Gather(const T& value, MPI_Comm comm) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
-
+/** Pass through MPI_Allgather.
+ */
     template<typename T> auto AllGather(const T& value, MPI_Comm comm) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
-
+/** Pass through MPI_Send.
+ */
     template<typename T> auto Send(const T& value, int target_rank, MPI_Comm comm) ->  
     std::enable_if_t<std::is_trivially_copyable<T>::value, void>;
-
+/** Pass through MPI_Send for vectors.
+ */
     template<typename T> auto Send(const T& value, int target_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
     std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, void>>;
-
+/** Asynchronous send operation.
+ * Returns a AsyncOp containing the send buffer for the operation.
+ */
     template<typename T> auto SendAsync(const T& value, int target_rank, MPI_Comm comm) ->  
     std::enable_if_t<std::is_trivially_copyable<T>::value, AsyncOp<T>>;
-
+/** Asynchronous send operation for vectors.
+ */
     template<typename T> auto SendAsync(const T& value, int target_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
     std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, AsyncOp<typename T::value_type>>>;
-
+/** Asynchronous send operation for vectors where value will not be used again.
+ */
     template<typename T> auto SendAsync(std::vector<T>* value, int target_rank, MPI_Comm comm) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, AsyncOp<T>>;
-
+/** Pass through of MPI_Recv.
+ */
     template<typename T> auto Receive(int source_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
-
+/** Pass through of MPI_Recv for vectors.
+ * Probes for the message size and allocates a buffer accordingly.
+ */
     template<typename T> auto Receive(int source_rank, MPI_Comm comm) -> 
     std::enable_if_t<std::is_trivially_copyable<typename T::value_type>::value, 
     std::enable_if_t<std::is_same<std::vector<typename T::value_type>, T>::value, T>>;
-
+/** Pass through of MPI_Barrier.
+ */
     void Barrier(MPI_Comm comm);
     
 public:
+/** Initializes MPI if not already and constructs the hairarchial reduction trees.
+ */
     Mpi();
-
+/** Finalizes MPI if not already.
+ * Note: When the first instance of this class is destroyed further communication is not possible.
+ * This should change in the future.
+ */
     ~Mpi();
-
+/** Process rank on MPI_COMM_WORLD.
+ */
     int rank();
-
+/** Size of MPI_COMM_WORLD.
+ */
     int size();
-
+/** Pass through of is_root with MPI_COMM_WORLD.
+ */
     bool is_root();
-
+/** Pass through of ExecRoot with MPI_COMM_WORLD.
+ */
     void ExecRoot(std::function<void()> target) { ExecRoot(target, MPI_COMM_WORLD); }
-
+/** Scalar reduction operation operating on a tree.
+ * Uses tree constructed earlier to reduce in a series of Reduce operations on the small communicators.
+ * Results in O(logN) complexity.
+ * Returns default constructed return type on the non-root processes
+ */
     template<typename T> auto HeirarchyReduce(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-
+/** Gives a SparseGather'd vector without rank information.
+ * Discards the displacement information given by SparseGather.
+ */
     template<typename T> auto SparseScalarGather(const std::vector<Packet<T>>& packets) -> std::vector<T>;
-
+/** Splits data returned by SparseGather up into Packets.
+ * SparseScalarGather should be preferred where possible as this method has the additional overhead of splitting up the buffer.
+ */
     template<typename T> auto SparseVectorGather(const std::vector<Packet<T>>& packets) -> std::vector<Packet<T>>;
-
+/** Applies Reduce on MPI_COMM_WORLD
+ */
     template<typename T> auto Reduce(const T& value, std::function<T(std::vector<T>&)> reduce) { return Reduce<T>(value, reduce, MPI_COMM_WORLD); }
-    
+/** Applies ReduceeToAll on MPI_COMM_WORLD
+ */
     template<typename T> auto ReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) { return ReduceToAll<T>(value, reduce, MPI_COMM_WORLD); }
-
+/** Returns a value for HeirarchyReduce on all processes.
+ * Applies HeirarchyReduce and broadcasts the result.
+ */
     template<typename T> auto HeirarchyReduceToAll(const T& value, std::function<T(std::vector<T>&)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-
+/** Applies VectorReduce on MPI_COMM_WORLD
+ */
     template<typename T> auto VectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) { return VectorReduce<T>(value, reduce, MPI_COMM_WORLD); }
-
+/** Applies Gather on MPI_COMM_WORLD
+ */
     template<typename T> auto Gather(const T& value) { return Gather<T>(value, MPI_COMM_WORLD); }
-
+/** Applies AllGather on MPI_COMM_WORLD
+ */
     template<typename T> auto AllGather(const T& value) { return AllGather<T>(value, MPI_COMM_WORLD); }
-
+/** Applies Send on MPI_COMM_WORLD
+ */
     template<typename T> auto Send(const T& value, int target_rank) { return Send<T>(value, target_rank, MPI_COMM_WORLD); }
-
+/** Applies SendAsync on MPI_COMM_WORLD
+ */
     template<typename T> auto SendAsync(const T& value, int target_rank) { return SendAsync<T>(value, target_rank, MPI_COMM_WORLD); }
-
+/** Applies SendAsync on MPI_COMM_WORLD
+ */
     template<typename T> auto SendAsync(std::vector<T>* value, int target_rank) { return SendAsync<T>(value, target_rank, MPI_COMM_WORLD); }
-
+/** Applies Receive on MPI_COMM_WORLD
+ */
     template<typename T> auto Receive(int source_rank) { return Receive<T>(source_rank, MPI_COMM_WORLD); }
-    // Make this more discriptive. Version of VectorReduce that scales O(logN)
+/** Vector reduction operation operating on a tree.
+ * Uses tree constructed earlier to reduce in a series of VectorReduce operations on the small communicators.
+ * Results in O(logN) complexity.
+ * Returns default constructed return type on the non-root processes.
+ */
     template<typename T> auto HeirarchyVectorReduce(const std::vector<T>& value, std::function<void (std::vector<T>& accumulator, const std::vector<T>& value)> reduce) -> 
     std::enable_if_t<std::is_trivially_copyable<T>::value, std::vector<T>>;
-
+/** Applies Broadcast on MPI_COMM_WORLD.
+ */
     template<typename T> auto Broadcast(const T& value) ->
     std::enable_if_t<std::is_trivially_copyable<T>::value, T>;
-
+/** Applies Barrier on MPI_COMM_WOLRD.
+ */
     void Barrier();
 };
 
