@@ -38,6 +38,7 @@ int main(int argc, char** argv) {
     // Output formatting
     constexpr int kWidth = 18;
     constexpr int kHeaderWidth = kWidth + 1;
+    const auto kMagicString = "%%%---%%%";
 
     parallel.ExecRoot([&]() {
         std::cout << "# Seed: " << std::hex << results.front().seed << std::dec << std::endl; 
@@ -66,11 +67,11 @@ int main(int argc, char** argv) {
                 << r.ground_energy << " " << std::setw(kWidth) 
                 << r.grounded_replicas << " " << std::setw(kWidth) 
                 << r.entropy << " " << std::setw(kWidth) 
-                << r.max_family_size << std::setw(kWidth) << std::endl; 
+                << r.max_family_size << std::endl; 
         }
-        std::cout << "%%%---%%%" << std::endl;
+        std::cout << kMagicString << std::endl;
         io::IjjDump(model, std::cout);
-        std::cout << "%%%---%%%" << std::endl;
+        std::cout << kMagicString << std::endl;
         for(auto r : results) {
             for(auto q : r.overlap) {
                 std::cout << "|q, " 

@@ -7,9 +7,12 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
+#include <cfenv>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include "utilities.hpp"
+#include "compare.hpp"
 
 namespace io 
 {
@@ -50,20 +53,23 @@ Graph IjjParse(std::istream& file) {
 }
 
 void IjjDump(Graph& model, std::ostream& stream) {
+    auto round_mode = std::fegetround();
+    std::fesetround(FE_TONEAREST);
     stream << model.size() << kOutputSeperator << kOutputCouplerCoeff << std::endl;
     for(std::size_t k = 0; k < model.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(model.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            auto value = kOutputCouplerCoeff * it.value();
+            double value = kOutputCouplerCoeff * it.value();
             stream << k << kOutputSeperator << it.index() << kOutputSeperator;
-            if(std::floor(value) == value) {
-                stream << static_cast<int>(value);
+            if(FuzzyUlpCompare(value, std::lrint(value), 100)) {
+                stream << std::lrint(value);
             }else {
                 stream << value;
             }
             stream << std::endl;
         }
     }
+    std::fesetround(round_mode);
 }
 
 

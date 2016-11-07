@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <cmath>
 
-bool FuzzyULPCompare(const float& a, const float& b, const int err = 10) {
+bool FuzzyUlpCompare(const float& a, const float& b, const int err = 10) {
     if(std::signbit(a)!=std::signbit(b)) {
         return a == b;
     }
@@ -11,7 +11,7 @@ bool FuzzyULPCompare(const float& a, const float& b, const int err = 10) {
     return std::abs(ai - bi) < err;
 }
 
-bool FuzzyULPCompare(const double& a, const double& b, const int err = 10) {
+bool FuzzyUlpCompare(const double& a, const double& b, const int err = 10) {
     if(std::signbit(a)!=std::signbit(b)) {
         return a == b;
     }
@@ -30,9 +30,9 @@ bool FuzzyEpsCompare(const double& a, const double& b, const double err = 1e-15)
 }
 
 bool FuzzyCompare(const double& a, const double& b) {
-    return FuzzyEpsCompare(a,b) || FuzzyULPCompare(a,b);
+    return FuzzyEpsCompare(a,b) || FuzzyUlpCompare(a,b);
 }
 
 bool FuzzyCompare(const float& a, const float& b) {
-    return FuzzyEpsCompare(a,b) || FuzzyULPCompare(a,b);
+    return FuzzyEpsCompare(a,b) || FuzzyUlpCompare(a,b);
 }

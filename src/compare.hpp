@@ -5,11 +5,11 @@
  * The different in this representation is a scalable way to compare for equality.
  * Compares the absolute value of the difference of the integer representation of the inputs to err.
  */
-bool FuzzyULPCompare(const float& a, const float& b, const int err = 10);
+bool FuzzyUlpCompare(const float& a, const float& b, const int err = 10);
 
 /** Double precision version of FuzzyULPCompare.
  */
-bool FuzzyULPCompare(const double& a, const double& b, const int err = 10);
+bool FuzzyUlpCompare(const double& a, const double& b, const int err = 10);
 
 /** Comparison of floats by an epsilon value.
  * ULP comparison breaks down near zero so comparison by a small number is necessary.
