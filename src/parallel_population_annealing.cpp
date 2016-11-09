@@ -104,15 +104,21 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return FuzzyCompare(E, observables.ground_energy) ? 1 : 0; }).sum() : 0,
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
-        // Largest Family
+        // Family Statistics
         std::vector<double> family_size = FamilyCount();
         observables.max_family_size = family_size.size() > 0 ? static_cast<int>(*std::max_element(family_size.begin(), family_size.end())) : 0;
         // Entropy
-        std::transform(family_size.begin(), family_size.end(), family_size.begin(), 
-            [&](double n) -> double { n /= observables.population; return n * std::log(n); });
-        observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0), 
+        std::transform(family_size.begin(),family_size.end(),family_size.begin(),
+            [&](double n) -> double {return n /= observables.population;});
+
+        observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0, 
+            [](double acc, double n) {return acc + n*std::log(n); }), 
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
+        observables.mean_square_family_size = observables.population * parallel_.HeirarchyReduce<double>(std::accumulate(family_size.begin(), family_size.end(), 0.0, 
+            [](double acc, double n) {return acc + n*n; }), 
+            [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
+            
         // Energy Distribution
         if(step.energy_dist) {
             observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
@@ -164,6 +170,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         }
 
         observables.seed = rng_.GetSeed();
+        observables.sweeps = step.sweeps;
 
         observables.max_family_size = parallel_.HeirarchyReduceToAll<int>(observables.max_family_size, 
             [](std::vector<int>& v) { return *std::max_element(v.begin(), v.end()); });

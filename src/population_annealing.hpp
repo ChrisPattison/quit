@@ -34,6 +34,8 @@ public:
         int grounded_replicas;
         double entropy;
         std::uint64_t seed;
+        int sweeps;
+        double mean_square_family_size;
     };
 /** Parameters for a single step.
  */

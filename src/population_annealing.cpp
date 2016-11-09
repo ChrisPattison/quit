@@ -166,9 +166,9 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         
         if(step.beta != beta_) {
             observables.norm_factor = Resample(step.beta);
-            for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                MonteCarloSweep(replicas_[k], step.sweeps);
-            }
+        }
+        for(std::size_t k = 0; k < replicas_.size(); ++k) {
+            MonteCarloSweep(replicas_[k], step.sweeps);
         }
 
         energy.resize(replicas_.size());
@@ -185,12 +185,16 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         // Round-off /probably/ isn't an issue here
         observables.grounded_replicas = energy_map.array().unaryExpr(
             [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
-        // Entropy
+        // Family statistics
         std::vector<double> family_size = FamilyCount();
         std::transform(family_size.begin(),family_size.end(),family_size.begin(),
-            [&](double n) -> double {n /= replicas_.size(); return n * std::log(n);});
-        observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0);
-
+            [&](double n) -> double {return n /= observables.population;});
+        // Entropy
+        observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0, 
+            [](double acc, double n) {return acc + n*std::log(n); });
+        // Mean Square Family Size
+        observables.mean_square_family_size = observables.population * 
+            std::accumulate(family_size.begin(), family_size.end(), 0.0, [](double acc, double n) {return acc + n*n; });
         if(step.energy_dist) {
             // Energy
             observables.energy_distribution = BuildHistogram(energy);
@@ -211,6 +215,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         }
 
         observables.seed = rng_.GetSeed();
+        observables.sweeps = step.sweeps;
         results.push_back(observables);
     }
     return results;
