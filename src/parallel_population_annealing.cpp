@@ -93,7 +93,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         observables.average_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().mean() : std::numeric_limits<double>::quiet_NaN(),
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
         
-        observables.average_energy_squared = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().pow(2).mean() : std::numeric_limits<double>::quiet_NaN(),
+        observables.average_squared_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().pow(2).mean() : std::numeric_limits<double>::quiet_NaN(),
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
         // ground energy
         observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy_map.size() ? energy_map.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 

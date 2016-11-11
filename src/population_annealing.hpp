@@ -29,7 +29,7 @@ public:
         int population;
         double norm_factor;
         double average_energy;
-        double average_energy_squared;
+        double average_squared_energy;
         double ground_energy;
         int grounded_replicas;
         double entropy;

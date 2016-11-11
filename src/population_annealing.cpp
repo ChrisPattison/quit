@@ -180,7 +180,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         observables.beta = beta_;
         observables.population = replicas_.size();
         observables.average_energy = energy_map.mean();
-        observables.average_energy_squared = energy_map.array().pow(2).mean();
+        observables.average_squared_energy = energy_map.array().pow(2).mean();
         observables.ground_energy = energy_map.minCoeff();
         // Round-off /probably/ isn't an issue here
         observables.grounded_replicas = energy_map.array().unaryExpr(

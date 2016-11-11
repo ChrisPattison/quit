@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
     constexpr int kWidth = 18;
     constexpr int kHeaderWidth = kWidth + 1;
     const auto kMagicString = "%%%---%%%";
+    const auto kHistChar = "|";
 
     parallel.ExecRoot([&]() {
         std::cout << "# Seed: " << std::hex << results.front().seed << std::dec << std::endl << std::endl; 
@@ -51,6 +52,7 @@ int main(int argc, char** argv) {
             << "Redist_Walltime" << std::setw(kHeaderWidth) 
             << "Obs_Walltime" << std::setw(kHeaderWidth) 
             << "<E>" << std::setw(kHeaderWidth) 
+            << "<E^2>" << std::setw(kHeaderWidth) 
             << "Q" << std::setw(kHeaderWidth) 
             << "R" << std::setw(kHeaderWidth) 
             << "E_MIN" << std::setw(kHeaderWidth) 
@@ -66,6 +68,7 @@ int main(int argc, char** argv) {
                 << r.redist_walltime << " " << std::setw(kWidth) 
                 << r.observables_walltime << " " << std::setw(kWidth)
                 << r.average_energy << " " << std::setw(kWidth) 
+                << r.average_squared_energy << " " << std::setw(kWidth) 
                 << r.norm_factor << " " << std::setw(kWidth) 
                 << r.population << " " << std::setw(kWidth) 
                 << r.ground_energy << " " << std::setw(kWidth) 
@@ -79,19 +82,19 @@ int main(int argc, char** argv) {
         std::cout << std::endl << kMagicString << std::endl << "# Histograms" << std::endl;
         for(auto r : results) {
             for(auto q : r.overlap) {
-                std::cout << "|q, " 
+                std::cout << kHistChar << "q " 
                     << std::setprecision(4) << std::fixed << r.beta << " "
                     << std::setprecision(10) << std::scientific << std::setw(kWidth) << q.bin << " "
                     << std::setw(kWidth) << q.value << std::endl;
             }
             for(auto ql : r.link_overlap) {
-                std::cout << "|ql, " 
+                std::cout << kHistChar << "ql " 
                     << std::setprecision(4) << std::fixed << r.beta << " "
                     << std::setprecision(10) << std::scientific << std::setw(kWidth) << ql.bin << " "
                     << std::setw(kWidth) << ql.value << std::endl;
             }
             for(auto E : r.energy_distribution) {
-                std::cout << "|E, "
+                std::cout << kHistChar << "E "
                     << std::setprecision(4) << std::fixed << r.beta << " "
                     << std::setprecision(10) << std::scientific << std::setw(kWidth) << E.bin << " "
                     << std::setw(kWidth) << E.value << std::endl;
