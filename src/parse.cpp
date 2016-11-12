@@ -92,6 +92,7 @@ Config ConfigParse(std::istream& file) {
     } catch(std::exception& e) {
         utilities::Check(false, "Config parsing failed.");
     }
+    std::sort(config.schedule.begin(), config.schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
     return config;
 }
 }
