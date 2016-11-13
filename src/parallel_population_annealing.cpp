@@ -44,7 +44,7 @@ PopulationAnnealing(structure, schedule, 0, seed) {
 std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Run() {
     std::vector<Result> results;
     
-    if(parallel_.size() / 2 * 2 != parallel_.size()) {
+    if(parallel_.size() % 4 != 0) {
         return results;
     }
 
@@ -56,7 +56,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 
     std::iota(replica_families_.begin(), replica_families_.end(), average_node_population_ * parallel_.rank());
     beta_ = schedule_.at(0).beta;
-    const int max_family_size_limit = average_population_ / 2;
+    const int max_family_size_limit = average_population_ / 4;
     std::vector<double> energy;
 
     for(auto step : schedule_) {
@@ -131,22 +131,33 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         }
 
         if(step.overlap_dist) {
-            // Import or Export replicas to complementary node
-            std::vector<StateVector> imported_replicas;
-            if(parallel_.rank() < parallel_.size()/2) {
-                std::vector<VertexType> replica_pack = parallel_.Receive<std::vector<VertexType>>(parallel_.rank() + parallel_.size()/2);
-                imported_replicas = Unpack(replica_pack);
-            }else {
-                std::vector<VertexType> replica_pack = Pack(replicas_);
-                parallel_.Send(replica_pack, parallel_.rank() - parallel_.size()/2);
+            int startrank = (parallel_.rank() + parallel_.size() / 4) % parallel_.size();
+            int endrank = (parallel_.rank() + (3 * parallel_.size()) / 4) % parallel_.size();
+            int packet_size =  observables.population / (parallel_.size() * parallel_.size()/2);
+
+            std::vector<parallel::Packet<VertexType>> replica_packets;
+            replica_packets.reserve(startrank > endrank ? parallel_.size() - startrank + endrank : endrank - startrank);
+            
+            for(int r = startrank; r != endrank; r = (r + 1) % parallel_.size()) {
+                replica_packets.emplace_back();
+                replica_packets.back().rank = r;
+                replica_packets.back().data.reserve(packet_size * structure_.size());
+            
+                // Randomly sample replicas to send
+                for(int k = 0; k < packet_size; ++k) {
+                    const auto& replica = replicas_[rng_.Range(replicas_.size())];
+                    replica_packets.back().data.insert(replica_packets.back().data.end(), replica.data(), replica.data() + replica.size());
+                }
             }
 
-            int sample_size = std::min(replicas_.size(), imported_replicas.size()); 
-            std::vector<double> overlap_samples(sample_size);
+            auto packed_replicas = parallel_.SparseScalarGather(replica_packets);
+            std::vector<StateVector> imported_replicas = Unpack(packed_replicas);
+            std::vector<double> overlap_samples(imported_replicas.size());
             
+            // The upper bound on the family size guarantees that replicas will not be members of the same family
             // Overlap
-            for(int k = 0; k < sample_size; ++k) {
-                overlap_samples[k] = Overlap(replicas_[k], imported_replicas[k]);
+            for(int k = 0; k < imported_replicas.size(); ++k) {
+                overlap_samples[k] = Overlap(replicas_[rng_.Range(replicas_.size())], imported_replicas[k]);
             }
             observables.overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
                 [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
@@ -157,8 +168,8 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                 });
 
             // Link Overlap
-            for(int k = 0; k < sample_size; ++k) {
-                overlap_samples[k] = LinkOverlap(replicas_[k], imported_replicas[k]);
+            for(int k = 0; k < imported_replicas.size(); ++k) {
+                overlap_samples[k] = LinkOverlap(replicas_[rng_.Range(replicas_.size())], imported_replicas[k]);
             }
             observables.link_overlap = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(overlap_samples), 
                 [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
