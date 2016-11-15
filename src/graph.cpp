@@ -3,11 +3,13 @@
 void Graph::Resize(int no_vertices, int no_couplers) {
     fields_.resize(no_vertices);
     fields_.setZero();
+    field_nonzero_ = false;
     adjacent_.resize(no_vertices, no_vertices);
     adjacent_.reserve(no_couplers);
 }
 
 void Graph::SetField(int vertex, EdgeType field) {
+    field_nonzero_ = true;
     fields_(vertex) = field;
 }
 
@@ -37,8 +39,12 @@ Eigen::SparseMatrix<EdgeType>& Graph::Adjacent() {
     return adjacent_;
 }
 
-Eigen::Matrix<VertexType, Eigen::Dynamic, 1>& Graph::Fields() {
+Eigen::Matrix<EdgeType, Eigen::Dynamic, 1>& Graph::Fields() {
     return fields_;
+}
+
+bool Graph::has_field() const {
+    return field_nonzero_;
 }
 
 int Graph::size() const {

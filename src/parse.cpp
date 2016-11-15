@@ -41,8 +41,15 @@ Graph IjjParse(std::istream& file) {
         
         model.Resize(stoi(header[0]), values.size());
         for(auto& v : values) {
-            model.AddEdge(std::get<0>(v), std::get<1>(v), std::get<2>(v));
-            model.AddEdge(std::get<1>(v), std::get<0>(v), std::get<2>(v));
+            int i = std::get<0>(v);
+            int j = std::get<1>(v);
+            EdgeType coeff = std::get<2>(v);
+            if(i != j) {
+                model.AddEdge(i, j, coeff);
+                model.AddEdge(j, i, coeff);
+            }else {
+                model.SetField(i, coeff);
+            }
         }
         utilities::Check(model.IsConsistent(), "Missing edge somewhere.");
         utilities::Check(model.Adjacent().size() > 0, "No Elements.");
@@ -56,11 +63,25 @@ void IjjDump(Graph& model, std::ostream& stream) {
     auto round_mode = std::fegetround();
     std::fesetround(FE_TONEAREST);
     stream << model.size() << kOutputSeperator << kOutputCouplerCoeff << std::endl;
+    // Coefficients
     for(std::size_t k = 0; k < model.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(model.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
             double value = kOutputCouplerCoeff * it.value();
             stream << k << kOutputSeperator << it.index() << kOutputSeperator;
+            if(FuzzyUlpCompare(value, std::lrint(value), 100)) {
+                stream << std::lrint(value);
+            }else {
+                stream << value;
+            }
+            stream << std::endl;
+        }
+    }
+    // Fields
+    if(model.has_field()) {
+        for(std::size_t k = 0; k < model.Fields().size(); ++k) {
+            stream << k << kOutputSeperator << k << kOutputSeperator;
+            double value = kOutputCouplerCoeff * model.Fields()[k];
             if(FuzzyUlpCompare(value, std::lrint(value), 100)) {
                 stream << std::lrint(value);
             }else {

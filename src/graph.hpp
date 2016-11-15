@@ -9,7 +9,8 @@
  */
 class Graph {
     Eigen::SparseMatrix<EdgeType> adjacent_;
-    Eigen::Matrix<VertexType, Eigen::Dynamic, 1> fields_;
+    Eigen::Matrix<EdgeType, Eigen::Dynamic, 1> fields_;
+    bool field_nonzero_;
 public:
 /**  Resizes adjacency matrix and field vector.
  *  Zeros out field vector and reserves memory for adjacency matrix.
@@ -32,6 +33,9 @@ public:
 /** Number of edges with bidirectional asumption.
  */
     int edges() const;
+/** Returns true if a field has been set.
+ */
+    bool has_field() const;
 /** Reference to adjacency matrix.
  * This will be const in the future.
  */
@@ -39,5 +43,5 @@ public:
 /** Reference to field vector.
  * This will be const in the future.
  */
-     Eigen::Matrix<VertexType, Eigen::Dynamic, 1>& Fields();
+     Eigen::Matrix<EdgeType, Eigen::Dynamic, 1>& Fields();
 };

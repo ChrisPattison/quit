@@ -87,13 +87,15 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, std::vector<Schedule>
  }
 
 double PopulationAnnealing::Hamiltonian(StateVector& replica) {
-    return ((structure_.Adjacent().triangularView<Eigen::Upper>() * replica.cast<EdgeType>()).array() * replica.cast<EdgeType>().array()).sum();
+    if(structure_.has_field()) {
+        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica.cast<EdgeType>() - structure_.Fields()).dot(replica.cast<EdgeType>());
+    }else {
+        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica.cast<EdgeType>()).dot(replica.cast<EdgeType>());
+    }
 }
 
 double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
-    double h = structure_.Adjacent().innerVector(vertex).dot(replica.cast<EdgeType>());
-    // h -= structure_.Fields()(vertex);
-    return -2 * replica(vertex) * h;
+    return -2 * replica(vertex) * (structure_.Adjacent().innerVector(vertex).dot(replica.cast<EdgeType>()) - structure_.Fields()(vertex));
 }
 
 void PopulationAnnealing::MonteCarloSweep(StateVector& replica, int sweeps) {
