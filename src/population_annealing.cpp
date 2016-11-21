@@ -101,7 +101,7 @@ double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
 void PopulationAnnealing::MonteCarloSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
-            int vertex = rng_.Range(replica.size());
+            int vertex = i;
             double delta_energy = DeltaEnergy(replica, vertex);
             
             //round-off isn't a concern here
