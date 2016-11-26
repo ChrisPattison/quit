@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     parallel::Mpi parallel;
     parallel.ExecRoot([&]() {
         utilities::Check(parallel.size() % 4 == 0, "Number of cores must be a multiple of 4");
-        std::cout << "# Massively Parallel Population Annealing Monte Carlo V" << version::kMajor << "." << version::kMinor << std::endl;
+        std::cout << "# Parallel Optimized Population Annealing V" << version::kMajor << "." << version::kMinor << std::endl;
         std::cout << "# C. Pattison" << std::endl;
         std::cout << "# Branch: " << version::kRefSpec << std::endl;
         std::cout << "# Commit: " << version::kCommitHash << std::endl;

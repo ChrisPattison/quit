@@ -10,7 +10,7 @@ configure_file (
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(
-    mppamc 
+    propane 
     main.cpp 
     graph.cpp 
     random_number_generator.cpp 
@@ -23,7 +23,7 @@ add_executable(
     compare.cpp
 )
 
-set_target_properties(mppamc PROPERTIES
+set_target_properties(propane PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
@@ -44,13 +44,13 @@ include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
 if(MPI_COMPILE_FLAGS)
-  set_target_properties(mppamc PROPERTIES
+  set_target_properties(propane PROPERTIES
     COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 endif()
 
 if(MPI_LINK_FLAGS)
-  set_target_properties(mppamc PROPERTIES
+  set_target_properties(propane PROPERTIES
     LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
 
-target_link_libraries(mppamc ${LIBS})
+target_link_libraries(propane ${LIBS})
