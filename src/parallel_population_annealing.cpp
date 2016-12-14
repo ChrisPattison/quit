@@ -201,21 +201,9 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 }
 
 double ParallelPopulationAnnealing::Resample(double new_beta) {
-    double new_population = 
-    4.92531500e-04    * std::pow(new_beta, 10)
-    + -1.33979484e-02 * std::pow(new_beta, 9)
-    + 1.56855509e-01  * std::pow(new_beta, 8)
-    + -1.03197763e+00 * std::pow(new_beta, 7)
-    + 4.17595505e+00  * std::pow(new_beta, 6)
-    + -1.06759251e+01 * std::pow(new_beta, 5)
-    + 1.70092672e+01  * std::pow(new_beta, 4)
-    + -1.59838117e+01 * std::pow(new_beta, 3)
-    + 7.96914062e+00  * std::pow(new_beta, 2)
-    + -2.01506291e+00 * new_beta
-    + 9.93379099e-01;
+    double new_population = 0.75/(1+std::exp(std::exp(2)*(new_beta-1.5)))+0.25;
 
-    average_population_ *= new_population;
-    average_node_population_ = average_population_ / parallel_.size();
+    average_node_population_ = new_population * init_average_node_population_;
     average_population_ = average_node_population_ * parallel_.size();
 
     std::vector<StateVector> resampled_replicas;
