@@ -15,7 +15,7 @@ class ParallelPopulationAnnealing : protected PopulationAnnealing {
 protected:
 /** Minimum exceeded fraction of average node population before redistribution will take place.
   */
-    static constexpr double kMaxPopulation = 1.10;
+    double kMaxPopulation = 1.10;
 
     parallel::Mpi parallel_;
 
@@ -57,12 +57,17 @@ public:
         double observables_walltime;
         int max_family_size;
     };
+/** Config parameters relavent to only the parallel implementation
+ */
+    struct Config : PopulationAnnealing::Config {
+        double max_population = 1.10;
+    };
     ParallelPopulationAnnealing(const ParallelPopulationAnnealing&) = delete;
 /** Intializes solver.
  * schedule specifies the annealing schedule, sweep counts, and histogram generation at each step.
  * seed may be zero in which case one will be generated.
  */
-    ParallelPopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population, std::uint64_t seed);
+    ParallelPopulationAnnealing(Graph& structure, Config config);
 /** Run solver and return results.
  */
     std::vector<Result> Run();

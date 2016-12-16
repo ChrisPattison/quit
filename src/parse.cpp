@@ -94,8 +94,8 @@ void IjjDump(Graph& model, std::ostream& stream) {
 }
 
 
-Config ConfigParse(std::istream& file) {
-    Config config;
+ParallelPopulationAnnealing::Config ConfigParse(std::istream& file) {
+    ParallelPopulationAnnealing::Config config;
     try {
         boost::property_tree::ptree tree;
         boost::property_tree::read_json(file, tree);

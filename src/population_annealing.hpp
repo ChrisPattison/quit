@@ -45,7 +45,13 @@ public:
         bool overlap_dist = false;
         bool energy_dist = false;
     };
-    
+/** Parameters for entire run.
+ */
+    struct Config {
+        int population;
+        std::uint64_t seed;
+        std::vector<PopulationAnnealing::Schedule> schedule;
+    };
 protected:
     Graph structure_;
 
@@ -116,7 +122,7 @@ public:
  * schedule specifies the annealing schedule, sweep counts, and histogram generation at each step.
  * seed may be zero in which case one will be generated.
  */
-    PopulationAnnealing(Graph& structure, std::vector<Schedule> schedule, int average_population, std::uint64_t seed);
+    PopulationAnnealing(Graph& structure, Config schedule);
 /** Run solver and return results.
  */
     std::vector<Result> Run();

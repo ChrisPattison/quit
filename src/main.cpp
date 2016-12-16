@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     // Parse input and configuration files
     utilities::Check(argc >= 3, "Config and input files Expected");
     auto file = std::ifstream(argv[1]);
-    auto config = io::ConfigParse(file);
+    auto config = static_cast<ParallelPopulationAnnealing::Config>(io::ConfigParse(file));
     file.close();
 
     file = std::ifstream(argv[2]);
@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
         std::cout << "# Population: " << config.population << std::endl;
     });
     // initializate solver and run
-    ParallelPopulationAnnealing population_annealing(model, config.schedule, config.population, config.seed);
+    ParallelPopulationAnnealing population_annealing(model, config);
     auto results = population_annealing.Run();
 
     // Output formatting
