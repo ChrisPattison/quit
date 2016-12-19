@@ -73,7 +73,12 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     structure_ = structure;
     structure_.Adjacent().makeCompressed();
     average_population_ = config.population;
+    init_population_ = average_population_;
     
+    population_ratio_ = config.population_ratio;
+    population_slope_ = config.population_slope;
+    population_shift_ = config.population_shift;
+
     replicas_.resize(average_population_);
     replica_families_.resize(average_population_);
     for(auto& r : replicas_) {
@@ -251,7 +256,9 @@ double PopulationAnnealing::Resample(double new_beta) {
     std::vector<int> resampled_families;
     resampled_replicas.reserve(replicas_.size());
     resampled_families.reserve(replicas_.size());
-    
+
+    average_population_ = NewPopulation(new_beta);
+
     Eigen::VectorXd weighting(replicas_.size());
     for(std::size_t k = 0; k < replicas_.size(); ++k) {
         weighting(k) = std::exp(-(new_beta-beta_) * Hamiltonian(replicas_[k]));
@@ -271,4 +278,10 @@ double PopulationAnnealing::Resample(double new_beta) {
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
     return normalize;
+}
+
+int PopulationAnnealing::NewPopulation(double new_beta) {
+    double S = 1.0/population_ratio_;
+    double L = (1.0 - S) * (1.0 + std::exp(-population_slope_*population_shift_));
+    return static_cast<int>(init_population_ * (L/(1.0+std::exp(population_slope_*(new_beta-population_shift_))) + S));
 }

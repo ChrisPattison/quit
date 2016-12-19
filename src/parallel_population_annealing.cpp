@@ -25,8 +25,8 @@ ParallelPopulationAnnealing::ParallelPopulationAnnealing(Graph& structure, Confi
 PopulationAnnealing(structure, config) {
     
     average_node_population_ = config.population / parallel_.size();
-    init_average_node_population_ = average_node_population_;
     average_population_ = average_node_population_ * parallel_.size();
+    init_population_ = average_population_;
     
     std::uint64_t seed = rng_.RandomSeed();
     if(config.seed != 0) {
@@ -202,9 +202,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 }
 
 double ParallelPopulationAnnealing::Resample(double new_beta) {
-    double new_population = 0.75/(1+std::exp(std::exp(2)*(new_beta-1.5)))+0.25;
-
-    average_node_population_ = new_population * init_average_node_population_;
+    average_node_population_ = NewPopulation(new_beta) / parallel_.size();
     average_population_ = average_node_population_ * parallel_.size();
 
     std::vector<StateVector> resampled_replicas;
@@ -372,7 +370,7 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
     std::vector<parallel::Packet<Family>> packets;
     
     for(auto& f : families) {
-        int source_rank = f.tag / init_average_node_population_;
+        int source_rank = f.tag / (init_population_ / parallel_.size());
         if(source_rank != parallel_.rank()) {
             auto it = std::find_if(packets.begin(), packets.end(), [&](const parallel::Packet<Family> p) { return p.rank == source_rank; });
             if(it != packets.end()) {

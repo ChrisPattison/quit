@@ -20,7 +20,6 @@ protected:
     parallel::Mpi parallel_;
 
     int average_node_population_;
-    int init_average_node_population_;
 /** Resamples population according to the Boltzmann distribution.
  * Attempts to maintain approximately the same population as detailed in arXiv:1508.05647
  * Returns the normalization factor Q as a byproduct.

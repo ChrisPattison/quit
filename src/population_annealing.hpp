@@ -51,6 +51,9 @@ public:
         int population;
         std::uint64_t seed;
         std::vector<PopulationAnnealing::Schedule> schedule;
+        double population_ratio;
+        double population_slope;
+        double population_shift;
     };
 protected:
     Graph structure_;
@@ -61,9 +64,14 @@ protected:
     std::vector<StateVector> replicas_;
     std::vector<int> replica_families_;
 
+    int init_population_;
     int average_population_;
     std::vector<Schedule> schedule_;
     double beta_;
+
+    double population_ratio_;
+    double population_slope_;
+    double population_shift_;
 
 /** Determinstically builds a list of replicas with different Markov Chains.
  */
@@ -114,6 +122,12 @@ protected:
  * Returns the normalization factor Q as a byproduct.
  */
     double Resample(double new_beta);
+/** Returns new population size
+ * Uses a logistic curve with parameters given in input file
+ * This probably will be removed in the future with preference given 
+ * to the current method of specifying beta schedules (one per temperature)
+ */
+    int NewPopulation(double new_beta);
 public:
 
     PopulationAnnealing() = delete;
