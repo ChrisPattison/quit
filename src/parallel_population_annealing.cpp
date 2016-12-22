@@ -32,7 +32,7 @@ PopulationAnnealing(structure, config) {
     if(config.seed != 0) {
         seed = config.seed;
     }
-    seed = parallel_.Broadcast(config.seed);
+    seed = parallel_.Broadcast(seed);
     rng_ = RandomNumberGenerator(seed ^ parallel_.rank());
 
     replicas_.resize(average_node_population_);
