@@ -34,23 +34,21 @@ PopulationAnnealing(structure, config) {
     }
     seed = parallel_.Broadcast(seed);
     rng_ = RandomNumberGenerator(seed ^ parallel_.rank());
-
-    replicas_.resize(average_node_population_);
-    replica_families_.resize(average_node_population_);
-    for(auto& r : replicas_) {
-        r = StateVector();
-        r.resize(structure_.size());
-    }
  }
  
 std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Run() {
     std::vector<Result> results;
+
+    replicas_.resize(average_node_population_);
+    replica_families_.resize(average_node_population_);
     
     if(parallel_.size() % 4 != 0) {
         return results;
     }
 
     for(auto& r : replicas_) {
+        r = StateVector();
+        r.resize(structure_.size());
         for(std::size_t k = 0; k < r.size(); ++k) {
             r(k) = rng_.Probability() < 0.5 ? 1 : -1;
         }

@@ -78,13 +78,7 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     population_ratio_ = config.population_ratio;
     population_slope_ = config.population_slope;
     population_shift_ = config.population_shift;
-
-    replicas_.resize(average_population_);
-    replica_families_.resize(average_population_);
-    for(auto& r : replicas_) {
-        r = StateVector();
-        r.resize(structure_.size());
-    }
+    
     log_lookup_table_.resize(lookup_table_size_);
     for(int k = 0; k < log_lookup_table_.size(); ++k) {
         log_lookup_table_[k] = std::log(static_cast<double>(k) / (log_lookup_table_.size() - 1));
@@ -157,8 +151,13 @@ double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
 
 std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     std::vector<Result> results;
+
+    replicas_.resize(average_population_);
+    replica_families_.resize(average_population_);
     
     for(auto& r : replicas_) {
+        r = StateVector();
+        r.resize(structure_.size());
         for(std::size_t k = 0; k < r.size(); ++k) {
             r(k) = rng_.Probability() < 0.5 ? 1 : -1;
         }
