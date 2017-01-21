@@ -7,20 +7,49 @@
 
 RandomNumberGenerator::RandomNumberGenerator(std::uint64_t seed) {
     seed_ = seed;
-    vslNewStream(&stream_, VSL_BRNG_SFMT19937, seed);
-    vslSkipAheadStream(stream_, 2492*100000);
+    state_ = new dsfmt_t;
+    dsfmt_init_gen_rand(state_, static_cast<std::uint32_t>(seed));
 }
 
 RandomNumberGenerator::RandomNumberGenerator() : RandomNumberGenerator(RandomSeed()) {};
 
 RandomNumberGenerator::~RandomNumberGenerator() {
-    vslDeleteStream(&stream_);
+    delete state_;
+    state_ = nullptr;
+}
+
+RandomNumberGenerator::RandomNumberGenerator(const RandomNumberGenerator& other) {
+    seed_ = other.seed_;
+    state_ = new dsfmt_t;
+    *state_ = *(other.state_);
+}
+
+RandomNumberGenerator::RandomNumberGenerator(RandomNumberGenerator&& other) {
+    if(this != &other) {
+        seed_ = other.seed_;
+        state_ = other.state_;
+        other.state_ = nullptr;
+    }
+}
+
+RandomNumberGenerator& RandomNumberGenerator::operator=(const RandomNumberGenerator& other) {
+    seed_ = other.seed_;
+    *state_ = *(other.state_);
+    return *this;
+}
+
+RandomNumberGenerator& RandomNumberGenerator::operator=(RandomNumberGenerator&& other) {
+    if(this != &other) {
+        delete state_;
+        seed_ = other.seed_;
+        state_ = other.state_;
+        other.state_ = nullptr;
+    }
+    return *this;
 }
 
 double RandomNumberGenerator::Probability() {
-    double p;
-    vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream_, 1, &p, 0.0, 1.0);
-    return p;
+    return dsfmt_genrand_close_open(state_);
 }
 
 std::uint64_t RandomNumberGenerator::RandomSeed() {
@@ -36,7 +65,5 @@ std::uint64_t RandomNumberGenerator::GetSeed() {
 }
 
 int RandomNumberGenerator::Range(int N) {
-    int v;
-    viRngUniform(VSL_RNG_METHOD_UNIFORM_STD, stream_, 1, &v, 0, N);
-    return v;
+    return std::floor(Probability() * N);
 }

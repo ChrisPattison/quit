@@ -3,12 +3,12 @@
 #include <cstdint>
 #include <type_traits>
 #include <climits>
-#include <mkl_vsl.h>
+#include "dSFMT.h"
 
-/** Wrapper around the Math Kernel Library implementation of SFMT19937.
+/** Wrapper around the refreence implementation of dSFMT19937 by Saito and Matsumoto.
  */
 class RandomNumberGenerator {
-    VSLStreamStatePtr stream_;
+    dsfmt_t* state_;
     std::uint64_t seed_;
 public:
 /** Seed generator with given value.
@@ -19,6 +19,13 @@ public:
     RandomNumberGenerator();
     ~RandomNumberGenerator();
 
+    RandomNumberGenerator(const RandomNumberGenerator& other);
+
+    RandomNumberGenerator(RandomNumberGenerator&& other);
+
+    RandomNumberGenerator& operator=(const RandomNumberGenerator& other);
+
+    RandomNumberGenerator& operator=(RandomNumberGenerator&& other);
 /** Returns a random value suitable for seeding.
  */
     std::uint64_t RandomSeed();

@@ -9,6 +9,9 @@ configure_file (
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+add_subdirectory(dSFMT)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dSFMT)
+
 add_executable(
     propane 
     main.cpp 
@@ -35,10 +38,6 @@ include_directories(${BOOST_INCLUDE_DIRS})
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-find_package(MKL REQUIRED)
-include_directories(${MKL_INCLUDE_DIR})
-set(LIBS ${LIBS} ${MKL_LIBRARIES})
-
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
@@ -52,5 +51,7 @@ if(MPI_LINK_FLAGS)
   set_target_properties(propane PROPERTIES
     LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
+
+set(LIBS ${LIBS} dSFMT)
 
 target_link_libraries(propane ${LIBS})
