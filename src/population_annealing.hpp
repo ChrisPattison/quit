@@ -3,7 +3,6 @@
 #include <utility>
 #include "types.hpp"
 #include "graph.hpp"
-#include "types.hpp"
 #include "random_number_generator.hpp"
 #include <Eigen/Dense>
 
