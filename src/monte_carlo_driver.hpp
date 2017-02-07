@@ -22,6 +22,8 @@ class MonteCarloDriver {
     const std::size_t kSeedAddr = 0x000c;
 
     volatile std::uint8_t* bar0_;
+
+    std::vector<double> delta_energy_;
     int bar0_disc_;
 
     int bus_;
@@ -51,9 +53,12 @@ public:
  */
     void CompletionWait();
 
+/** Set dE tables
+ */
+    void SetGraph(Graph& structure);
 /** Set acceptance probabilities
  * This should not assume a Hamiltonian in the future
  * Assumes that indices match machine for now
  */
-    void SetProb(Graph& structure, double beta);
+    void SetProb(double beta);
 };

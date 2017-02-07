@@ -7,7 +7,7 @@ void FpgaPopulationAnnealing::MonteCarloSweep(StateVector& replica, int moves) {
     std::vector<std::uint32_t> packed_replica((replica.size() + 31)/32);
     for(int i = 0; i < replica.size(); ++i) {
         int shift = i % 32;
-        packed_replica[i/32] = (packed_replica[i/32] & (~0-1 << shift)) | (static_cast<std::uint32_t>(replica[i]==-1 ? 0 : 1) << shift);
+        packed_replica[i/32] = (packed_replica[i/32] & ((~0-1) << shift)) | (static_cast<std::uint32_t>(replica[i]==-1 ? 0 : 1) << shift);
     }
 
     driver_.Sweep(&packed_replica, static_cast<std::uint32_t>(moves));
@@ -20,10 +20,11 @@ void FpgaPopulationAnnealing::MonteCarloSweep(StateVector& replica, int moves) {
 
 double FpgaPopulationAnnealing::Resample(double new_beta) {
     PopulationAnnealing::Resample(new_beta);
-    driver_.SetProb(structure_, beta_);
+    driver_.SetProb(beta_);
 }
 
 FpgaPopulationAnnealing::FpgaPopulationAnnealing(Graph& structure, Config schedule) : PopulationAnnealing(structure, schedule) {
     driver_.SeedRng(rng_.GetSeed());
-    driver_.SetProb(structure_, beta_);
+    driver_.SetGraph(structure_);
+    driver_.SetProb(beta_);
 }

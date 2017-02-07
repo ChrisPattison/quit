@@ -77,41 +77,50 @@ void MonteCarloDriver::CompletionWait() {
     }while(*sweep_register > 0);
 }
 
-void MonteCarloDriver::SetProb(Graph& structure, double beta) {
-    volatile std::uint32_t* lut_register = reinterpret_cast<volatile std::uint32_t*>(&bar0_[kLutAddr]);
+void MonteCarloDriver::SetGraph(Graph& structure) {
     std::uint32_t spins = *reinterpret_cast<volatile std::uint32_t*>(&bar0_[kSpinAddr]);
     std::uint32_t dimension = *reinterpret_cast<volatile std::uint32_t*>(&bar0_[kDimensionAddr]);
     std::uint32_t length = std::rint(std::pow(spins, 1.0/dimension));
+
+    assert(spins == structure.size());
+    delta_energy_.resize(structure.size() * (2<<dimension));
+
+    // Site
+    for(int vertex = 0; vertex < structure.size(); ++vertex) {
+        // Single LUT entry
+        for(int entry = 0; entry < 2<<dimension; ++entry) {
+            double sum = 0.0;
+            // sum over each dimension
+            for(int dim = 0; dim < dimension; ++dim) {
+                int stride = 2>>dim;
+                int neighbor_vertex = (vertex + stride + structure.size()) % structure.size();
+                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (entry & (1<<(dim*2)) ? 1 : -1);
+
+                neighbor_vertex = (vertex - stride + structure.size()) % structure.size();
+                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (entry & (1<<(dim*2+1)) ? 1 : -1);
+            }
+            sum -= structure.Fields()(vertex);
+            delta_energy_[vertex*(2<<dimension) + entry] = sum;
+        }
+    }
+}
+
+void MonteCarloDriver::SetProb(double beta) {
+    volatile std::uint32_t* lut_register = reinterpret_cast<volatile std::uint32_t*>(&bar0_[kLutAddr]);
     // 31 bits set
     std::uint32_t fixed_mask = ~0>>1;
 
-    // Site
-    for(int vertex = spins - 1; vertex >= 0; ++vertex) {
-        // LUT entry
-        for(int i = (2<<dimension)-1; i >= 0; ++i) {
-            double sum = 0.0;
-            // dimension sum
-            for(int j = dimension - 1; i >=0; ++j) {
-                int stride = 2>>j;
-                int neighbor_vertex = (vertex + stride) % structure.size();
-                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (i & (1<<(j*2)) ? 1 : -1);
+    for(int i = delta_energy_.size()-1; i >= 0; --i) {
+        // 0 is -1
+        // msb signifies non-unity transition
 
-                neighbor_vertex = (vertex - stride) % structure.size();
-                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (i & (1<<(j*2+1)) ? 1 : -1);
-            }
-            sum -= structure.Fields()(vertex);
-
-            // 0 is -1
-            // msb signifies non-unity transition
-
-            // -1 -> 1 transition non-unity
-            if(sum < 0) {
-                // 31 bit fixed point
-                *lut_register = static_cast<std::uint32_t>(std::exp(-sum*beta) * fixed_mask);
-            }else {
-            // 1 -> -1 non-unity
-                *lut_register = static_cast<std::uint32_t>(std::exp(sum*beta) * fixed_mask) | ~fixed_mask;
-            }
+        // -1 -> 1 transition non-unity
+        if(delta_energy_[i] < 0) {
+            // 31 bit fixed point
+            *lut_register = static_cast<std::uint32_t>(std::exp(-delta_energy_[i]*beta) * fixed_mask);
+        }else {
+        // 1 -> -1 non-unity
+            *lut_register = static_cast<std::uint32_t>(std::exp(delta_energy_[i]*beta) * fixed_mask) | ~fixed_mask;
         }
     }
 };
