@@ -8,7 +8,6 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
-#include <cfenv>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include "utilities.hpp"
@@ -59,64 +58,27 @@ Graph IjjParse(std::istream& file) {
     return model;
 }
 
-void IjjDump(Graph& model, std::ostream& stream) {
-    auto round_mode = std::fegetround();
-    std::fesetround(FE_TONEAREST);
-    stream << model.size() << kOutputSeperator << kOutputCouplerCoeff << std::endl;
-    // Coefficients
-    for(std::size_t k = 0; k < model.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(model.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            double value = kOutputCouplerCoeff * it.value();
-            stream << k << kOutputSeperator << it.index() << kOutputSeperator;
-            if(FuzzyUlpCompare(value, std::lrint(value), 100)) {
-                stream << std::lrint(value);
-            }else {
-                stream << value;
-            }
-            stream << std::endl;
-        }
-    }
-    // Fields
-    if(model.has_field()) {
-        for(std::size_t k = 0; k < model.Fields().size(); ++k) {
-            stream << k << kOutputSeperator << k << kOutputSeperator;
-            double value = kOutputCouplerCoeff * model.Fields()[k];
-            if(FuzzyUlpCompare(value, std::lrint(value), 100)) {
-                stream << std::lrint(value);
-            }else {
-                stream << value;
-            }
-            stream << std::endl;
-        }
-    }
-    std::fesetround(round_mode);
-}
-
-
-ParallelPopulationAnnealing::Config ConfigParse(std::istream& file) {
-    ParallelPopulationAnnealing::Config config;
+void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
     try {
         boost::property_tree::ptree tree;
         boost::property_tree::read_json(file, tree);
 
-        config.population = tree.get<int>("population");
-        config.population_ratio = tree.get<double>("population_ratio", 1.0);
-        config.population_shift = tree.get<double>("population_shift", 0.0);
-        config.population_slope = tree.get<double>("population_slope", 0.0);
+        config->population = tree.get<int>("population");
+        config->population_ratio = tree.get<double>("population_ratio", 1.0);
+        config->population_shift = tree.get<double>("population_shift", 0.0);
+        config->population_slope = tree.get<double>("population_slope", 0.0);
         std::stringstream converter(tree.get<std::string>("seed", "0"));
-        converter >> std::hex >> config.seed;
+        converter >> std::hex >> config->seed;
         for(auto& item : tree.get_child("schedule")) {
-            config.schedule.emplace_back();
-            config.schedule.back().beta = item.second.get<double>("beta");
-            config.schedule.back().sweeps = item.second.get("sweeps", 10);
-            config.schedule.back().overlap_dist = item.second.get("overlap_hist", false);
-            config.schedule.back().energy_dist = item.second.get("energy_hist", false);
+            config->schedule.emplace_back();
+            config->schedule.back().beta = item.second.get<double>("beta");
+            config->schedule.back().sweeps = item.second.get("sweeps", 10);
+            config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);
+            config->schedule.back().energy_dist = item.second.get("energy_hist", false);
         }
     } catch(std::exception& e) {
         utilities::Check(false, "Config parsing failed.");
     }
-    std::sort(config.schedule.begin(), config.schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
-    return config;
+    std::sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
 }
 }

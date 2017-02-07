@@ -18,6 +18,7 @@ add_executable(
     graph.cpp 
     random_number_generator.cpp 
     parse.cpp 
+    output.cpp
     parallel_population_annealing.cpp 
     parallel.cpp 
     population_annealing.cpp 
@@ -34,8 +35,10 @@ set_target_properties(propane PROPERTIES
     CXX_EXTENSIONS NO
 )
 
-find_package(Boost REQUIRED)
-include_directories(${BOOST_INCLUDE_DIRS})
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED COMPONENTS program_options)
+set(LIBS ${LIBS} ${Boost_LIBRARIES})
+include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})

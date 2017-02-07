@@ -9,8 +9,6 @@ namespace io
 {
 static constexpr std::size_t kBufferSize = 1024; // size of input buffer
 static constexpr std::size_t kReservedVertices = 6; // average number of edges per vertex
-static constexpr int kOutputCouplerCoeff = 1;
-static constexpr char kOutputSeperator = ' ';
 static constexpr char kCommentToken = {'#'};
 static const std::vector<char> kWhitespaceTokens = {' ', '\t'};
 
@@ -20,11 +18,8 @@ static const std::vector<char> kWhitespaceTokens = {' ', '\t'};
  * i j J_ij
  */
 Graph IjjParse(std::istream& file);
-/** Opposite of IjjParse: Dumps bonds to file.
- */
-void IjjDump(Graph& model, std::ostream& stream);
-/** Parses configuration file and populates a Config.
+/** Parses configuration file for single threaded PA and populates a Config.
  * Uses boost::property_tree to read the JSON.
- */
-ParallelPopulationAnnealing::Config ConfigParse(std::istream& file);
+ */ 
+void ConfigParse(std::istream& file, PopulationAnnealing::Config* config);
 }

@@ -7,7 +7,7 @@
 
 /** Accelerated Implementation of Population Annealing Monte Carlo.
  */
-class FpgaPopulationAnnealing : protected PopulationAnnealing{
+class FpgaPopulationAnnealing : public PopulationAnnealing{
     MonteCarloDriver driver_;
 public:
 protected:
