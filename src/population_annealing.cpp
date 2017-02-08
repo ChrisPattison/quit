@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#include <chrono>
 
 // Fix this to do something with the single replicas
 std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
@@ -169,13 +170,15 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
     for(auto step : schedule_) {
         Result observables;
-        
+
+        auto time_start = std::chrono::high_resolution_clock::now();
         if(step.beta != beta_) {
             observables.norm_factor = Resample(step.beta);
         }
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
             MonteCarloSweep(replicas_[k], step.sweeps);
         }
+        observables.montecarlo_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
 
         energy.resize(replicas_.size());
         for(std::size_t k = 0; k < replicas_.size(); ++k) {

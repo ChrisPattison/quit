@@ -35,6 +35,7 @@ public:
         std::uint64_t seed;
         int sweeps;
         double mean_square_family_size;
+        double montecarlo_walltime;
     };
 /** Parameters for a single step.
  */

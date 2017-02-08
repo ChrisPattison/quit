@@ -34,12 +34,12 @@ void ColumnNames() {
         << "E_MIN" << std::setw(kHeaderWidth) 
         << "R_MIN" << std::setw(kHeaderWidth) 
         << "S_f" << std::setw(kHeaderWidth) 
-        << "rho_t";
+        << "rho_t" << std::setw(kHeaderWidth) 
+        << "MC_Walltime";
 }
 
 void MpiColumnNames() {
     std::cout << std::setw(kHeaderWidth) 
-        << "MC_Walltime" << std::setw(kHeaderWidth) 
         << "Redist_Walltime" << std::setw(kHeaderWidth) 
         << "Obs_Walltime" << std::setw(kHeaderWidth) 
         << "R_f_MAX";
@@ -56,12 +56,12 @@ void Results(PopulationAnnealing::Result& r) {
         << r.ground_energy << " " << std::setw(kWidth) 
         << r.grounded_replicas << " " << std::setw(kWidth) 
         << r.entropy << " " << std::setw(kWidth) 
-        << r.mean_square_family_size;
+        << r.mean_square_family_size << " " << std::setw(kWidth)
+        << r.montecarlo_walltime << " ";
 }
 
 void MpiResults(ParallelPopulationAnnealing::Result& r) {
     std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
-        << r.montecarlo_walltime << " " << std::setw(kWidth) 
         << r.redist_walltime << " " << std::setw(kWidth) 
         << r.observables_walltime << " " << std::setw(kWidth)
         << r.max_family_size;

@@ -51,7 +51,6 @@ public:
 /** Data relavent only to the parallel implementation
  */
     struct Result : PopulationAnnealing::Result {
-        double montecarlo_walltime;
         double redist_walltime;
         double observables_walltime;
         int max_family_size;
