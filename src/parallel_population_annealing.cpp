@@ -230,7 +230,8 @@ double ParallelPopulationAnnealing::Resample(double new_beta) {
     beta_ = new_beta;
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
-    return normalize;
+
+    return summed_weights;
 }
 
 void ParallelPopulationAnnealing::Redistribute() {

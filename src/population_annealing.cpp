@@ -266,7 +266,8 @@ double PopulationAnnealing::Resample(double new_beta) {
         weighting(k) = std::exp(-(new_beta-beta_) * Hamiltonian(replicas_[k]));
     }
     
-    double normalize = average_population_ / weighting.sum();
+    double summed_weights = weighting.sum();
+    double normalize = average_population_ / summed_weights;
     for(std::size_t k = 0; k < replicas_.size(); ++k) {
         double weight = normalize * weighting(k);
         unsigned int n = (weight - std::floor(weight)) > rng_.Probability() ? std::ceil(weight) : std::floor(weight);
@@ -279,7 +280,7 @@ double PopulationAnnealing::Resample(double new_beta) {
     beta_ = new_beta;
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
-    return normalize;
+    return summed_weights;
 }
 
 int PopulationAnnealing::NewPopulation(double new_beta) {
