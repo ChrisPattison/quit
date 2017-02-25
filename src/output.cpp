@@ -29,7 +29,7 @@ void ColumnNames() {
         << "Sweeps" << std::setw(kHeaderWidth)
         << "<E>" << std::setw(kHeaderWidth) 
         << "<E^2>" << std::setw(kHeaderWidth) 
-        << "Q" << std::setw(kHeaderWidth) 
+        << "QR" << std::setw(kHeaderWidth) 
         << "R" << std::setw(kHeaderWidth) 
         << "E_MIN" << std::setw(kHeaderWidth) 
         << "R_MIN" << std::setw(kHeaderWidth) 

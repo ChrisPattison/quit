@@ -20,10 +20,11 @@ class MonteCarloDriver {
     const std::size_t kSpinAddr = 0x0004;
     const std::size_t kSweepAddr = 0x0008;
     const std::size_t kSeedAddr = 0x000c;
+    const std::size_t kLutEntriesAddr = 0x0010;
 
     volatile std::uint8_t* bar0_;
 
-    std::vector<double> delta_energy_;
+    std::vector<double> local_field_;
     int bar0_disc_;
 
     int bus_;

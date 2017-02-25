@@ -1,13 +1,23 @@
 #include "fpga_population_annealing.hpp"
 #include "graph.hpp"
 #include <vector>
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
 
 void FpgaPopulationAnnealing::MonteCarloSweep(StateVector& replica, int moves) {
     // Pack bit vector for now...
     std::vector<std::uint32_t> packed_replica((replica.size() + 31)/32);
-    for(int i = 0; i < replica.size(); ++i) {
-        int shift = i % 32;
-        packed_replica[i/32] = (packed_replica[i/32] & ((~0-1) << shift)) | (static_cast<std::uint32_t>(replica[i]==-1 ? 0 : 1) << shift);
+
+    for(int j = 0; j < packed_replica.size(); ++j) {
+        packed_replica[j] = 0;
+        for(int i = 0; i < 32; ++i) {
+            int spin = j*32 + i;
+            packed_replica[j] >>= 1;
+            if(spin < replica.size() && replica(spin) == 1) {
+                packed_replica[j] |= 0x80000000;
+            }
+        }
     }
 
     driver_.Sweep(&packed_replica, static_cast<std::uint32_t>(moves));
@@ -19,12 +29,12 @@ void FpgaPopulationAnnealing::MonteCarloSweep(StateVector& replica, int moves) {
 }
 
 double FpgaPopulationAnnealing::Resample(double new_beta) {
-    PopulationAnnealing::Resample(new_beta);
-    driver_.SetProb(beta_);
+    driver_.SetProb(new_beta);
+    return PopulationAnnealing::Resample(new_beta);
 }
 
 FpgaPopulationAnnealing::FpgaPopulationAnnealing(Graph& structure, Config schedule) : PopulationAnnealing(structure, schedule) {
     driver_.SeedRng(rng_.GetSeed());
     driver_.SetGraph(structure_);
-    driver_.SetProb(beta_);
+    driver_.SetProb(0.0);
 }

@@ -14,10 +14,10 @@ protected:
 
 /** Carries out moves monte carlo sweeps of replica on the accelerator.
  */
-    void MonteCarloSweep(StateVector& replica, int moves);
+    virtual void MonteCarloSweep(StateVector& replica, int moves) override;
 /** Returns true if a move may be made that reduces the total energy.
  */
-    double Resample(double new_beta);
+    virtual double Resample(double new_beta) override;
 /** Returns new population size
  * Uses a logistic curve with parameters given in input file
  * This probably will be removed in the future with preference given 

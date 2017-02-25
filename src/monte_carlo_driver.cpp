@@ -3,6 +3,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <fstream>
+#include <iostream>
+#include <iomanip>
 #include <exception>
 #include <string>
 #include <cmath>
@@ -49,24 +51,22 @@ MonteCarloDriver::~MonteCarloDriver() {
 void MonteCarloDriver::SeedRng(std::uint32_t seed) {
     volatile std::uint32_t* seed_register = reinterpret_cast<volatile std::uint32_t*>(&bar0_[kSeedAddr]);
     // Force reseed
-    *seed_register = ~seed;
     *seed_register = seed;
 }
-
 
 void MonteCarloDriver::Sweep(std::vector<std::uint32_t>* replica, std::uint32_t sweeps) {
     volatile std::uint32_t* spin_base = reinterpret_cast<volatile std::uint32_t*>(&bar0_[kSpinBase]);
     volatile std::uint32_t* sweep_register = reinterpret_cast<volatile std::uint32_t*>(&bar0_[kSweepAddr]);
     
     for(int i = 0; i < replica->size(); ++i) {
-        spin_base[i] = replica->data()[i];
+        spin_base[i] = (*replica)[i];
     }
-
+    
     *sweep_register = sweeps;
     CompletionWait();
 
     for(int i = 0; i < replica->size(); ++i) {
-        replica->data()[i] = spin_base[i];
+         (*replica)[i] = spin_base[i];
     }
 }
 
@@ -80,47 +80,58 @@ void MonteCarloDriver::CompletionWait() {
 void MonteCarloDriver::SetGraph(Graph& structure) {
     std::uint32_t spins = *reinterpret_cast<volatile std::uint32_t*>(&bar0_[kSpinAddr]);
     std::uint32_t dimension = *reinterpret_cast<volatile std::uint32_t*>(&bar0_[kDimensionAddr]);
+    std::uint32_t lutentries = *reinterpret_cast<volatile std::uint32_t*>(&bar0_[kLutEntriesAddr]);
     std::uint32_t length = std::rint(std::pow(spins, 1.0/dimension));
 
     assert(spins == structure.size());
-    delta_energy_.resize(structure.size() * (2<<dimension));
+    assert(dimension == 2);
+    int lut_size = 1<<(2*dimension);
+    assert(lut_size == lutentries);
+    local_field_.resize(spins * lut_size);
 
     // Site
     for(int vertex = 0; vertex < structure.size(); ++vertex) {
         // Single LUT entry
-        for(int entry = 0; entry < 2<<dimension; ++entry) {
+        for(int entry = 0; entry < lut_size; ++entry) {
             double sum = 0.0;
             // sum over each dimension
             for(int dim = 0; dim < dimension; ++dim) {
-                int stride = 2>>dim;
-                int neighbor_vertex = (vertex + stride + structure.size()) % structure.size();
-                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (entry & (1<<(dim*2)) ? 1 : -1);
+                int stride = std::pow(length, dim);
+                int neighbor_vertex = (vertex - stride + structure.size()) % structure.size();
+//                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (entry & (1<<(dim*2)) ? 1 : -1);
+                sum += -1.0 * (entry & (1<<(dim*2))) == 0 ? -1 : 1;
 
-                neighbor_vertex = (vertex - stride + structure.size()) % structure.size();
-                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (entry & (1<<(dim*2+1)) ? 1 : -1);
+                neighbor_vertex = (vertex + stride + structure.size()) % structure.size();
+//                sum += structure.Adjacent().innerVector(vertex).coeff(neighbor_vertex) * (entry & (1<<(dim*2+1)) ? 1 : -1);
+                sum += -1.0 * (entry & (1<<(dim*2+1))) == 0 ? -1 : 1;
             }
-            sum -= structure.Fields()(vertex);
-            delta_energy_[vertex*(2<<dimension) + entry] = sum;
+            // sum -= structure.Fields()(vertex);
+            local_field_[vertex*lut_size + entry] = sum;
+            // Table order?????!!!
+            // local_field_.at((vertex+1)*lut_size - entry - 1) = sum;
         }
     }
 }
 
 void MonteCarloDriver::SetProb(double beta) {
     volatile std::uint32_t* lut_register = reinterpret_cast<volatile std::uint32_t*>(&bar0_[kLutAddr]);
-    // 31 bits set
-    std::uint32_t fixed_mask = ~0>>1;
+    // 31 bits set 0x7FFFFFFF
+    std::uint32_t fixed_mask = 0x7FFFFFFF;// ~0U>>1;
 
-    for(int i = delta_energy_.size()-1; i >= 0; --i) {
-        // 0 is -1
-        // msb signifies non-unity transition
+    for(int i = 0; i < local_field_.size(); ++i) {
+        // set MSB is 1
+        // MSB is s where s -> s' is the non-unity transition
 
-        // -1 -> 1 transition non-unity
-        if(delta_energy_[i] < 0) {
-            // 31 bit fixed point
-            *lut_register = static_cast<std::uint32_t>(std::exp(-delta_energy_[i]*beta) * fixed_mask);
-        }else {
-        // 1 -> -1 non-unity
-            *lut_register = static_cast<std::uint32_t>(std::exp(delta_energy_[i]*beta) * fixed_mask) | ~fixed_mask;
+        // local_field_[i] is for the 1 -> -1 transition
+        // 31 bit fixed point probability in [0,1)
+        auto probability = static_cast<std::uint32_t>(std::exp(-2*std::abs(local_field_[i]*beta)) * static_cast<double>(fixed_mask));
+
+
+        assert(probability < 0x80000000);
+        if(local_field_[i] > 0) {
+            probability |= ~fixed_mask;
         }
+
+        *lut_register = probability;
     }
-};
+}
