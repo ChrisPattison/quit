@@ -99,7 +99,7 @@ protected:
     double DeltaEnergy(StateVector& replica, int vertex); 
 /** Carries out moves monte carlo sweeps of replica.
  */
-    virtual void MonteCarloSweep(StateVector& replica, int moves);
+    void MonteCarloSweep(StateVector& replica, int moves);
 /** Returns true if a move may be made that reduces the total energy.
  */
     bool IsLocalMinimum(StateVector& replica);
@@ -121,7 +121,7 @@ protected:
  * Attempts to maintain approximately the same population as detailed in arXiv:1508.05647
  * Returns the normalization factor Q as a byproduct.
  */
-    virtual double Resample(double new_beta);
+    double Resample(double new_beta);
 /** Returns new population size
  * Uses a logistic curve with parameters given in input file
  * This probably will be removed in the future with preference given 
