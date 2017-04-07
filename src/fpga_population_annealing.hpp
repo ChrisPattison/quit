@@ -17,7 +17,7 @@ protected:
     void MonteCarloSweep(StateVector& replica, int moves);
 /** Returns true if a move may be made that reduces the total energy.
  */
-    double Resample(double new_beta);
+    double Resample(double new_beta, double population_fraction);
 /** Returns new population size
  * Uses a logistic curve with parameters given in input file
  * This probably will be removed in the future with preference given 

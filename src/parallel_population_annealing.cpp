@@ -64,7 +64,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         auto time_start = std::chrono::high_resolution_clock::now();
         // Population Annealing
         if(step.beta != beta_) {
-            observables.norm_factor = Resample(step.beta);
+            observables.norm_factor = Resample(step.beta, step.population_fraction);
             auto redist_time_start = std::chrono::high_resolution_clock::now();
             Redistribute();
             observables.redist_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - redist_time_start).count();
@@ -199,8 +199,8 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     return results;
 }
 
-double ParallelPopulationAnnealing::Resample(double new_beta) {
-    average_node_population_ = NewPopulation(new_beta) / parallel_.size();
+double ParallelPopulationAnnealing::Resample(double new_beta, double population_fraction) {
+    average_node_population_ = population_fraction * init_population_ / parallel_.size();
     average_population_ = average_node_population_ * parallel_.size();
 
     std::vector<StateVector> resampled_replicas;

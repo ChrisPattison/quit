@@ -24,7 +24,7 @@ protected:
  * Attempts to maintain approximately the same population as detailed in arXiv:1508.05647
  * Returns the normalization factor Q as a byproduct.
  */
-    double Resample(double new_beta);
+    double Resample(double new_beta, double population_fraction);
 /** Redistributes population evenly among all processes.
  * Ordering of the replicas must remain preserved at all times.
  * Packs replicas in Packets to send to other processes.

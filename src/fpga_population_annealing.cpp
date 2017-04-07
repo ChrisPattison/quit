@@ -28,9 +28,9 @@ void FpgaPopulationAnnealing::MonteCarloSweep(StateVector& replica, int moves) {
     }
 }
 
-double FpgaPopulationAnnealing::Resample(double new_beta) {
+double FpgaPopulationAnnealing::Resample(double new_beta, double population_fraction) {
     driver_.SetProb(new_beta);
-    return PopulationAnnealing::Resample(new_beta);
+    return PopulationAnnealing::Resample(new_beta, population_fraction);
 }
 
 FpgaPopulationAnnealing::FpgaPopulationAnnealing(Graph& structure, Config schedule) : PopulationAnnealing(structure, schedule) {

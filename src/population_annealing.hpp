@@ -41,6 +41,7 @@ public:
  */
     struct Schedule {
         double beta;
+        double population_fraction;
         int sweeps = 10;
         bool overlap_dist = false;
         bool energy_dist = false;
@@ -51,9 +52,6 @@ public:
         int population;
         std::uint64_t seed;
         std::vector<PopulationAnnealing::Schedule> schedule;
-        double population_ratio;
-        double population_slope;
-        double population_shift;
     };
 protected:
     Graph structure_;
@@ -68,10 +66,6 @@ protected:
     int average_population_;
     std::vector<Schedule> schedule_;
     double beta_;
-
-    double population_ratio_;
-    double population_slope_;
-    double population_shift_;
 
 /** Determinstically builds a list of replicas with different Markov Chains.
  */
@@ -121,13 +115,7 @@ protected:
  * Attempts to maintain approximately the same population as detailed in arXiv:1508.05647
  * Returns the normalization factor Q as a byproduct.
  */
-    double Resample(double new_beta);
-/** Returns new population size
- * Uses a logistic curve with parameters given in input file
- * This probably will be removed in the future with preference given 
- * to the current method of specifying beta schedules (one per temperature)
- */
-    int NewPopulation(double new_beta);
+    double Resample(double new_beta, double new_population_fraction);
 public:
 
     PopulationAnnealing() = delete;

@@ -76,10 +76,6 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     average_population_ = config.population;
     init_population_ = average_population_;
     
-    population_ratio_ = config.population_ratio;
-    population_slope_ = config.population_slope;
-    population_shift_ = config.population_shift;
-    
     log_lookup_table_.resize(lookup_table_size_);
     for(int k = 0; k < log_lookup_table_.size(); ++k) {
         log_lookup_table_[k] = std::log(static_cast<double>(k) / (log_lookup_table_.size() - 1));
@@ -173,7 +169,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
         auto time_start = std::chrono::high_resolution_clock::now();
         if(step.beta != beta_) {
-            observables.norm_factor = Resample(step.beta);
+            observables.norm_factor = Resample(step.beta, step.population_fraction);
         }
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
             MonteCarloSweep(replicas_[k], step.sweeps);
@@ -253,13 +249,13 @@ bool PopulationAnnealing::AcceptedMove(double delta_energy) {
     return std::exp(acceptance_prob_exp) > test;
 }
 
-double PopulationAnnealing::Resample(double new_beta) {
+double PopulationAnnealing::Resample(double new_beta, double new_population_fraction) {
     std::vector<StateVector> resampled_replicas;
     std::vector<int> resampled_families;
     resampled_replicas.reserve(replicas_.size());
     resampled_families.reserve(replicas_.size());
 
-    average_population_ = NewPopulation(new_beta);
+    average_population_ = new_population_fraction * init_population_;
 
     Eigen::VectorXd weighting(replicas_.size());
     for(std::size_t k = 0; k < replicas_.size(); ++k) {
@@ -281,10 +277,4 @@ double PopulationAnnealing::Resample(double new_beta) {
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
     return summed_weights;
-}
-
-int PopulationAnnealing::NewPopulation(double new_beta) {
-    double S = 1.0/population_ratio_;
-    double L = (1.0 - S) * (1.0 + std::exp(-population_slope_*population_shift_));
-    return static_cast<int>(init_population_ * (L/(1.0+std::exp(population_slope_*(new_beta-population_shift_))) + S));
 }
