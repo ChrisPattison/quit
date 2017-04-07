@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <algorithm>
 
-void FpgaPopulationAnnealing::MonteCarloSweep(StateVector& replica, int moves) {
+void FpgaPopulationAnnealing::Sweep(StateVector& replica, int moves) {
     // Pack bit vector for now...
     std::vector<std::uint32_t> packed_replica((replica.size() + 31)/32);
 
