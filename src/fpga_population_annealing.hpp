@@ -12,9 +12,12 @@ class FpgaPopulationAnnealing : public PopulationAnnealing{
 public:
 protected:
 
-/** Carries out moves monte carlo sweeps of replica on the accelerator.
+using SpinPack = std::array<std::uint64_t, 4>;
+using StateVectorPack = Eigen::Matrix<SpinPack, Eigen::Dynamic, 1>;
+
+/** Carries out moves monte carlo sweeps of all replicas on the accelerator.
  */
-    void MonteCarloSweep(StateVector& replica, int moves);
+    void Sweep(int moves);
 /** Returns true if a move may be made that reduces the total energy.
  */
     double Resample(double new_beta, double population_fraction);
