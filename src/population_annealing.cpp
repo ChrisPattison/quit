@@ -117,20 +117,6 @@ bool PopulationAnnealing::IsLocalMinimum(StateVector& replica) {
     return true;
 }
 
-PopulationAnnealing::StateVector PopulationAnnealing::Quench(const StateVector& replica) {
-    const std::size_t sweeps = 4;
-    StateVector quenched_replica = replica;
-    do {
-        for(std::size_t k = 0; k < sweeps * quenched_replica.size(); ++k) {
-            int vertex = rng_.Range(quenched_replica.size());
-            if(DeltaEnergy(quenched_replica, vertex) < 0) {
-                quenched_replica(vertex) *= -1;
-            }
-        }
-    }while(!IsLocalMinimum(quenched_replica));
-    return quenched_replica;
-}
-
 double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
     return (alpha.array() * beta.array()).cast<double>().sum() / structure_.size();
 }

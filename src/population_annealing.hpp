@@ -59,9 +59,6 @@ protected:
 /** Returns true if a move may be made that reduces the total energy.
  */
     bool IsLocalMinimum(StateVector& replica);
-/** Greadily attempts to find ground state i.e. T=0.
- */
-    StateVector Quench(const StateVector& replica);
 /** Returns the overlap between replicas alpha and beta.
  */
     double Overlap(StateVector& alpha, StateVector& beta);
