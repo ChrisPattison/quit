@@ -1,6 +1,7 @@
 #include "parse.hpp"
 #include "graph.hpp"
 #include "parallel_population_annealing.hpp"
+#include "greedy_population_annealing.hpp"
 #include "types.hpp"
 #include "utilities.hpp"
 #include "version.hpp"
@@ -89,6 +90,17 @@ void SinglePa(std::string config_path, std::string bond_path) {
     SinglePaPost(results, model);
 }
 
+void GreedyPa(std::string config_path, std::string bond_path) {
+    Graph model;
+    GreedyPopulationAnnealing::Config config;
+    SinglePaPre(config_path, bond_path, &model, &config);
+
+    GreedyPopulationAnnealing population_annealing(model, config);
+    auto results = population_annealing.Run();
+
+    SinglePaPost(results, model);
+}
+
 void FpgaPa(std::string config_path, std::string bond_path) {
     Graph model;
     PopulationAnnealing::Config config;
@@ -103,7 +115,8 @@ void FpgaPa(std::string config_path, std::string bond_path) {
 enum ModeOption{
     kModeOptionFpga,
     kModeOptionMpi,
-    kModeOptionSingle
+    kModeOptionSingle,
+    kModeOptionGreedy
 };
 
 int main(int argc, char** argv) {
@@ -117,7 +130,7 @@ int main(int argc, char** argv) {
         ("help,h", "help message")
         ("config", "configuration file")
         ("bondfile", "file containing graph and couplers")
-        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select acceleration mode <1/mpi/fpga>");
+        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1/mpi/fpga/greedy>");
     boost::program_options::variables_map var_map;
     boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
         .options(description).positional(positional_description).run(), var_map);
@@ -136,6 +149,7 @@ int main(int argc, char** argv) {
     std::map<std::string, ModeOption> selector_map;
     selector_map.insert({"mpi", kModeOptionMpi});
     selector_map.insert({"fpga", kModeOptionFpga});
+    selector_map.insert({"greedy", kModeOptionGreedy});
     ModeOption selection;
     if(selector_map.count(var_map["mode"].as<std::string>()) == 0) {
         selection = kModeOptionSingle;
@@ -147,6 +161,7 @@ int main(int argc, char** argv) {
         case kModeOptionMpi : MpiPa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
         case kModeOptionFpga : FpgaPa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
         case kModeOptionSingle : SinglePa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
+        case kModeOptionGreedy : GreedyPa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
     }
 
     return EXIT_SUCCESS;

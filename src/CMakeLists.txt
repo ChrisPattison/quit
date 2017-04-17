@@ -27,6 +27,7 @@ add_executable(
     compare.cpp
     monte_carlo_driver.cpp
     fpga_population_annealing.cpp
+    greedy_population_annealing.cpp
 )
 
 set_target_properties(propane PROPERTIES
