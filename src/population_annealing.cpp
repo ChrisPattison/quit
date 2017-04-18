@@ -77,11 +77,6 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     structure_.Adjacent().makeCompressed();
     average_population_ = config.population;
     init_population_ = average_population_;
-    
-    log_lookup_table_.resize(lookup_table_size_);
-    for(int k = 0; k < log_lookup_table_.size(); ++k) {
-        log_lookup_table_[k] = std::log(static_cast<double>(k) / (log_lookup_table_.size() - 1));
-    }
  }
 
 double PopulationAnnealing::Hamiltonian(StateVector& replica) {
@@ -223,14 +218,12 @@ bool PopulationAnnealing::AcceptedMove(double delta_energy) {
     double test = rng_.Probability();
 
     // Compute bound on log of test number
-    int lower_index = std::floor(test * (log_lookup_table_.size() - 1));
-    double test_log_lower_bound = log_lookup_table_.at(lower_index);
-    double test_log_upper_bound = log_lookup_table_.at(lower_index+1);
+    auto bound = log_lookup_(test);
 
     // return acceptance_prob_exp > log(test);
-    if(test_log_upper_bound < acceptance_prob_exp) {
+    if(bound.upper < acceptance_prob_exp) {
         return true;
-    }else if(test_log_lower_bound > acceptance_prob_exp) {
+    }else if(bound.lower > acceptance_prob_exp) {
         return false;
     }
     // Compute exp if LUT can't resolve it

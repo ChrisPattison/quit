@@ -5,6 +5,7 @@
 #include "graph.hpp"
 #include "random_number_generator.hpp"
 #include "population_annealing_base.hpp"
+#include "log_lookup.hpp"
 #include <Eigen/Dense>
 
 namespace propane 
@@ -14,8 +15,7 @@ namespace propane
  */
 class PopulationAnnealing : public PopulationAnnealingBase {
 protected:
-    int const lookup_table_size_ = 1024;
-    std::vector<double> log_lookup_table_;
+    util::LogLookup log_lookup_;
 
 protected:
     Graph structure_;
