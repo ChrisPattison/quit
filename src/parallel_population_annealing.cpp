@@ -14,8 +14,8 @@ namespace propane
 {
 void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram>& target, const std::vector<Result::Histogram>& source) {
     for(auto bin : source) {
-        auto it = std::lower_bound(target.begin(), target.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) { return a.bin < b.bin && !FuzzyCompare(a.bin, b.bin); });
-        if(it==target.end() || !FuzzyCompare(bin.bin, it->bin)) {
+        auto it = std::lower_bound(target.begin(), target.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) { return a.bin < b.bin && !util::FuzzyCompare(a.bin, b.bin); });
+        if(it==target.end() || !util::FuzzyCompare(bin.bin, it->bin)) {
             target.insert(it, bin);
         } else {
             it->value += bin.value;
@@ -103,7 +103,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
 
         // number of replicas with energy = ground energy
         observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
-            energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return FuzzyCompare(E, observables.ground_energy) ? 1 : 0; }).sum() : 0,
+            energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return util::FuzzyCompare(E, observables.ground_energy) ? 1 : 0; }).sum() : 0,
             [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
 
         // Family Statistics

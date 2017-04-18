@@ -3,7 +3,7 @@
 #include "parallel_population_annealing.hpp"
 #include "greedy_population_annealing.hpp"
 #include "types.hpp"
-#include "utilities.hpp"
+#include "string_util.hpp"
 #include "version.hpp"
 #include "output.hpp"
 #include <boost/program_options.hpp>

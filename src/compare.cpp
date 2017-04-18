@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <cmath>
 
-namespace propane
+namespace propane::util
 {
 bool FuzzyUlpCompare(const float& a, const float& b, const int err = 10) {
     if(std::signbit(a)!=std::signbit(b)) {

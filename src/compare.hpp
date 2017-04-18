@@ -1,6 +1,6 @@
 #pragma once
 
-namespace propane
+namespace propane::util
 {
 /** Fuzzy Comparison of floats by units in last place.
  * Adjacent floats have adjacent integer representation.

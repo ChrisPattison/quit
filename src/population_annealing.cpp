@@ -41,8 +41,8 @@ std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
 std::vector<PopulationAnnealing::Result::Histogram> PopulationAnnealing::BuildHistogram(const std::vector<double>& samples) {
     std::vector<Result::Histogram> hist;
     for(auto v : samples) {
-        auto it = std::lower_bound(hist.begin(), hist.end(), v, [&](const Result::Histogram& a, const double& b) { return a.bin < b && !FuzzyCompare(a.bin, b); });
-        if(it==hist.end() || !FuzzyCompare(v, it->bin)) {
+        auto it = std::lower_bound(hist.begin(), hist.end(), v, [&](const Result::Histogram& a, const double& b) { return a.bin < b && !util::FuzzyCompare(a.bin, b); });
+        if(it==hist.end() || !util::FuzzyCompare(v, it->bin)) {
             hist.insert(it, {v, 1.0});
         } else {
             it->value++;

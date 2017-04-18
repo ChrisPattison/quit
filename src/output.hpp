@@ -7,7 +7,7 @@
 #include <string>
 #include <cstdint>
 #include "version.hpp"
-#include "utilities.hpp"
+#include "string_util.hpp"
 #include "parallel.hpp"
 
 namespace propane::io {

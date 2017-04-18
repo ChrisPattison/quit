@@ -1,5 +1,5 @@
 #include "monte_carlo_driver.hpp"
-#include "utilities.hpp"
+#include "string_util.hpp"
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <fstream>

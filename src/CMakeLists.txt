@@ -22,7 +22,7 @@ add_executable(
     parallel_population_annealing.cpp 
     parallel.cpp 
     population_annealing.cpp 
-    utilities.cpp 
+    string_util.cpp 
     parallel_types.cpp 
     compare.cpp
     monte_carlo_driver.cpp
