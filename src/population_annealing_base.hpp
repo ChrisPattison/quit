@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 
+namespace propane 
+{
 class PopulationAnnealingBase {
     public:
 /** Observables for a single step.
@@ -46,3 +48,4 @@ class PopulationAnnealingBase {
         double population_shift;
     };
 };
+}

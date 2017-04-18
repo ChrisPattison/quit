@@ -6,7 +6,7 @@
 #include "compare.hpp"
 #include "parallel.hpp"
 
-namespace io {   
+namespace propane::io {   
 void Header(Graph& model, std::string config_path, std::string bond_path) {
     std::cout << "# Parallel Optimized Population Annealing V" << version::kMajor << "." << version::kMinor << std::endl;
     std::cout << "# C. Pattison" << std::endl;

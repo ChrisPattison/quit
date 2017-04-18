@@ -10,6 +10,8 @@
 #include <cmath>
 #include <limits>
 
+namespace propane
+{
 MonteCarloDriver::MonteCarloDriver() {
     bus_ = -1;
     device_ = -1;
@@ -134,4 +136,5 @@ void MonteCarloDriver::SetProb(double beta) {
 
         *lut_register = probability;
     }
+}
 }

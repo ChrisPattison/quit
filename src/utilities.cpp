@@ -3,7 +3,7 @@
 #include <iterator>
 #include <iostream>
 
-namespace utilities 
+namespace propane::utilities 
 {
 void Check(bool cond, const char* err) {
     if(!cond) {

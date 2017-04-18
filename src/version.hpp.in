@@ -1,6 +1,6 @@
 #pragma once
 
-namespace version
+namespace propane::version
 {
 static const int kMajor = @PROPANE_VERSION_MAJOR@;
 static const int kMinor = @PROPANE_VERSION_MINOR@;

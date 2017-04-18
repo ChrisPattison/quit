@@ -9,6 +9,8 @@
 #include "parallel.hpp"
 #include <Eigen/Dense>
 
+namespace propane
+{
 /** Parallel version of PopulationAnnealing using MPI.
  */
 class ParallelPopulationAnnealing : protected PopulationAnnealing {
@@ -70,3 +72,4 @@ public:
  */
     std::vector<Result> Run();
 };
+}

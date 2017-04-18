@@ -1,6 +1,8 @@
 #pragma once
 #include "population_annealing.hpp"
 
+namespace propane
+{
 /** Population Annealing using a redefined Hamiltonian based on a greedy descent to the minimum energy
  */
 class GreedyPopulationAnnealing : public PopulationAnnealing {
@@ -14,3 +16,4 @@ class GreedyPopulationAnnealing : public PopulationAnnealing {
  */
     virtual double DeltaEnergy(StateVector& replica, int vertex);
 };
+}

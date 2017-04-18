@@ -13,7 +13,7 @@
 #include "utilities.hpp"
 #include "compare.hpp"
 
-namespace io 
+namespace propane::io 
 {
 Graph IjjParse(std::istream& file) {
     Graph model;

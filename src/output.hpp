@@ -10,7 +10,7 @@
 #include "utilities.hpp"
 #include "parallel.hpp"
 
-namespace io {
+namespace propane::io {
 constexpr int kWidth = 18;
 constexpr int kHeaderWidth = kWidth + 1;
 const auto kMagicString = "%%%---%%%";

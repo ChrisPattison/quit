@@ -10,6 +10,8 @@
 #include <functional>
 #include <chrono>
 
+namespace propane
+{
 void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram>& target, const std::vector<Result::Histogram>& source) {
     for(auto bin : source) {
         auto it = std::lower_bound(target.begin(), target.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) { return a.bin < b.bin && !FuzzyCompare(a.bin, b.bin); });
@@ -403,4 +405,5 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
     std::vector<double> result(local_families.size());
     std::transform(local_families.begin(), local_families.end(), result.begin(), [](const Family& f) { return static_cast<double>(f.count); });
     return result;
+}
 }

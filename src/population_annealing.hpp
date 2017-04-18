@@ -7,6 +7,8 @@
 #include "population_annealing_base.hpp"
 #include <Eigen/Dense>
 
+namespace propane 
+{    
 /** Implementation of Population Annealing Monte Carlo.
  * Replicas have an associated entry in the family vector indicating lineage.
  */
@@ -88,3 +90,4 @@ public:
  */
     std::vector<Result> Run();
 };
+}

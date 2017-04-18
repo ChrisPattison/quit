@@ -1,5 +1,7 @@
 #include "greedy_population_annealing.hpp"
 
+namespace propane
+{
 double GreedyPopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
     replica(vertex) *= -1;
     double new_energy = Hamiltonian(replica);
@@ -22,4 +24,5 @@ double GreedyPopulationAnnealing::Hamiltonian(StateVector& replica) {
         }
     }
     return PopulationAnnealing::Hamiltonian(reduced_replica);
+}
 }

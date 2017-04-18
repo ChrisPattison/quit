@@ -9,6 +9,8 @@
 #include <numeric>
 #include <chrono>
 
+namespace propane
+{
 // Fix this to do something with the single replicas
 std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     std::vector<std::pair<int, int>> pairs;
@@ -263,4 +265,5 @@ double PopulationAnnealing::Resample(double new_beta, double new_population_frac
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
     return summed_weights;
+}
 }

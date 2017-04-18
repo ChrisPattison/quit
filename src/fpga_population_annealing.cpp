@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <algorithm>
 
+namespace propane
+{
 void FpgaPopulationAnnealing::Sweep(int moves) {
 }
 
@@ -17,4 +19,5 @@ FpgaPopulationAnnealing::FpgaPopulationAnnealing(Graph& structure, Config schedu
     driver_.SeedRng(rng_.GetSeed());
     driver_.SetGraph(structure_);
     driver_.SetProb(0.0);
+}
 }
