@@ -31,6 +31,11 @@ add_executable(
     greedy_population_annealing.cpp
 )
 
+install(TARGETS propane 
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+)
+
 set_target_properties(propane PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES
