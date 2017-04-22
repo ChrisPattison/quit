@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
     description.add_options()
         ("help,h", "help message")
         ("config", "configuration file")
+        ("version,v", "version number")
         ("bondfile", "file containing graph and couplers")
         ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1/mpi/fpga/greedy>");
     boost::program_options::variables_map var_map;
@@ -137,11 +138,20 @@ int main(int argc, char** argv) {
     boost::program_options::notify(var_map);
 
     // Print Help
-    if (var_map.count("help") || argc < 3) {
+    if(var_map.count("help") || argc == 1) {
         std::cout << "Parallel Optimized Population Annealing V" << propane::version::kMajor << "." << propane::version::kMinor << std::endl;
         std::cout << "C. Pattison" << std::endl << std::endl;
         std::cout << "Usage: " << argv[0] << " [options] <config> <bondfile>" << std::endl;
         std::cout << description << std::endl;
+        return EXIT_SUCCESS;
+    }
+
+    if(var_map.count("version")) {
+        std::cout << "Parallel Optimized Population Annealing V" << propane::version::kMajor << "." << propane::version::kMinor << std::endl;
+        std::cout << "Branch: " << propane::version::kRefSpec << std::endl;
+        std::cout << "Commit: " << std::string(propane::version::kCommitHash).substr(0, 8) << std::endl;
+        std::cout << "Build:  " << propane::version::kBuildType << std::endl;
+        std::cout << "Built:  " << propane::version::kBuildTime << std::endl;
         return EXIT_SUCCESS;
     }
 
