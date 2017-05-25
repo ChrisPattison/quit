@@ -159,33 +159,36 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         }
         observables.montecarlo_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
 
-        energy.resize(replicas_.size());
-        for(std::size_t k = 0; k < replicas_.size(); ++k) {
-            energy[k] = Hamiltonian(replicas_[k]);
-        }
-        Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
-        // Basic observables
         observables.beta = beta_;
         observables.population = replicas_.size();
-        observables.average_energy = energy_map.mean();
-        observables.average_squared_energy = energy_map.array().pow(2).mean();
-        observables.ground_energy = energy_map.minCoeff();
-        // Round-off /probably/ isn't an issue here
-        observables.grounded_replicas = energy_map.array().unaryExpr(
-            [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
-        // Family statistics
-        std::vector<double> family_size = FamilyCount();
-        std::transform(family_size.begin(),family_size.end(),family_size.begin(),
-            [&](double n) -> double {return n /= observables.population;});
-        // Entropy
-        observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0, 
-            [](double acc, double n) {return acc + n*std::log(n); });
-        // Mean Square Family Size
-        observables.mean_square_family_size = observables.population * 
-            std::accumulate(family_size.begin(), family_size.end(), 0.0, [](double acc, double n) {return acc + n*n; });
-        if(step.energy_dist) {
-            // Energy
-            observables.energy_distribution = BuildHistogram(energy);
+
+        if(step.compute_observables) {
+            energy.resize(replicas_.size());
+            for(std::size_t k = 0; k < replicas_.size(); ++k) {
+                energy[k] = Hamiltonian(replicas_[k]);
+            }
+            Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
+            // Basic observables
+            observables.average_energy = energy_map.mean();
+            observables.average_squared_energy = energy_map.array().pow(2).mean();
+            observables.ground_energy = energy_map.minCoeff();
+            // Round-off /probably/ isn't an issue here
+            observables.grounded_replicas = energy_map.array().unaryExpr(
+                [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
+            // Family statistics
+            std::vector<double> family_size = FamilyCount();
+            std::transform(family_size.begin(),family_size.end(),family_size.begin(),
+                [&](double n) -> double {return n /= observables.population;});
+            // Entropy
+            observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0, 
+                [](double acc, double n) {return acc + n*std::log(n); });
+            // Mean Square Family Size
+            observables.mean_square_family_size = observables.population * 
+                std::accumulate(family_size.begin(), family_size.end(), 0.0, [](double acc, double n) {return acc + n*n; });
+            if(step.energy_dist) {
+                // Energy
+                observables.energy_distribution = BuildHistogram(energy);
+            }
         }
         
         if(step.overlap_dist) {

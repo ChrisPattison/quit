@@ -71,6 +71,7 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
             config->schedule.back().beta = item.second.get<double>("beta");
             config->schedule.back().population_fraction = item.second.get<double>("population_fraction", 1.0);
             config->schedule.back().sweeps = item.second.get("sweeps", 10);
+            config->schedule.back().compute_observables = item.second.get("compute_observables", true);
             config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);
             config->schedule.back().energy_dist = item.second.get("energy_hist", false);
         }

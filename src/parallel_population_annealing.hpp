@@ -53,9 +53,9 @@ public:
 /** Data relavent only to the parallel implementation
  */
     struct Result : PopulationAnnealing::Result {
-        double redist_walltime;
-        double observables_walltime;
-        int max_family_size;
+        double redist_walltime = std::numeric_limits<double>::quiet_NaN();
+        double observables_walltime = std::numeric_limits<double>::quiet_NaN();
+        int max_family_size = -1;
     };
 /** Config parameters relavent to only the parallel implementation
  */

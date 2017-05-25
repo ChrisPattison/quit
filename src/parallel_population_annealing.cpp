@@ -79,57 +79,60 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
         observables.montecarlo_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
         time_start = std::chrono::high_resolution_clock::now();
 
-        energy.resize(replicas_.size());
-        for(std::size_t k = 0; k < replicas_.size(); ++k) {
-            energy[k] = Hamiltonian(replicas_[k]);
-        }
-        Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
         // Observables
         observables.beta = beta_;
 
-        // population
-        observables.population = parallel_.HeirarchyReduceToAll<int>(static_cast<int>(replicas_.size()), 
-            [](std::vector<int>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<int>()); });
+        if(step.compute_observables) {
+            energy.resize(replicas_.size());
+            for(std::size_t k = 0; k < replicas_.size(); ++k) {
+                energy[k] = Hamiltonian(replicas_[k]);
+            }
+            Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
 
-        // energy averages
-        observables.average_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().mean() : std::numeric_limits<double>::quiet_NaN(),
-            [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
-        
-        observables.average_squared_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().pow(2).mean() : std::numeric_limits<double>::quiet_NaN(),
-            [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
-        // ground energy
-        observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy_map.size() ? energy_map.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
-            [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
+            // population
+            observables.population = parallel_.HeirarchyReduceToAll<int>(static_cast<int>(replicas_.size()), 
+                [](std::vector<int>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<int>()); });
 
-        // number of replicas with energy = ground energy
-        observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
-            energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return util::FuzzyCompare(E, observables.ground_energy) ? 1 : 0; }).sum() : 0,
-            [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
-
-        // Family Statistics
-        std::vector<double> family_size = FamilyCount();
-        observables.max_family_size = family_size.size() > 0 ? static_cast<int>(*std::max_element(family_size.begin(), family_size.end())) : 0;
-        // Entropy
-        std::transform(family_size.begin(),family_size.end(),family_size.begin(),
-            [&](double n) -> double {return n /= observables.population;});
-
-        observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0, 
-            [](double acc, double n) {return acc + n*std::log(n); }), 
-            [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
-
-        observables.mean_square_family_size = observables.population * parallel_.HeirarchyReduce<double>(std::accumulate(family_size.begin(), family_size.end(), 0.0, 
-            [](double acc, double n) {return acc + n*n; }), 
-            [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
+            // energy averages
+            observables.average_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().mean() : std::numeric_limits<double>::quiet_NaN(),
+                [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
             
-        // Energy Distribution
-        if(step.energy_dist) {
-            observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
-                [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
-            std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
-                [&](Result::Histogram v) -> Result::Histogram {
-                    v.value /= parallel_.size(); 
-                    return v;
-                });
+            observables.average_squared_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().pow(2).mean() : std::numeric_limits<double>::quiet_NaN(),
+                [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
+            // ground energy
+            observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy_map.size() ? energy_map.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
+                [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
+
+            // number of replicas with energy = ground energy
+            observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
+                energy_map.size() ? energy_map.array().unaryExpr([&](double E) { return util::FuzzyCompare(E, observables.ground_energy) ? 1 : 0; }).sum() : 0,
+                [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
+
+            // Family Statistics
+            std::vector<double> family_size = FamilyCount();
+            observables.max_family_size = family_size.size() > 0 ? static_cast<int>(*std::max_element(family_size.begin(), family_size.end())) : 0;
+            // Entropy
+            std::transform(family_size.begin(),family_size.end(),family_size.begin(),
+                [&](double n) -> double {return n /= observables.population;});
+
+            observables.entropy = parallel_.HeirarchyReduce<double>(-std::accumulate(family_size.begin(), family_size.end(), 0.0, 
+                [](double acc, double n) {return acc + n*std::log(n); }), 
+                [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
+
+            observables.mean_square_family_size = observables.population * parallel_.HeirarchyReduce<double>(std::accumulate(family_size.begin(), family_size.end(), 0.0, 
+                [](double acc, double n) {return acc + n*n; }), 
+                [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
+                
+            // Energy Distribution
+            if(step.energy_dist) {
+                observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
+                    [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
+                std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
+                    [&](Result::Histogram v) -> Result::Histogram {
+                        v.value /= parallel_.size(); 
+                        return v;
+                    });
+            }
         }
 
         if(step.overlap_dist) {
