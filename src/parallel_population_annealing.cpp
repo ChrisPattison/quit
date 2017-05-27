@@ -61,6 +61,9 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
     const int max_family_size_limit = average_population_ / 4;
     std::vector<double> energy;
 
+    auto total_time_start = std::chrono::high_resolution_clock::now();
+    unsigned long long int total_sweeps = 0;
+
     for(auto step : schedule_) {
         Result observables;
         auto time_start = std::chrono::high_resolution_clock::now();
@@ -73,6 +76,7 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
                 MonteCarloSweep(replicas_[k], step.sweeps);
             }
+            total_sweeps += replicas_.size() * step.sweeps;
         }else {
             observables.redist_walltime = 0.0;
         }
@@ -88,6 +92,10 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                     energy[k] = Hamiltonian(replicas_[k]);
                 }
                 Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
+
+                // total sweeps
+                observables.total_sweeps = parallel_.HeirarchyReduceToAll<unsigned long long int>(total_sweeps, 
+                    [](std::vector<unsigned long long int>& v) { return std::accumulate(v.begin(), v.end(), 0, std::plus<unsigned long long int>()); });
 
                 // population
                 observables.population = parallel_.HeirarchyReduceToAll<int>(static_cast<int>(replicas_.size()), 
@@ -194,6 +202,8 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             observables.observables_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
 
             parallel_.ExecRoot([&](){
+                observables.total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
+                observables.total_sweeps = total_sweeps;
                 results.push_back(observables);
             });
 

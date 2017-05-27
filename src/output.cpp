@@ -35,7 +35,9 @@ void ColumnNames() {
         << "R_MIN" << std::setw(kHeaderWidth) 
         << "S_f" << std::setw(kHeaderWidth) 
         << "rho_t" << std::setw(kHeaderWidth) 
-        << "MC_Walltime";
+        << "MC_Walltime" << std::setw(kHeaderWidth) 
+        << "Total_Walltime" << std::setw(kHeaderWidth) 
+        << "Total_Sweeps";
 }
 
 void MpiColumnNames() {
@@ -57,7 +59,9 @@ void Results(PopulationAnnealing::Result& r) {
         << r.grounded_replicas << " " << std::setw(kWidth) 
         << r.entropy << " " << std::setw(kWidth) 
         << r.mean_square_family_size << " " << std::setw(kWidth)
-        << r.montecarlo_walltime << " ";
+        << r.montecarlo_walltime << " " << std::setw(kWidth)
+        << r.total_time << " " << std::setw(kWidth)
+        << r.total_sweeps << " ";
 }
 
 void MpiResults(ParallelPopulationAnnealing::Result& r) {

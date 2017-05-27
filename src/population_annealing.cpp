@@ -148,6 +148,9 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     beta_ = schedule_.front().beta;
     std::vector<double> energy;
 
+    auto total_time_start = std::chrono::high_resolution_clock::now();
+    unsigned long long int total_sweeps = 0;
+
     for(auto step : schedule_) {
         Result observables;
 
@@ -158,6 +161,8 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
             MonteCarloSweep(replicas_[k], step.sweeps);
         }
+        total_sweeps += replicas_.size() * step.sweeps;
+        
         observables.montecarlo_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
 
         observables.beta = beta_;
@@ -209,6 +214,8 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
             observables.seed = rng_.GetSeed();
             observables.sweeps = step.sweeps;
+            observables.total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
+            observables.total_sweeps = total_sweeps;
             results.push_back(observables);
         }
     }

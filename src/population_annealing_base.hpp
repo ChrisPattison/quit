@@ -28,6 +28,8 @@ class PopulationAnnealingBase {
         int sweeps = -1;
         double mean_square_family_size = std::numeric_limits<double>::quiet_NaN();
         double montecarlo_walltime = std::numeric_limits<double>::quiet_NaN();
+        unsigned long long int total_sweeps = 0;
+        double total_time = std::numeric_limits<double>::quiet_NaN();
     };
 /** Parameters for a single step.
  */
