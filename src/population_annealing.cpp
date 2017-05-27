@@ -192,10 +192,11 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
                 // Mean Square Family Size
                 observables.mean_square_family_size = observables.population * 
                     std::accumulate(family_size.begin(), family_size.end(), 0.0, [](double acc, double n) {return acc + n*n; });
-                if(step.energy_dist) {
-                    // Energy
-                    observables.energy_distribution = BuildHistogram(energy);
-                }
+            }
+
+            if(step.energy_dist) {
+                // Energy
+                observables.energy_distribution = BuildHistogram(energy);
             }
             
             if(step.overlap_dist) {

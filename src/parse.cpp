@@ -67,6 +67,7 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
         std::stringstream converter(tree.get<std::string>("seed", "0"));
         converter >> std::hex >> config->seed;
         int default_sweeps = tree.get<int>("default_sweeps", 10);
+        config->solver_mode = tree.get<bool>("solver_mode", false);
         for(auto& item : tree.get_child("schedule")) {
             config->schedule.emplace_back();
             config->schedule.back().beta = item.second.get<double>("beta");
