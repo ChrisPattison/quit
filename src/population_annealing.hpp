@@ -30,6 +30,7 @@ protected:
     int average_population_;
     std::vector<Schedule> schedule_;
     double beta_;
+    bool solver_mode_;
 
 /** Determinstically builds a list of replicas with different Markov Chains.
  */

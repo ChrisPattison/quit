@@ -66,11 +66,12 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
         config->population = tree.get<int>("population");
         std::stringstream converter(tree.get<std::string>("seed", "0"));
         converter >> std::hex >> config->seed;
+        int default_sweeps = tree.get<int>("default_sweeps", 10);
         for(auto& item : tree.get_child("schedule")) {
             config->schedule.emplace_back();
             config->schedule.back().beta = item.second.get<double>("beta");
             config->schedule.back().population_fraction = item.second.get<double>("population_fraction", 1.0);
-            config->schedule.back().sweeps = item.second.get("sweeps", 10);
+            config->schedule.back().sweeps = item.second.get("sweeps", default_sweeps);
             config->schedule.back().compute_observables = item.second.get("compute_observables", true);
             config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);
             config->schedule.back().energy_dist = item.second.get("energy_hist", false);

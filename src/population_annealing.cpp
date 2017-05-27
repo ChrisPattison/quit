@@ -77,6 +77,7 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     structure_.Adjacent().makeCompressed();
     average_population_ = config.population;
     init_population_ = average_population_;
+    solver_mode_ = config.solver_mode;
  }
 
 double PopulationAnnealing::Hamiltonian(StateVector& replica) {
@@ -162,52 +163,54 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         observables.beta = beta_;
         observables.population = replicas_.size();
 
-        if(step.compute_observables) {
-            energy.resize(replicas_.size());
-            for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                energy[k] = Hamiltonian(replicas_[k]);
+        if(!solver_mode_ || beta_ == schedule_.back().beta) {
+            if(step.compute_observables) {
+                energy.resize(replicas_.size());
+                for(std::size_t k = 0; k < replicas_.size(); ++k) {
+                    energy[k] = Hamiltonian(replicas_[k]);
+                }
+                Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
+                // Basic observables
+                observables.average_energy = energy_map.mean();
+                observables.average_squared_energy = energy_map.array().pow(2).mean();
+                observables.ground_energy = energy_map.minCoeff();
+                // Round-off /probably/ isn't an issue here
+                observables.grounded_replicas = energy_map.array().unaryExpr(
+                    [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
+                // Family statistics
+                std::vector<double> family_size = FamilyCount();
+                std::transform(family_size.begin(),family_size.end(),family_size.begin(),
+                    [&](double n) -> double {return n /= observables.population;});
+                // Entropy
+                observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0, 
+                    [](double acc, double n) {return acc + n*std::log(n); });
+                // Mean Square Family Size
+                observables.mean_square_family_size = observables.population * 
+                    std::accumulate(family_size.begin(), family_size.end(), 0.0, [](double acc, double n) {return acc + n*n; });
+                if(step.energy_dist) {
+                    // Energy
+                    observables.energy_distribution = BuildHistogram(energy);
+                }
             }
-            Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
-            // Basic observables
-            observables.average_energy = energy_map.mean();
-            observables.average_squared_energy = energy_map.array().pow(2).mean();
-            observables.ground_energy = energy_map.minCoeff();
-            // Round-off /probably/ isn't an issue here
-            observables.grounded_replicas = energy_map.array().unaryExpr(
-                [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
-            // Family statistics
-            std::vector<double> family_size = FamilyCount();
-            std::transform(family_size.begin(),family_size.end(),family_size.begin(),
-                [&](double n) -> double {return n /= observables.population;});
-            // Entropy
-            observables.entropy = -std::accumulate(family_size.begin(), family_size.end(), 0.0, 
-                [](double acc, double n) {return acc + n*std::log(n); });
-            // Mean Square Family Size
-            observables.mean_square_family_size = observables.population * 
-                std::accumulate(family_size.begin(), family_size.end(), 0.0, [](double acc, double n) {return acc + n*n; });
-            if(step.energy_dist) {
-                // Energy
-                observables.energy_distribution = BuildHistogram(energy);
+            
+            if(step.overlap_dist) {
+                // Overlap
+                std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
+                std::vector<double> overlap_samples(overlap_pairs.size());
+
+                std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                    [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
+                observables.overlap = BuildHistogram(overlap_samples);
+                // Link Overlap
+                std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                    [&](std::pair<int, int> p){return LinkOverlap(replicas_[p.first], replicas_[p.second]);});
+                observables.link_overlap = BuildHistogram(overlap_samples);
             }
-        }
-        
-        if(step.overlap_dist) {
-            // Overlap
-            std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
-            std::vector<double> overlap_samples(overlap_pairs.size());
 
-            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-                [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
-            observables.overlap = BuildHistogram(overlap_samples);
-            // Link Overlap
-            std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-                [&](std::pair<int, int> p){return LinkOverlap(replicas_[p.first], replicas_[p.second]);});
-            observables.link_overlap = BuildHistogram(overlap_samples);
+            observables.seed = rng_.GetSeed();
+            observables.sweeps = step.sweeps;
+            results.push_back(observables);
         }
-
-        observables.seed = rng_.GetSeed();
-        observables.sweeps = step.sweeps;
-        results.push_back(observables);
     }
     return results;
 }

@@ -45,9 +45,7 @@ class PopulationAnnealingBase {
         int population;
         std::uint64_t seed;
         std::vector<PopulationAnnealingBase::Schedule> schedule;
-        double population_ratio;
-        double population_slope;
-        double population_shift;
+        bool solver_mode = false;
     };
 };
 }
