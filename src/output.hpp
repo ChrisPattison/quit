@@ -32,6 +32,7 @@ void MpiResults(ParallelPopulationAnnealing::Result& result);
 
 void Histograms(std::vector<PopulationAnnealing::Result>& results);
 
+void GroundStates(std::vector<PopulationAnnealing::Result>& results);
 /** Opposite of IjjParse: Dumps bonds to file.
  */
 void IjjDump(Graph& model, std::ostream& stream);

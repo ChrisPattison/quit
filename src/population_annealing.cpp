@@ -179,6 +179,16 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
                 observables.average_energy = energy_map.mean();
                 observables.average_squared_energy = energy_map.array().pow(2).mean();
                 observables.ground_energy = energy_map.minCoeff();
+
+                // Get ground state
+                if(solver_mode_) {
+                    auto& ground_state = replicas_[std::distance(energy.begin(), std::find(energy.begin(), energy.end(), observables.ground_energy))];
+                    observables.ground_state.reserve(structure_.size());
+                    for(int i = 0; i < ground_state.size(); ++i) {
+                        observables.ground_state.push_back(ground_state[i] == 1 ? 1 : 0);
+                    }
+                }
+
                 // Round-off /probably/ isn't an issue here
                 observables.grounded_replicas = energy_map.array().unaryExpr(
                     [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
