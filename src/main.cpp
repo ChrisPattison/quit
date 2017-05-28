@@ -49,7 +49,6 @@ void MpiPa(std::string config_path, std::string bond_path) {
 
         propane::io::IjjDump(model, std::cout);
         propane::io::Histograms(basic_result);
-        propane::io::GroundStates(basic_result);
     });
 }
 
@@ -78,7 +77,6 @@ void SinglePaPost(std::vector<propane::PopulationAnnealing::Result>& results, pr
     }
     propane::io::IjjDump(model, std::cout);
     propane::io::Histograms(results);
-    propane::io::GroundStates(results);
 }
 
 void SinglePa(std::string config_path, std::string bond_path) {

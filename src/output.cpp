@@ -95,16 +95,6 @@ void Histograms(std::vector<PopulationAnnealing::Result>& results) {
     }
 }
 
-void GroundStates(std::vector<PopulationAnnealing::Result>& results) {
-    std::cout << std::endl << kMagicString << std::endl << "# Ground States" << std::endl;
-    for(auto r : results) {
-        std::cout << std::setprecision(4) << std::fixed << r.beta << " ";
-        for(auto v : r.ground_state) {
-            std::cout << std::setw(1) << static_cast<int>(v);
-        }
-    }
-    std::cout << std::endl;
-}
 
 void IjjDump(Graph& model, std::ostream& stream) {
     stream << std::endl << kMagicString << std::endl << "# Input" << std::endl;

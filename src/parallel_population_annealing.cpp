@@ -106,25 +106,10 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                     [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
                 
                 observables.average_squared_energy = parallel_.HeirarchyReduce<double>(energy_map.size() ? energy_map.array().pow(2).mean() : std::numeric_limits<double>::quiet_NaN(),
-                    [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();                
+                    [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); }) / parallel_.size();
                 // ground energy
                 observables.ground_energy = parallel_.HeirarchyReduceToAll<double>(energy_map.size() ? energy_map.minCoeff() : std::numeric_limits<double>::quiet_NaN(), 
                     [](std::vector<double>& v) { return *std::min_element(v.begin(), v.end()); });
-
-                // ground state
-                if(solver_mode_) {
-                    auto& ground_state = replicas_[std::distance(energy.begin(), std::find(energy.begin(), energy.end(), observables.ground_energy))];
-                    std::vector<char> ground_state_vector;
-                    ground_state_vector.reserve(structure_.size());
-                    for(int i = 0; i < ground_state.size(); ++i) {
-                        ground_state_vector.push_back(ground_state[i] == 1 ? 1 : 0);
-                    }
-                    // Reduces until a replica in the ground state is found
-                    // Not ideal
-                    observables.ground_state = parallel_.HeirarchyVectorReduce<char>(ground_state_vector, 
-                        [&](std::vector<char>& accumulator, const std::vector<char>& value) { accumulator = accumulator.size() > 0 ? accumulator : value; });
-                }
-
 
                 // number of replicas with energy = ground energy
                 observables.grounded_replicas = parallel_.HeirarchyReduce<double>(
