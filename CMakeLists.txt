@@ -5,6 +5,8 @@ set (PROPANE_VERSION_MAJOR 2)
 set (PROPANE_VERSION_MINOR 0)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+
 SET( CMAKE_CXX_FLAGS_FASTDEBUG "-Wall -march=native -g -O2" CACHE STRING 
     "Flags used by the C++ compiler during fast debugging builds." 
     FORCE )
