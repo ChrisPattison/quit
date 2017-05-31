@@ -3,8 +3,8 @@
 #include <iterator>
 #include <iostream>
 
-namespace propane::util 
-{
+namespace propane { namespace util  {
+
 void Check(bool cond, const char* err) {
     if(!cond) {
         std::cout << err << std::endl;
@@ -65,4 +65,4 @@ std::vector<std::string> Split(std::string target, std::vector<char> seperator, 
 
     return out;
 }
-}
+}}

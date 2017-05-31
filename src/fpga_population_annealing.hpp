@@ -5,8 +5,7 @@
 #include "monte_carlo_driver.hpp"
 #include <Eigen/Dense>
 
-namespace propane
-{
+namespace propane {
 /** Accelerated Implementation of Population Annealing Monte Carlo.
  */
 class FpgaPopulationAnnealing : public PopulationAnnealing{

@@ -1,8 +1,7 @@
 #pragma once
 #include <vector>
 
-namespace propane::util
-{
+namespace propane { namespace util {
 /** Utility to quickly obtain a bound for the natural logarithm of a value
  */
 class LogLookup {
@@ -23,4 +22,4 @@ public:
 
     Bound operator()(double value);
 };
-}
+}}

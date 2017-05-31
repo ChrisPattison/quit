@@ -1,7 +1,6 @@
 #pragma once
 
-namespace propane::util
-{
+namespace propane { namespace util {
 /** Fuzzy Comparison of floats by units in last place.
  * Adjacent floats have adjacent integer representation.
  * The different in this representation is a scalable way to compare for equality.
@@ -32,4 +31,4 @@ bool FuzzyCompare(const double& a, const double& b);
  * More permissive than either one.
  */
 bool FuzzyCompare(const float& a, const float& b);
-}
+}}

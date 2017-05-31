@@ -5,8 +5,7 @@
 #include <functional>
 #include "graph.hpp"
 
-namespace propane
-{
+namespace propane {
 /** Driver for Hardware Monte Carlo accelerator
  */
 class MonteCarloDriver {

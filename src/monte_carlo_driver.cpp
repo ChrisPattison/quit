@@ -10,8 +10,8 @@
 #include <cmath>
 #include <limits>
 
-namespace propane
-{
+namespace propane {
+
 MonteCarloDriver::MonteCarloDriver() {
     bus_ = -1;
     device_ = -1;

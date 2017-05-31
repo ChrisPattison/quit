@@ -1,7 +1,6 @@
 #include "graph.hpp"
 
-namespace propane
-{
+namespace propane {
 
 void Graph::Resize(int no_vertices, int no_couplers) {
     fields_.resize(no_vertices);

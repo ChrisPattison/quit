@@ -8,8 +8,7 @@
 #include "log_lookup.hpp"
 #include <Eigen/Dense>
 
-namespace propane 
-{    
+namespace propane {
 /** Implementation of Population Annealing Monte Carlo.
  * Replicas have an associated entry in the family vector indicating lineage.
  */

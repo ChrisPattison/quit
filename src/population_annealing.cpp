@@ -9,8 +9,7 @@
 #include <numeric>
 #include <chrono>
 
-namespace propane
-{
+namespace propane {
 // Fix this to do something with the single replicas
 std::vector<std::pair<int, int>> PopulationAnnealing::BuildReplicaPairs() {
     std::vector<std::pair<int, int>> pairs;

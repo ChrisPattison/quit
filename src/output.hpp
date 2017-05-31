@@ -10,7 +10,8 @@
 #include "string_util.hpp"
 #include "parallel.hpp"
 
-namespace propane::io {
+namespace propane { namespace io {
+
 constexpr int kWidth = 18;
 constexpr int kHeaderWidth = kWidth + 1;
 const auto kMagicString = "%%%---%%%";
@@ -35,4 +36,4 @@ void Histograms(std::vector<PopulationAnnealing::Result>& results);
 /** Opposite of IjjParse: Dumps bonds to file.
  */
 void IjjDump(Graph& model, std::ostream& stream);
-}
+}}

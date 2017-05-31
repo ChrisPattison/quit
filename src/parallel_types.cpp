@@ -1,8 +1,8 @@
 #include "parallel_types.hpp"
 #include <cmath>
 
-namespace parallel 
-{
+namespace parallel  {
+    
 int Heirarchy::rank(MPI_Comm comm) {
     int rank;
     MPI_Comm_rank(comm, &rank);

@@ -2,8 +2,8 @@
 #include <cmath>
 #include <limits>
 
-namespace propane::util
-{
+namespace propane { namespace util {
+    
 LogLookup::LogLookup() {
     lookup_table_.resize(kLookupTableSize);
     for(int k = 0; k < lookup_table_.size(); ++k) {
@@ -23,4 +23,4 @@ LogLookup::Bound LogLookup::GetBound(double value) {
 LogLookup::Bound LogLookup::operator()(double value) {
     return GetBound(value);
 }
-}
+}}

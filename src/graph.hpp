@@ -3,8 +3,7 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 
-namespace propane
-{
+namespace propane {
 /** Contains the fields and coefficients as well as useful methods for construction and error checking.
  * Contains an adjacency matrix of the problem where the nonzeros are the value of the coefficient J_ij between S_i and S_j.
  * The field h_i is that felt by S_i.

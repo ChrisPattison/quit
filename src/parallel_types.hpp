@@ -3,8 +3,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace parallel
-{
+namespace parallel {
 /** Container for the tree levels required in the heiarchial reductions.
  */
 class Heirarchy {

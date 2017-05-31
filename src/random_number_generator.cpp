@@ -5,8 +5,8 @@
 #include <chrono>
 #include <cassert>
 
-namespace propane
-{
+namespace propane {
+    
 RandomNumberGenerator::RandomNumberGenerator(std::uint64_t seed) {
     seed_ = seed;
     state_ = new dsfmt_t;

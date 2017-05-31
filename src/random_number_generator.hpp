@@ -5,8 +5,7 @@
 #include <climits>
 #include "dSFMT.h"
 
-namespace propane
-{
+namespace propane {
 /** Wrapper around the refreence implementation of dSFMT19937 by Saito and Matsumoto.
  */
 class RandomNumberGenerator {

@@ -6,7 +6,7 @@
 #include "compare.hpp"
 #include "parallel.hpp"
 
-namespace propane::io {   
+namespace propane { namespace io {   
 void Header(Graph& model, std::string config_path, std::string bond_path) {
     std::cout << "# Parallel Optimized Population Annealing V" << version::kMajor << "." << version::kMinor << std::endl;
     std::cout << "# C. Pattison" << std::endl;
@@ -130,5 +130,4 @@ void IjjDump(Graph& model, std::ostream& stream) {
     }
     std::fesetround(round_mode);
 }
-
-}
+}}

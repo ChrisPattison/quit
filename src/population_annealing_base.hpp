@@ -2,8 +2,8 @@
 #include <vector>
 #include <limits>
 
-namespace propane 
-{
+namespace propane  {
+    
 class PopulationAnnealingBase {
     public:
 /** Observables for a single step.

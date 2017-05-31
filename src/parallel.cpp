@@ -2,8 +2,8 @@
 #include <cmath>
 #include <cassert>
 
-namespace parallel
-{
+namespace parallel {
+    
 Mpi::Mpi() {
     int initialized;
     MPI_Initialized(&initialized);

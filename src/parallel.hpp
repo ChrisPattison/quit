@@ -9,8 +9,7 @@
 #include <mpi.h>
 #include "parallel_types.hpp"
 
-namespace parallel
-{
+namespace parallel {
 /** Wrapper around MPI C bindings.
  * Implements operations useful to MC codes with special attention to templating
  */

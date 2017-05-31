@@ -5,8 +5,8 @@
 #include <iomanip>
 #include <algorithm>
 
-namespace propane
-{
+namespace propane {
+
 void FpgaPopulationAnnealing::Sweep(int moves) {
 }
 

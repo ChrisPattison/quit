@@ -2,8 +2,7 @@
 #include <string>
 #include <vector>
 
-namespace propane::util
-{
+namespace propane { namespace util {
 /** Basic implemention of assert used for validating inputs.
 */
 void Check(bool cond, const char* err);
@@ -21,4 +20,4 @@ std::vector<std::string> Split(std::string target, char seperator, StringSplitOp
 /** Split with the option of multiple seperators.
 */
 std::vector<std::string> Split(std::string target, std::vector<char> seperator, StringSplitOptions options = kStringSplitOptions_None);
-}
+}}

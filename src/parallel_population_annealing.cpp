@@ -10,8 +10,8 @@
 #include <functional>
 #include <chrono>
 
-namespace propane
-{
+namespace propane {
+
 void ParallelPopulationAnnealing::CombineHistogram(std::vector<Result::Histogram>& target, const std::vector<Result::Histogram>& source) {
     for(auto bin : source) {
         auto it = std::lower_bound(target.begin(), target.end(), bin, [&](const Result::Histogram& a, const Result::Histogram& b) { return a.bin < b.bin && !util::FuzzyCompare(a.bin, b.bin); });
