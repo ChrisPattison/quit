@@ -92,6 +92,12 @@ void Histograms(std::vector<PopulationAnnealing::Result>& results) {
                 << std::setprecision(10) << std::scientific << std::setw(kWidth) << E.bin << " "
                 << std::setw(kWidth) << E.value << std::endl;
         }
+        for(auto G : r.ground_distribution) {
+            std::cout << kHistChar << "G "
+                << std::setprecision(4) << std::fixed << r.beta << " "
+                << std::setprecision(10) << std::scientific << std::setw(kWidth) << G.bin << " "
+                << std::setw(kWidth) << G.value << std::endl;
+        }
     }
 }
 

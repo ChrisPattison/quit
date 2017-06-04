@@ -16,6 +16,7 @@ class PopulationAnnealingBase {
         std::vector<Histogram> overlap;
         std::vector<Histogram> link_overlap;
         std::vector<Histogram> energy_distribution;
+        std::vector<Histogram> ground_distribution;
         double beta = std::numeric_limits<double>::quiet_NaN();
         int population = -1;
         double norm_factor = std::numeric_limits<double>::quiet_NaN();
@@ -38,6 +39,7 @@ class PopulationAnnealingBase {
         int sweeps = 10;
         bool overlap_dist = false;
         bool energy_dist = false;
+        bool ground_dist = false;
         bool compute_observables = false;
         double population_fraction = 1.0;
     };

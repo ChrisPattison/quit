@@ -16,7 +16,6 @@ class PopulationAnnealing : public PopulationAnnealingBase {
 protected:
     util::LogLookup log_lookup_;
 
-protected:
     Graph structure_;
 
     RandomNumberGenerator rng_;

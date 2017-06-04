@@ -180,7 +180,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
                 observables.ground_energy = energy_map.minCoeff();
                 // Round-off /probably/ isn't an issue here
                 observables.grounded_replicas = energy_map.array().unaryExpr(
-                    [&](double E){return E == observables.ground_energy ? 1 : 0;}).sum();
+                    [&](double E){return util::FuzzyCompare(E, observables.ground_energy) ? 1 : 0;}).sum();
                 // Family statistics
                 std::vector<double> family_size = FamilyCount();
                 std::transform(family_size.begin(),family_size.end(),family_size.begin(),
@@ -191,13 +191,30 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
                 // Mean Square Family Size
                 observables.mean_square_family_size = observables.population * 
                     std::accumulate(family_size.begin(), family_size.end(), 0.0, [](double acc, double n) {return acc + n*n; });
+
+                if(step.energy_dist) {
+                    // Energy
+                    observables.energy_distribution = BuildHistogram(energy);
+                }
+                
+                if(step.ground_dist) {
+                    std::vector<StateVector> ground_states;
+                    std::vector<double> samples;
+                    samples.reserve(observables.grounded_replicas);
+                    for(std::size_t k = 0; k < replicas_.size(); ++k) {
+                        if(util::FuzzyCompare(observables.ground_energy, energy[k])) {
+                            auto state = std::distance(ground_states.begin(), std::find(ground_states.begin(), ground_states.end(), replicas_[k]));
+                            if(state == ground_states.size()) {
+                                ground_states.push_back(replicas_[k]);
+                            }
+                            
+                            samples.push_back(state);
+                        }
+                    }
+                    observables.ground_distribution = BuildHistogram(samples);
+                }
             }
 
-            if(step.energy_dist) {
-                // Energy
-                observables.energy_distribution = BuildHistogram(energy);
-            }
-            
             if(step.overlap_dist) {
                 // Overlap
                 std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();

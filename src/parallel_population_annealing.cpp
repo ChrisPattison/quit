@@ -131,18 +131,18 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
                     [](double acc, double n) {return acc + n*n; }), 
                     [](std::vector<double>& v) { return std::accumulate(v.begin(), v.end(), 0.0, std::plus<double>()); });
                     
+                // Energy Distribution
+                if(step.energy_dist) {
+                    observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
+                        [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
+                    std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
+                        [&](Result::Histogram v) -> Result::Histogram {
+                            v.value /= parallel_.size(); 
+                            return v;
+                        });
+                }
             }
 
-            // Energy Distribution
-            if(step.energy_dist) {
-                observables.energy_distribution = parallel_.HeirarchyVectorReduce<Result::Histogram>(BuildHistogram(energy), 
-                    [&](std::vector<Result::Histogram>& accumulator, const std::vector<Result::Histogram>& value) { CombineHistogram(accumulator, value); });
-                std::transform(observables.overlap.begin(), observables.overlap.end(), observables.overlap.begin(),
-                    [&](Result::Histogram v) -> Result::Histogram {
-                        v.value /= parallel_.size(); 
-                        return v;
-                    });
-            }
 
             // Overlap Distribution
             if(step.overlap_dist) {
