@@ -1,11 +1,3 @@
-#include "parse.hpp"
-#include "graph.hpp"
-#include "parallel_population_annealing.hpp"
-#include "greedy_population_annealing.hpp"
-#include "types.hpp"
-#include "string_util.hpp"
-#include "version.hpp"
-#include "output.hpp"
 /* Copyright (c) 2016 C. Pattison
  * All rights reserved.
  * 
@@ -30,6 +22,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
+#include "parse.hpp"
+#include "graph.hpp"
+#include "parallel_population_annealing.hpp"
+#include "greedy_population_annealing.hpp"
+#include "types.hpp"
+#include "string_util.hpp"
+#include "version.hpp"
+#include "output.hpp"
 #include <boost/program_options.hpp>
 #include <Eigen/Dense>
 #include <fstream>
