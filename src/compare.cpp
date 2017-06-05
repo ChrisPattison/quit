@@ -34,7 +34,8 @@ bool FuzzyUlpCompare(const float& a, const float& b, const int err = 10) {
     auto ai = reinterpret_cast<const std::uint32_t&>(a);
     auto bi = reinterpret_cast<const std::uint32_t&>(b);
 
-    return std::abs(ai - bi) < err;
+    // std::abs(ai-bi) is ambiguous with clang
+    return (ai > bi ? ai-bi : bi-ai) < err;
 }
 
 bool FuzzyUlpCompare(const double& a, const double& b, const int err = 10) {
@@ -44,7 +45,7 @@ bool FuzzyUlpCompare(const double& a, const double& b, const int err = 10) {
     auto ai = reinterpret_cast<const std::uint64_t&>(a);
     auto bi = reinterpret_cast<const std::uint64_t&>(b);
 
-    return std::abs(ai - bi) < err;
+    return (ai > bi ? ai-bi : bi-ai) < err;
 }
 
 bool FuzzyEpsCompare(const float& a, const float& b, const float err = 1e-6) {

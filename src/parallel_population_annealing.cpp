@@ -403,7 +403,7 @@ std::vector<double> ParallelPopulationAnnealing::FamilyCount() {
     auto i = replica_families_.begin();
     do {
         auto i_next = std::find_if(i+1, replica_families_.end(), [&](const int& v){return v != *i;});
-        families.push_back({*i, std::distance(i, i_next)});
+        families.push_back({*i, static_cast<int>(std::distance(i, i_next))});
         i = i_next;
     }while(i != replica_families_.end());
     // package for sending to originator
