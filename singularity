@@ -1,0 +1,25 @@
+Bootstrap: docker
+From: fedora:latest
+
+%setup
+cp -r . $SINGULARITY_ROOTFS/src
+
+%runscript
+propane
+
+%files
+
+%environment
+
+%labels
+
+%post
+
+dnf install -y mpich mpich-devel boost-static boost-devel cmake eigen3-devel-3.2.10 git gcc-c++
+
+cd /src
+mkdir build
+cd build
+MPI_HOME=/usr/lib64/mpich cmake ..
+make
+make install
