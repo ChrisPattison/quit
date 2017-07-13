@@ -61,6 +61,7 @@ class PopulationAnnealingBase {
     struct Schedule {
         double beta;
         int sweeps = 10;
+        bool heat_bath = false;
         bool overlap_dist = false;
         bool energy_dist = false;
         bool ground_dist = false;

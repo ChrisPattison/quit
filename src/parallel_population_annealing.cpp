@@ -98,7 +98,11 @@ std::vector<ParallelPopulationAnnealing::Result> ParallelPopulationAnnealing::Ru
             Redistribute();
             observables.redist_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - redist_time_start).count();
             for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                MonteCarloSweep(replicas_[k], step.sweeps);
+                if(step.heat_bath) {
+                    HeatbathSweep(replicas_[k], step.sweeps);
+                }else {
+                    MetropolisSweep(replicas_[k], step.sweeps);
+                }
             }
             total_sweeps += replicas_.size() * step.sweeps;
         }else {

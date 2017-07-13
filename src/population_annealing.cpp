@@ -115,14 +115,26 @@ double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
     return -2 * replica(vertex) * (structure_.Adjacent().innerVector(vertex).dot(replica.cast<EdgeType>()) - structure_.Fields()(vertex));
 }
 
-void PopulationAnnealing::MonteCarloSweep(StateVector& replica, int sweeps) {
+void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
             int vertex = i;
             double delta_energy = DeltaEnergy(replica, vertex);
             
             //round-off isn't a concern here
-            if(AcceptedMove(delta_energy)) {
+            if(MetropolisAcceptedMove(delta_energy)) {
+                replica(vertex) *= -1;
+            }
+        }
+    }
+}
+
+void PopulationAnnealing::HeatbathSweep(StateVector& replica, int sweeps) {
+    for(std::size_t k = 0; k < sweeps; ++k) {
+        for(std::size_t vertex = 0; vertex < replica.size(); ++vertex) {
+            double delta_energy = DeltaEnergy(replica, vertex);
+
+            if(HeatbathAcceptedMove(delta_energy)) {
                 replica(vertex) *= -1;
             }
         }
@@ -182,7 +194,11 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
             observables.norm_factor = Resample(step.beta, step.population_fraction);
         }
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
-            MonteCarloSweep(replicas_[k], step.sweeps);
+            if(step.heat_bath) {
+                HeatbathSweep(replicas_[k], step.sweeps);
+            }else {
+                MetropolisSweep(replicas_[k], step.sweeps);
+            }
         }
         total_sweeps += replicas_.size() * step.sweeps;
         
@@ -263,25 +279,32 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     return results;
 }
 
-bool PopulationAnnealing::AcceptedMove(double delta_energy) {
+bool PopulationAnnealing::HeatbathAcceptedMove(double delta_energy) {
+    double accept_prob = 1.0/(1.0 + std::exp(-delta_energy*beta_));
+    return rng_.Probability() < accept_prob;
+}
+
+bool PopulationAnnealing::MetropolisAcceptedMove(double delta_energy) {
     if(delta_energy < 0.0) {
         return true;
     }
-    // Get probability exponent and test probability
+    
     double acceptance_prob_exp = -delta_energy*beta_;
-    double test = rng_.Probability();
+    return AcceptedMove(acceptance_prob_exp);
+}
 
+bool PopulationAnnealing::AcceptedMove(double log_probability) {
+    double test = rng_.Probability();
     // Compute bound on log of test number
     auto bound = log_lookup_(test);
 
-    // return acceptance_prob_exp > log(test);
-    if(bound.upper < acceptance_prob_exp) {
+    if(bound.upper < log_probability) {
         return true;
-    }else if(bound.lower > acceptance_prob_exp) {
+    }else if(bound.lower > log_probability) {
         return false;
     }
     // Compute exp if LUT can't resolve it
-    return std::exp(acceptance_prob_exp) > test;
+    return std::exp(log_probability) > test;
 }
 
 double PopulationAnnealing::Resample(double new_beta, double new_population_fraction) {

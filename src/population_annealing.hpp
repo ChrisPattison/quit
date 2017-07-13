@@ -60,13 +60,21 @@ protected:
 /** Gets the number of replicas in each family as a fraction of the total population
  */
     std::vector<double> FamilyCount();
-/** Returns true if a move is accepted according to detailed balance.
+/**
  * Uses a look up table to compute a bound on the logarithm of a random number 
  * and compares to the exponent of the acceptance probability.
  * If the probability is inside the bound given by the look table, 
- * true exponetnial is computed and compared.
+ * true exponential is computed and compared.
  */
-    virtual bool AcceptedMove(double delta_energy);
+    bool AcceptedMove(double log_probability);
+/** Returns true if a move is accepted according to the Metropolis algorithm.
+ */
+    virtual bool MetropolisAcceptedMove(double delta_energy);
+
+/** Uses the Heat Bath algorithm. See MetropolisAcceptedMove.
+ */
+ 
+    virtual bool HeatbathAcceptedMove(double delta_energy);
 /** Returns the energy of a replica
  * Implemented as the sum of elementwise multiplication of the replica vector with the 
  * product of matrix multiplication between the upper half of the adjacency matrix
@@ -78,9 +86,12 @@ protected:
  * with the replica vector multiplied by the spin at vertex.
  */
     virtual double DeltaEnergy(StateVector& replica, int vertex); 
-/** Carries out moves monte carlo sweeps of replica.
+/** Carries out moves monte carlo sweeps of replica using the Metropolis algorithm.
  */
-    virtual void MonteCarloSweep(StateVector& replica, int moves);
+    virtual void MetropolisSweep(StateVector& replica, int moves);
+/** Carries out moves monte carlo sweeps of replica using the Heatbath algorithm.
+ */
+    virtual void HeatbathSweep(StateVector& replica, int moves);
 /** Returns true if a move may be made that reduces the total energy.
  */
     bool IsLocalMinimum(StateVector& replica);
