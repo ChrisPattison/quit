@@ -105,14 +105,14 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
 
 double PopulationAnnealing::Hamiltonian(StateVector& replica) {
     if(structure_.has_field()) {
-        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica.cast<EdgeType>() - structure_.Fields()).dot(replica.cast<EdgeType>());
+        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica - structure_.Fields().cast<VertexType>()).dot(replica.cast<EdgeType>());
     }else {
-        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica.cast<EdgeType>()).dot(replica.cast<EdgeType>());
+        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica).dot(replica.cast<EdgeType>());
     }
 }
 
 double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
-    return -2 * replica(vertex) * (structure_.Adjacent().innerVector(vertex).dot(replica.cast<EdgeType>()) - structure_.Fields()(vertex));
+    return -2 * replica(vertex) * (structure_.Adjacent().innerVector(vertex).dot(replica) - structure_.Fields()(vertex).cast<VertexType>());
 }
 
 void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
@@ -151,7 +151,7 @@ bool PopulationAnnealing::IsLocalMinimum(StateVector& replica) {
 }
 
 double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
-    return (alpha.array() * beta.array()).cast<double>().sum() / structure_.size();
+    return (alpha.array() * beta.array()).sum() / structure_.size();
 }
 
 double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
@@ -175,7 +175,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         r = StateVector();
         r.resize(structure_.size());
         for(std::size_t k = 0; k < r.size(); ++k) {
-            r(k) = rng_.Probability() < 0.5 ? 1 : -1;
+            r(k) = VertexType({1.,0.}) * (rng_.Probability() < 0.5 ? 1 : -1);
         }
     }
 

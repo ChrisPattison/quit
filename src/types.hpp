@@ -23,10 +23,82 @@
  */
  
 #pragma once
+#include <array>
+#include <numeric>
+#include <Eigen/Dense>
 
 namespace propane {
     
-using VertexType = char;
 using EdgeType = double;
 const double kEpsilon = 1e-13;
+
+struct VertexType : std::array<double, 2> {
+    VertexType() {
+        (*this)[0] = 0;
+        (*this)[1] = 0;
+    }
+
+    VertexType(int a) {
+        (*this)[0] = a;
+        (*this)[1] = 0;
+    }
+
+    VertexType(double a) {
+        (*this)[0] = a;
+        (*this)[1] = 0;
+    }
+
+    VertexType(double a, double b) {
+        (*this)[0] = a;
+        (*this)[1] = b;
+    }
+
+    inline double operator*(propane::VertexType b) const {
+        return (*this)[0] * b[0] + (*this)[1] * b[1];
+    }
+
+    inline propane::VertexType operator/(double b) const {
+         return (*this) * 1./b;
+    }
+
+    inline propane::VertexType operator*(int b) const {
+        return {(*this)[0] * b, (*this)[1] * b};
+    }
+
+    inline propane::VertexType operator*(double b) const {
+        return {(*this)[0] * b, (*this)[1] * b};
+    }
+
+    inline propane::VertexType operator+(const propane::VertexType b) const {
+        return {(*this)[0] + b[0], (*this)[1] + b[1]};
+    }
+
+    inline propane::VertexType operator-(const propane::VertexType b) const {
+        return {(*this)[0] - b[0], (*this)[1] - b[1]};
+    }
+
+    inline propane::VertexType operator*=(double b) {
+        (*this) = (*this) * b;
+        return *this;
+    }
+};
 }
+
+// inline double operator*(propane::VertexType a, propane::VertexType b) {
+//     return a[0] * b[0] + a[1] * b[1];
+// }
+
+
+inline propane::VertexType operator*(const int& a, const propane::VertexType& b) {
+    return b * a;
+}
+
+inline propane::VertexType operator*(const double& a, const propane::VertexType& b) {
+    return b * a;
+}
+
+namespace Eigen {
+template<> struct NumTraits<propane::VertexType> : NumTraits<double> {
+};
+}
+    
