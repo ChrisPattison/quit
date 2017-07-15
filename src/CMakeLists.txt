@@ -19,7 +19,6 @@ add_executable(
     random_number_generator.cpp 
     parse.cpp 
     output.cpp
-    parallel_population_annealing.cpp 
     parallel.cpp 
     population_annealing.cpp 
     string_util.cpp 

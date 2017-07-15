@@ -88,13 +88,6 @@ void Results(PopulationAnnealing::Result& r) {
         << r.total_sweeps << " ";
 }
 
-void MpiResults(ParallelPopulationAnnealing::Result& r) {
-    std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
-        << r.redist_walltime << " " << std::setw(kWidth) 
-        << r.observables_walltime << " " << std::setw(kWidth)
-        << r.max_family_size;
-}
-
 void Histograms(std::vector<PopulationAnnealing::Result>& results) {
     std::cout << std::endl << kMagicString << std::endl << "# Histograms" << std::endl;
     for(auto r : results) {

@@ -24,7 +24,7 @@
  
 #include "parse.hpp"
 #include "graph.hpp"
-#include "parallel_population_annealing.hpp"
+#include "population_annealing.hpp"
 #include "types.hpp"
 #include "string_util.hpp"
 #include "version.hpp"
@@ -37,43 +37,6 @@
 #include <string>
 #include <algorithm>
 #include <map>
-
-void MpiPa(std::string config_path, std::string bond_path) {
-    auto file = std::ifstream(config_path);
-    propane::ParallelPopulationAnnealing::Config config;
-    propane::io::ConfigParse(file, &config);
-    file.close();
-
-    file = std::ifstream(bond_path);
-    propane::Graph model = propane::io::IjjParse(file);
-    file.close();
-
-    parallel::Mpi parallel;
-    parallel.ExecRoot([&]() {
-        propane::io::Header(model, config_path, bond_path);
-        propane::io::MpiHeader(parallel);
-    });
-
-    propane::ParallelPopulationAnnealing population_annealing(model, config);
-    auto results = population_annealing.Run();
-
-    parallel.ExecRoot([&]() {
-        propane::io::ColumnNames();
-        propane::io::MpiColumnNames();
-        std::cout << std::endl;
-        for(auto& r : results) {
-            propane::io::Results(r);
-            propane::io::MpiResults(r);
-            std::cout << std::endl;
-        }
-        std::vector<propane::PopulationAnnealing::Result> basic_result(results.size());
-        std::transform(results.begin(), results.end(), basic_result.begin(), [] (propane::ParallelPopulationAnnealing::Result& r) 
-            {return static_cast<propane::PopulationAnnealing::Result>(r);});
-
-        propane::io::IjjDump(model, std::cout);
-        propane::io::Histograms(basic_result);
-    });
-}
 
 /** Read model and config for regular PA
  */
@@ -114,7 +77,6 @@ void SinglePa(std::string config_path, std::string bond_path) {
 }
 
 enum ModeOption{
-    kModeOptionMpi,
     kModeOptionSingle
 };
 
@@ -130,7 +92,7 @@ int main(int argc, char** argv) {
         ("config", "configuration file")
         ("version,v", "version number")
         ("bondfile", "file containing graph and couplers")
-        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1/mpi>");
+        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1>");
     boost::program_options::variables_map var_map;
     boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
         .options(description).positional(positional_description).run(), var_map);
@@ -156,7 +118,6 @@ int main(int argc, char** argv) {
 
     // Select PA implementation
     std::map<std::string, ModeOption> selector_map;
-    selector_map.insert({"mpi", kModeOptionMpi});
     ModeOption selection;
     if(selector_map.count(var_map["mode"].as<std::string>()) == 0) {
         selection = kModeOptionSingle;
@@ -165,7 +126,6 @@ int main(int argc, char** argv) {
     }
 
     switch(selection) {
-        case kModeOptionMpi : MpiPa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
         case kModeOptionSingle : SinglePa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
     }
 
