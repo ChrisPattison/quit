@@ -12,6 +12,9 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(dSFMT)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dSFMT)
 
+add_subdirectory(XSadd)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/XSadd)
+
 add_executable(
     propane_svmc
     main.cpp 
@@ -60,6 +63,6 @@ if(MPI_LINK_FLAGS)
     LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
 
-set(LIBS ${LIBS} dSFMT)
+set(LIBS ${LIBS} dSFMT XSadd)
 
 target_link_libraries(propane_svmc ${LIBS})

@@ -76,7 +76,6 @@ protected:
 
 /** Uses the Heat Bath algorithm. See MetropolisAcceptedMove.
  */
- 
     virtual bool HeatbathAcceptedMove(double delta_energy);
 /** Returns the energy of a replica
  * Implemented as the sum of elementwise multiplication of the replica vector with the 
@@ -84,11 +83,17 @@ protected:
  * and the replica.
  */
     virtual double Hamiltonian(StateVector& replica);
+/** Returns the local field at site vertex
+ */
+    FieldType LocalField(StateVector& replica, int vertex);
 /** Returns the energy change associated with flipping spin vertex.
  * Implemented as the dot product of row vertex of the adjacency matrix 
  * with the replica vector multiplied by the spin at vertex.
  */
-    virtual double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value); 
+    virtual double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value);
+/** Carries out moves micro canonical sweeps
+ */
+    virtual void MicroCanonicalSweep(StateVector& replica, int sweeps);
 /** Carries out moves monte carlo sweeps of replica using the Metropolis algorithm.
  */
     virtual void MetropolisSweep(StateVector& replica, int moves);

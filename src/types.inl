@@ -53,6 +53,11 @@ inline FieldType FieldType::operator*=(double b) {
     return *this;
 }
 
+inline FieldType FieldType::operator/=(double b) {
+    (*this) = (*this) / b;
+    return *this;
+}
+
 inline FieldType FieldType::operator+=(FieldType b) {
     (*this) = (*this) + b;
     return *this;
@@ -62,6 +67,7 @@ inline FieldType FieldType::operator-=(FieldType b) {
     (*this) = (*this) - b;
     return *this;
 }
+
 
 inline FieldType operator*(const int& a, const FieldType& b) {
     return b * a;

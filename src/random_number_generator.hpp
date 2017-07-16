@@ -28,13 +28,16 @@
 #include <type_traits>
 #include <climits>
 #include "dSFMT.h"
+#include "xsadd.h"
 
 namespace propane {
 /** Wrapper around the refreence implementation of dSFMT19937 by Saito and Matsumoto.
  */
 class RandomNumberGenerator {
-    dsfmt_t* state_;
+    dsfmt_t* state_;    
+    xsadd_t* cheap_state_;
     std::uint64_t seed_;
+
 public:
 /** Seed generator with given value.
  */
@@ -63,5 +66,8 @@ public:
 /** Returns an integer uniformly distributed in [0,N).
  */
     int Range(int N);
+/** Returns an integer uniformly distributed in [0, N) using a cheap RNG.
+ */
+    int CheapRange(int N);
 };
 }

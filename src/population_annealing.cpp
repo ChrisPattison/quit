@@ -115,13 +115,33 @@ double PopulationAnnealing::Hamiltonian(StateVector& replica) {
     return energy;
 }
 
-double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex, FieldType new_value) {
+FieldType PopulationAnnealing::LocalField(StateVector& replica, int vertex) {
     FieldType h;
     for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
         h += it.value() * replica[it.index()];
     }
     h -= field_[vertex];
-    return -2 * replica[vertex] * h;
+    return h;
+}
+
+double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex, FieldType new_value) {
+    return (new_value - replica[vertex]) * LocalField(replica, vertex);
+}
+
+void PopulationAnnealing::MicroCanonicalSweep(StateVector& replica, int sweeps) {
+    for(std::size_t k = 0; k < sweeps; ++k) {
+        for(std::size_t i = 0; i < replica.size(); ++i) {
+            // pick random site
+            auto vertex = rng_.CheapRange(replica.size());
+            // get local field
+            auto h = LocalField(replica, vertex);
+            // normalize
+            h /= std::sqrt(h*h);
+            // reflect about h
+            auto prev = replica[i];
+            replica[i] = FieldType(prev * FieldType(h[0]*h[0] - h[1]*h[1], 2*h[0]*h[1]), prev * FieldType(2*h[0]*h[1], h[1]*h[1]-h[0]*h[0]));
+        }
+    }
 }
 
 void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {

@@ -64,6 +64,8 @@ struct FieldType : std::array<double, 2> {
 
     FieldType operator*=(double b);
 
+    FieldType operator/=(double b);
+
     FieldType operator+=(FieldType b);
 
     FieldType operator-=(FieldType b);

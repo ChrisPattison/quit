@@ -33,34 +33,49 @@ namespace propane {
     
 RandomNumberGenerator::RandomNumberGenerator(std::uint64_t seed) {
     seed_ = seed;
+
     state_ = new dsfmt_t;
     dsfmt_init_gen_rand(state_, static_cast<std::uint32_t>(seed));
+
+    cheap_state_ = new xsadd_t;
+    xsadd_init(cheap_state_, static_cast<std::uint32_t>(seed));
 }
 
 RandomNumberGenerator::RandomNumberGenerator() : RandomNumberGenerator(RandomSeed()) {};
 
 RandomNumberGenerator::~RandomNumberGenerator() {
     delete state_;
+    delete cheap_state_;
     state_ = nullptr;
+    cheap_state_ = nullptr;
 }
 
 RandomNumberGenerator::RandomNumberGenerator(const RandomNumberGenerator& other) {
     seed_ = other.seed_;
+    
     state_ = new dsfmt_t;
     *state_ = *(other.state_);
+
+    cheap_state_ = new xsadd_t;
+    *cheap_state_ = *(other.cheap_state_);
 }
 
 RandomNumberGenerator::RandomNumberGenerator(RandomNumberGenerator&& other) {
     if(this != &other) {
         seed_ = other.seed_;
+        
         state_ = other.state_;
         other.state_ = nullptr;
+        
+        cheap_state_ = other.cheap_state_;
+        other.cheap_state_ = nullptr;
     }
 }
 
 RandomNumberGenerator& RandomNumberGenerator::operator=(const RandomNumberGenerator& other) {
     seed_ = other.seed_;
     *state_ = *(other.state_);
+    *cheap_state_ = *(other.cheap_state_);
     return *this;
 }
 
@@ -68,8 +83,12 @@ RandomNumberGenerator& RandomNumberGenerator::operator=(RandomNumberGenerator&& 
     if(this != &other) {
         delete state_;
         seed_ = other.seed_;
+        
         state_ = other.state_;
         other.state_ = nullptr;
+
+        cheap_state_ = other.cheap_state_;
+        other.cheap_state_ = nullptr;
     }
     return *this;
 }
@@ -92,5 +111,9 @@ std::uint64_t RandomNumberGenerator::GetSeed() {
 
 int RandomNumberGenerator::Range(int N) {
     return std::floor(Probability() * N);
+}
+
+int RandomNumberGenerator::CheapRange(int N) {
+    return std::floor(xsadd_float(cheap_state_) * N);
 }
 }
