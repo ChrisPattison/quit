@@ -90,6 +90,7 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
         std::stringstream converter(tree.get<std::string>("seed", "0"));
         converter >> std::hex >> config->seed;
         int default_sweeps = tree.get<int>("default_sweeps", 10);
+        int default_microcanonical = tree.get<int>("default_microcanonical", 0);
         config->solver_mode = tree.get<bool>("solver_mode", false);
         for(auto& item : tree.get_child("schedule")) {
             config->schedule.emplace_back();
@@ -97,6 +98,7 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
             config->schedule.back().gamma = item.second.get<double>("gamma", 0.0);
             config->schedule.back().population_fraction = item.second.get<double>("population_fraction", 1.0);
             config->schedule.back().sweeps = item.second.get("sweeps", default_sweeps);
+            config->schedule.back().microcanonical = item.second.get("microcanonical", default_microcanonical);
             config->schedule.back().heat_bath = item.second.get("heat_bath", false);
             config->schedule.back().compute_observables = item.second.get("compute_observables", true);
             config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);

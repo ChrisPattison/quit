@@ -62,6 +62,7 @@ class PopulationAnnealingBase {
         double beta;
         double gamma;
         int sweeps = 10;
+        int microcanonical = 0;
         bool heat_bath = false;
         bool overlap_dist = false;
         bool energy_dist = false;

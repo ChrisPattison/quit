@@ -227,6 +227,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
             observables.norm_factor = Resample(step.beta, step.population_fraction);
         }
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
+            MicroCanonicalSweep(replicas_[k], step.microcanonical);
             // Monte Carlo Sweeps
             if(step.heat_bath) {
                 HeatbathSweep(replicas_[k], step.sweeps);
