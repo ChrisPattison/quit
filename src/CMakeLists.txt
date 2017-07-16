@@ -13,7 +13,7 @@ add_subdirectory(dSFMT)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dSFMT)
 
 add_executable(
-    propane 
+    propane_svmc
     main.cpp 
     graph.cpp 
     random_number_generator.cpp 
@@ -27,12 +27,12 @@ add_executable(
     log_lookup.cpp
 )
 
-install(TARGETS propane 
+install(TARGETS propane_svmc
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
 )
 
-set_target_properties(propane PROPERTIES
+set_target_properties(propane_svmc PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
@@ -51,15 +51,15 @@ include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
 if(MPI_COMPILE_FLAGS)
-  set_target_properties(propane PROPERTIES
+  set_target_properties(propane_svmc PROPERTIES
     COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 endif()
 
 if(MPI_LINK_FLAGS)
-  set_target_properties(propane PROPERTIES
+  set_target_properties(propane_svmc PROPERTIES
     LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
 
 set(LIBS ${LIBS} dSFMT)
 
-target_link_libraries(propane ${LIBS})
+target_link_libraries(propane_svmc ${LIBS})
