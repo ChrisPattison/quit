@@ -1,3 +1,7 @@
+#include <numeric>
+#include <cmath>
+#include <boost/math/constants/constants.hpp>
+
 namespace propane {
 
 inline FieldType::FieldType() {
@@ -5,14 +9,10 @@ inline FieldType::FieldType() {
     (*this)[1] = 0;
 }
 
-inline FieldType::FieldType(int a) {
-    (*this)[0] = a;
-    (*this)[1] = 0;
-}
-
-inline FieldType::FieldType(double a) {
-    (*this)[0] = a;
-    (*this)[1] = 0;
+inline FieldType::FieldType(double uniform) {
+    double angle = uniform * boost::math::constants::pi<double>();
+    (*this)[0] = std::cos(angle);
+    (*this)[1] = std::sin(angle);
 }
 
 inline FieldType::FieldType(double a, double b) {

@@ -24,32 +24,42 @@
  
 #pragma once
 #include <array>
-#include <numeric>
 #include <Eigen/Dense>
 
 namespace propane {
 
+/** struct that represents a vector in R^2
+ */
 struct FieldType : std::array<double, 2> {
+/** Initializes with the zero vector
+ */
     FieldType();
-
-    FieldType(int a);
-
-    FieldType(double a);
-
+/** Given a uniform value in [0,1), initializes a unit vector in a random direction
+ */
+    FieldType(double uniform);
+/** Initializes vector with components a and b
+ */
     FieldType(double a, double b);
-
+/** Inner product
+ */
     double operator*(FieldType b) const;
-
+/** Scalar division
+ */
     FieldType operator/(double b) const;
-
+/** Scalar multiplication
+ */
     FieldType operator*(int b) const;
-
+/** Scalar multiplication
+ */
     FieldType operator*(double b) const;
-
+/** Vector addition
+ */
     FieldType operator+(FieldType b) const;
-
+/** Negation
+ */
     FieldType operator-() const;
-
+/** Vector subtraction
+ */
     FieldType operator-(FieldType b) const;
 
     FieldType operator*=(double b);
@@ -57,6 +67,7 @@ struct FieldType : std::array<double, 2> {
     FieldType operator+=(FieldType b);
 
     FieldType operator-=(FieldType b);
+
 };
 
 

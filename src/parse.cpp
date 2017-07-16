@@ -94,6 +94,7 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
         for(auto& item : tree.get_child("schedule")) {
             config->schedule.emplace_back();
             config->schedule.back().beta = item.second.get<double>("beta");
+            config->schedule.back().gamma = item.second.get<double>("gamma", 0.0);
             config->schedule.back().population_fraction = item.second.get<double>("population_fraction", 1.0);
             config->schedule.back().sweeps = item.second.get("sweeps", default_sweeps);
             config->schedule.back().heat_bath = item.second.get("heat_bath", false);

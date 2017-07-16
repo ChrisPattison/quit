@@ -54,6 +54,7 @@ protected:
     int average_population_;
     std::vector<Schedule> schedule_;
     double beta_;
+    double gamma_;
     bool solver_mode_;
 
 /** Determinstically builds a list of replicas with different Markov Chains.
@@ -87,16 +88,13 @@ protected:
  * Implemented as the dot product of row vertex of the adjacency matrix 
  * with the replica vector multiplied by the spin at vertex.
  */
-    virtual double DeltaEnergy(StateVector& replica, int vertex); 
+    virtual double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value); 
 /** Carries out moves monte carlo sweeps of replica using the Metropolis algorithm.
  */
     virtual void MetropolisSweep(StateVector& replica, int moves);
 /** Carries out moves monte carlo sweeps of replica using the Heatbath algorithm.
  */
     virtual void HeatbathSweep(StateVector& replica, int moves);
-/** Returns true if a move may be made that reduces the total energy.
- */
-    bool IsLocalMinimum(StateVector& replica);
 /** Returns the overlap between replicas alpha and beta.
  */
     double Overlap(StateVector& alpha, StateVector& beta);
@@ -113,6 +111,9 @@ protected:
  * Returns the normalization factor Q as a byproduct.
  */
     virtual double Resample(double new_beta, double new_population_fraction);
+/** Sets the transverse field (gamma)
+ */
+    virtual void TransverseField(double magnitude);
 public:
 
     PopulationAnnealing() = delete;

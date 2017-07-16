@@ -115,7 +115,7 @@ double PopulationAnnealing::Hamiltonian(StateVector& replica) {
     return energy;
 }
 
-double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
+double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex, FieldType new_value) {
     FieldType h;
     for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
         h += it.value() * replica[it.index()];
@@ -126,13 +126,13 @@ double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
 
 void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t i = 0; i < replica.size(); ++i) {
-            int vertex = i;
-            double delta_energy = DeltaEnergy(replica, vertex);
+        for(std::size_t vertex = 0; vertex < replica.size(); ++vertex) {
+            auto new_value = VertexType(rng_.Probability());
+            double delta_energy = DeltaEnergy(replica, vertex, new_value);
             
             //round-off isn't a concern here
             if(MetropolisAcceptedMove(delta_energy)) {
-                replica[vertex] *= -1;
+                replica[vertex] = new_value;
             }
         }
     }
@@ -141,22 +141,14 @@ void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
 void PopulationAnnealing::HeatbathSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(std::size_t vertex = 0; vertex < replica.size(); ++vertex) {
-            double delta_energy = DeltaEnergy(replica, vertex);
+            auto new_value = VertexType(rng_.Probability());            
+            double delta_energy = DeltaEnergy(replica, vertex, new_value);
 
             if(HeatbathAcceptedMove(delta_energy)) {
-                replica[vertex] *= -1;
+                replica[vertex] = new_value;
             }
         }
     }
-}
-
-bool PopulationAnnealing::IsLocalMinimum(StateVector& replica) {
-    for(int k = 0; k < replica.size(); ++k) {
-        if(DeltaEnergy(replica, k) < 0) {
-            return false;
-        }
-    }
-    return true;
 }
 
 double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
@@ -175,6 +167,7 @@ double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
 }
 
 std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
+    // Initialize
     std::vector<Result> results;
 
     replicas_.resize(average_population_);
@@ -183,7 +176,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     field_.resize(structure_.Fields().size());
     for(int k = 0; k < structure_.Fields().size(); ++k) {
         // No transverse field for now
-        field_[k] = FieldType({structure_.Fields()(k), 0.});
+        field_[k] = FieldType(structure_.Fields()(k), 0.);
     }
 
     for(auto& r : replicas_) {
@@ -191,12 +184,13 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         r.resize(structure_.size());
         for(std::size_t k = 0; k < r.size(); ++k) {
             // Aligned with sigma_z for now
-            r[k] = FieldType({1.,0.}) * (rng_.Probability() < 0.5 ? 1 : -1);
+            r[k] = FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
         }
     }
 
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
     beta_ = schedule_.front().beta;
+    gamma_ = schedule_.front().gamma;
     std::vector<double> energy;
 
     auto total_time_start = std::chrono::high_resolution_clock::now();
@@ -204,12 +198,16 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
     for(auto step : schedule_) {
         Result observables;
-
+        // Thermalize
         auto time_start = std::chrono::high_resolution_clock::now();
-        if(step.beta != beta_) {
+        if(step.beta != beta_ || step.gamma != gamma_) {
+            // Set new field
+            TransverseField(step.gamma);
+            // Resample
             observables.norm_factor = Resample(step.beta, step.population_fraction);
         }
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
+            // Monte Carlo Sweeps
             if(step.heat_bath) {
                 HeatbathSweep(replicas_[k], step.sweeps);
             }else {
@@ -351,5 +349,12 @@ double PopulationAnnealing::Resample(double new_beta, double new_population_frac
     replicas_ = resampled_replicas;
     replica_families_ = resampled_families;
     return summed_weights;
+}
+
+void PopulationAnnealing::TransverseField(double magnitude) {
+    gamma_ = magnitude;
+    for(int k = 0; k < field_.size(); ++k) {
+        field_[k][1] = magnitude;
+    }
 }
 }
