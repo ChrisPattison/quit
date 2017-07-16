@@ -104,15 +104,24 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
  }
 
 double PopulationAnnealing::Hamiltonian(StateVector& replica) {
-    if(structure_.has_field()) {
-        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica - structure_.Fields().cast<VertexType>()).dot(replica.cast<EdgeType>());
-    }else {
-        return (structure_.Adjacent().triangularView<Eigen::Upper>() * replica).dot(replica.cast<EdgeType>());
+    double energy = 0.0;
+    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
+        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
+            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
+            energy += replica[k] * it.value() * replica[it.index()];
+        }
+        energy -= replica[k] * field_[k];
     }
+    return energy;
 }
 
 double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex) {
-    return -2 * replica(vertex) * (structure_.Adjacent().innerVector(vertex).dot(replica) - structure_.Fields()(vertex).cast<VertexType>());
+    FieldType h;
+    for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
+        h += it.value() * replica[it.index()];
+    }
+    h -= field_[vertex];
+    return -2 * replica[vertex] * h;
 }
 
 void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
@@ -123,7 +132,7 @@ void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
             
             //round-off isn't a concern here
             if(MetropolisAcceptedMove(delta_energy)) {
-                replica(vertex) *= -1;
+                replica[vertex] *= -1;
             }
         }
     }
@@ -135,7 +144,7 @@ void PopulationAnnealing::HeatbathSweep(StateVector& replica, int sweeps) {
             double delta_energy = DeltaEnergy(replica, vertex);
 
             if(HeatbathAcceptedMove(delta_energy)) {
-                replica(vertex) *= -1;
+                replica[vertex] *= -1;
             }
         }
     }
@@ -151,7 +160,7 @@ bool PopulationAnnealing::IsLocalMinimum(StateVector& replica) {
 }
 
 double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
-    return (alpha.array() * beta.array()).sum() / structure_.size();
+    return std::inner_product(alpha.begin(), alpha.end(), beta.begin(), 0.0) / structure_.size();
 }
 
 double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
@@ -159,7 +168,7 @@ double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            ql += alpha(k) * beta(k) * alpha(it.index()) * beta(it.index());
+            ql += alpha[k] * beta[k] * alpha[it.index()] * beta[it.index()];
         }
     }
     return ql / structure_.edges();
@@ -171,11 +180,18 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     replicas_.resize(average_population_);
     replica_families_.resize(average_population_);
     
+    field_.resize(structure_.Fields().size());
+    for(int k = 0; k < structure_.Fields().size(); ++k) {
+        // No transverse field for now
+        field_[k] = FieldType({structure_.Fields()(k), 0.});
+    }
+
     for(auto& r : replicas_) {
         r = StateVector();
         r.resize(structure_.size());
         for(std::size_t k = 0; k < r.size(); ++k) {
-            r(k) = VertexType({1.,0.}) * (rng_.Probability() < 0.5 ? 1 : -1);
+            // Aligned with sigma_z for now
+            r[k] = FieldType({1.,0.}) * (rng_.Probability() < 0.5 ? 1 : -1);
         }
     }
 

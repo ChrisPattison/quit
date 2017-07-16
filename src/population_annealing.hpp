@@ -44,9 +44,11 @@ protected:
 
     RandomNumberGenerator rng_;
 
-    using StateVector = Eigen::Matrix<VertexType, Eigen::Dynamic, 1>;
+    using StateVector = std::vector<VertexType>;
+    using FieldVector = std::vector<FieldType>;
     std::vector<StateVector> replicas_;
     std::vector<int> replica_families_;
+    FieldVector field_;
 
     int init_population_;
     int average_population_;
