@@ -103,7 +103,7 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     solver_mode_ = config.solver_mode;
  }
 
-double PopulationAnnealing::Hamiltonian(StateVector& replica) {
+double PopulationAnnealing::Hamiltonian(const StateVector& replica) {
     double energy = 0.0;
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
@@ -113,6 +113,15 @@ double PopulationAnnealing::Hamiltonian(StateVector& replica) {
         energy -= replica[k] * field_[k];
     }
     return energy;
+}
+
+PopulationAnnealing::StateVector PopulationAnnealing::Project(const StateVector& replica) {
+    StateVector projected;
+    projected.resize(replica.size());
+    for( std::size_t k = 0; k < replica.size(); ++k ) {
+        projected[k] = replica[k] * FieldType(1.0, 0.0) > 0 ? FieldType(1.0, 0.0) : FieldType(-1.0, 0.0);
+    }
+    return projected;
 }
 
 FieldType PopulationAnnealing::LocalField(StateVector& replica, int vertex) {
@@ -246,7 +255,8 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
             if(step.compute_observables) {
                 energy.resize(replicas_.size());
                 for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                    energy[k] = Hamiltonian(replicas_[k]);
+                    auto projection = Project(replicas_[k]);
+                    energy[k] = Hamiltonian(projection);
                 }
                 Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
                 // Basic observables

@@ -82,7 +82,10 @@ protected:
  * product of matrix multiplication between the upper half of the adjacency matrix
  * and the replica.
  */
-    virtual double Hamiltonian(StateVector& replica);
+    virtual double Hamiltonian(const StateVector& replica);
+/** Projects replica onto classical spins
+ */
+    virtual StateVector Project(const StateVector& replica); 
 /** Returns the local field at site vertex
  */
     FieldType LocalField(StateVector& replica, int vertex);
