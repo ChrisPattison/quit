@@ -25,7 +25,7 @@ inline double FieldType::operator*(FieldType b) const {
 }
 
 inline FieldType FieldType::operator/(double b) const {
-        return (*this) * 1./b;
+        return (*this) * (1./b);
 }
 
 inline FieldType FieldType::operator*(int b) const {
