@@ -256,7 +256,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         observables.beta = beta_;
         observables.population = replicas_.size();
 
-        if(!solver_mode_ || beta_ == schedule_.back().beta) {
+        if(!solver_mode_ || (beta_ == schedule_.back().beta && gamma_ == schedule_.back().gamma)) {
             if(step.compute_observables) {
                 energy.resize(replicas_.size());
                 for(std::size_t k = 0; k < replicas_.size(); ++k) {
