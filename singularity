@@ -1,11 +1,11 @@
 Bootstrap: docker
-From: fedora:latest
+From: fedora:25
 
 %setup
 cp -r . $SINGULARITY_ROOTFS/src
 
 %runscript
-propane
+propane "$@"
 
 %files
 
