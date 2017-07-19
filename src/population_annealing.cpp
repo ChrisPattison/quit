@@ -101,6 +101,7 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     average_population_ = config.population;
     init_population_ = average_population_;
     solver_mode_ = config.solver_mode;
+    uniform_init_ = config.uniform_init;
  }
 
 double PopulationAnnealing::Hamiltonian(const StateVector& replica) {
@@ -212,14 +213,18 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         r = StateVector();
         r.resize(structure_.size());
         for(std::size_t k = 0; k < r.size(); ++k) {
-            // Aligned with sigma_z for now
-            r[k] = FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
+            if(uniform_init_) {
+                r[k] = FieldType(0.,1.);
+            }else {
+                // Aligned with sigma_z
+                r[k] = FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
+            }
         }
     }
 
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
     beta_ = schedule_.front().beta;
-    gamma_ = schedule_.front().gamma;
+    TransverseField(schedule_.front().gamma);
     std::vector<double> energy;
 
     auto total_time_start = std::chrono::high_resolution_clock::now();

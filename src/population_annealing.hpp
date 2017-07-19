@@ -56,6 +56,7 @@ protected:
     double beta_;
     double gamma_;
     bool solver_mode_;
+    bool uniform_init_;
 
 /** Determinstically builds a list of replicas with different Markov Chains.
  */

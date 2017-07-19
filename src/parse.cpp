@@ -92,6 +92,7 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
         int default_sweeps = tree.get<int>("default_sweeps", 10);
         int default_microcanonical = tree.get<int>("default_microcanonical", 0);
         config->solver_mode = tree.get<bool>("solver_mode", false);
+        config->uniform_init = tree.get<bool>("uniform_init", false);
         for(auto& item : tree.get_child("schedule")) {
             config->schedule.emplace_back();
             config->schedule.back().beta = item.second.get<double>("beta");

@@ -77,6 +77,7 @@ class PopulationAnnealingBase {
         std::uint64_t seed;
         std::vector<PopulationAnnealingBase::Schedule> schedule;
         bool solver_mode = false;
+        bool uniform_init = false;
     };
 };
 }
