@@ -5,7 +5,7 @@ From: fedora:25
 cp -r . $SINGULARITY_ROOTFS/src
 
 %runscript
-propane "$@"
+propane_svmc "$@"
 
 %files
 
