@@ -50,6 +50,7 @@ void MpiHeader(parallel::Mpi& parallel) {
 void ColumnNames() {
     std::cout << std::right << std::setw(kHeaderWidth)
         << "Beta" << std::setw(kHeaderWidth)
+        << "Gamma" << std::setw(kHeaderWidth)
         << "Sweeps" << std::setw(kHeaderWidth)
         << "<E>" << std::setw(kHeaderWidth) 
         << "<E^2>" << std::setw(kHeaderWidth) 
@@ -74,6 +75,7 @@ void MpiColumnNames() {
 void Results(PopulationAnnealing::Result& r) {
     std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
         << r.beta << " " << std::setw(kWidth) 
+        << r.gamma << " " << std::setw(kWidth) 
         << r.sweeps << " " << std::setw(kWidth)
         << r.average_energy << " " << std::setw(kWidth) 
         << r.average_squared_energy << " " << std::setw(kWidth) 

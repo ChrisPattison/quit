@@ -42,6 +42,7 @@ class PopulationAnnealingBase {
         std::vector<Histogram> energy_distribution;
         std::vector<Histogram> ground_distribution;
         double beta = std::numeric_limits<double>::quiet_NaN();
+        double gamma = std::numeric_limits<double>::quiet_NaN();
         int population = -1;
         double norm_factor = std::numeric_limits<double>::quiet_NaN();
         double average_energy = std::numeric_limits<double>::quiet_NaN();

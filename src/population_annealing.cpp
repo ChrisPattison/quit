@@ -254,6 +254,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         observables.montecarlo_walltime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start).count();
 
         observables.beta = beta_;
+        observables.gamma = gamma_;
         observables.population = replicas_.size();
 
         if(!solver_mode_ || (beta_ == schedule_.back().beta && gamma_ == schedule_.back().gamma)) {
