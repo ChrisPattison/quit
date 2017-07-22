@@ -87,6 +87,9 @@ protected:
 /** Projects replica onto classical spins
  */
     virtual StateVector Project(const StateVector& replica); 
+/** Returns the energy of the replica as given by the original problem Hamiltonian
+ */
+    virtual double ProjectedHamiltonian(const StateVector& replica);
 /** Returns the local field at site vertex
  */
     FieldType LocalField(StateVector& replica, int vertex);
