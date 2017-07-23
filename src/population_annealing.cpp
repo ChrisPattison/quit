@@ -251,7 +251,9 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
             // Set new field
             TransverseField(step.gamma);
             // Resample
-            observables.norm_factor = Resample(step.beta, step.population_fraction);
+            if(step.resample) {
+                observables.norm_factor = Resample(step.beta, step.population_fraction);
+            }
         }
         for(std::size_t k = 0; k < replicas_.size(); ++k) {
             MicroCanonicalSweep(replicas_[k], step.microcanonical);
