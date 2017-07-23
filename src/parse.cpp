@@ -110,6 +110,6 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
     } catch(std::exception& e) {
         util::Check(false, "Config parsing failed.");
     }
-    std::sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
+    std::stable_sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
 }
 }}
