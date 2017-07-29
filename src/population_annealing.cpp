@@ -125,15 +125,14 @@ PopulationAnnealing::StateVector PopulationAnnealing::Project(const StateVector&
     return projected;
 }
 
-double PopulationAnnealing::ProjectedHamiltonian(const StateVector& replica) {
-    StateVector projected = Project(replica);
+double PopulationAnnealing::ProjectedHamiltonian(const StateVector& projected) {
     double energy = 0.0;
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += replica[k] * it.value() * replica[it.index()];
+            energy += projected[k] * it.value() * projected[it.index()];
         }
-        energy -= replica[k] * FieldType(field_[k][0], 0.);
+        energy -= projected[k] * FieldType(field_[k][0], 0.);
     }
     return energy;
 }
@@ -281,7 +280,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
                 energy.resize(projected_replicas.size());
                 for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                    energy[k] = Hamiltonian(projected_replicas[k]);
+                    energy[k] = ProjectedHamiltonian(projected_replicas[k]);
                 }
                 Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
                 // Basic observables

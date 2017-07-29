@@ -89,7 +89,7 @@ protected:
     virtual StateVector Project(const StateVector& replica); 
 /** Returns the energy of the replica as given by the original problem Hamiltonian
  */
-    virtual double ProjectedHamiltonian(const StateVector& replica);
+    virtual double ProjectedHamiltonian(const StateVector& projected);
 /** Returns the local field at site vertex
  */
     FieldType LocalField(StateVector& replica, int vertex);
