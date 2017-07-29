@@ -275,9 +275,13 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         bool report_results = (beta_ == schedule_.back().beta && gamma_ == schedule_.back().gamma);
         if(!solver_mode_ || report_results || step.compute_observables) {
             if(step.compute_observables) {
-                energy.resize(replicas_.size());
+                std::vector<StateVector> projected_replicas;
+                projected_replicas.reserve(replicas_.size());
+                std::for_each(replicas_.begin(), replicas_.end(), [&](const StateVector& v) { projected_replicas.push_back(Project(v)); });
+
+                energy.resize(projected_replicas.size());
                 for(std::size_t k = 0; k < replicas_.size(); ++k) {
-                    energy[k] = ProjectedHamiltonian(replicas_[k]);
+                    energy[k] = Hamiltonian(projected_replicas[k]);
                 }
                 Eigen::Map<Eigen::VectorXd> energy_map(energy.data(), energy.size());
                 // Basic observables
@@ -309,9 +313,9 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
                     samples.reserve(observables.grounded_replicas);
                     for(std::size_t k = 0; k < replicas_.size(); ++k) {
                         if(util::FuzzyCompare(observables.ground_energy, energy[k])) {
-                            auto state = std::distance(ground_states.begin(), std::find(ground_states.begin(), ground_states.end(), replicas_[k]));
+                            auto state = std::distance(ground_states.begin(), std::find(ground_states.begin(), ground_states.end(), projected_replicas[k]));
                             if(state == ground_states.size()) {
-                                ground_states.push_back(replicas_[k]);
+                                ground_states.push_back(projected_replicas[k]);
                             }
                             
                             samples.push_back(state);
@@ -319,21 +323,22 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
                     }
                     observables.ground_distribution = BuildHistogram(samples);
                 }
+
+                if(step.overlap_dist) {
+                    // Overlap
+                    std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
+                    std::vector<double> overlap_samples(overlap_pairs.size());
+
+                    std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                        [&](std::pair<int, int> p){return Overlap(projected_replicas[p.first], projected_replicas[p.second]);});
+                    observables.overlap = BuildHistogram(overlap_samples);
+                    // Link Overlap
+                    std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
+                        [&](std::pair<int, int> p){return LinkOverlap(projected_replicas[p.first], projected_replicas[p.second]);});
+                    observables.link_overlap = BuildHistogram(overlap_samples);
+                }
             }
 
-            if(step.overlap_dist) {
-                // Overlap
-                std::vector<std::pair<int, int>> overlap_pairs = BuildReplicaPairs();
-                std::vector<double> overlap_samples(overlap_pairs.size());
-
-                std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-                    [&](std::pair<int, int> p){return Overlap(replicas_[p.first], replicas_[p.second]);});
-                observables.overlap = BuildHistogram(overlap_samples);
-                // Link Overlap
-                std::transform(overlap_pairs.begin(), overlap_pairs.end(), overlap_samples.begin(),
-                    [&](std::pair<int, int> p){return LinkOverlap(replicas_[p.first], replicas_[p.second]);});
-                observables.link_overlap = BuildHistogram(overlap_samples);
-            }
 
             observables.seed = rng_.GetSeed();
             observables.sweeps = step.sweeps;
