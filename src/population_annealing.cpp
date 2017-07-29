@@ -169,7 +169,8 @@ void PopulationAnnealing::MicroCanonicalSweep(StateVector& replica, int sweeps) 
 
 void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t vertex = 0; vertex < replica.size(); ++vertex) {
+        for(std::size_t i = 0; i < replica.size(); ++i) {
+            int vertex = rng_.Range(replica.size());
             auto new_value = VertexType(rng_.Probability());
             double delta_energy = DeltaEnergy(replica, vertex, new_value);
             
