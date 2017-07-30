@@ -272,7 +272,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         observables.gamma = gamma_;
         observables.population = replicas_.size();
         bool report_results = (beta_ == schedule_.back().beta && gamma_ == schedule_.back().gamma);
-        if(!solver_mode_ || report_results || step.compute_observables) {
+        if(!solver_mode_ || report_results) {
             if(step.compute_observables) {
                 std::vector<StateVector> projected_replicas;
                 projected_replicas.reserve(replicas_.size());
