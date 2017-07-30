@@ -140,7 +140,7 @@ double PopulationAnnealing::ProjectedHamiltonian(const StateVector& projected) {
 FieldType PopulationAnnealing::LocalField(StateVector& replica, int vertex) {
     FieldType h;
     for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
-        h += it.value() * replica[it.index()][0];
+        h += FieldType(it.value() * replica[it.index()][0], 0.0);
     }
     h -= field_[vertex];
     return h;
