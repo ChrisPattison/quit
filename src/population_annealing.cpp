@@ -109,7 +109,7 @@ double PopulationAnnealing::Hamiltonian(const StateVector& replica) {
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += replica[k] * it.value() * replica[it.index()];
+            energy += replica[k][0] * it.value() * replica[it.index()][0];
         }
         energy -= replica[k] * field_[k];
     }
@@ -130,7 +130,7 @@ double PopulationAnnealing::ProjectedHamiltonian(const StateVector& projected) {
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += projected[k] * it.value() * projected[it.index()];
+            energy += projected[k][0] * it.value() * projected[it.index()][0];
         }
         energy -= projected[k] * FieldType(field_[k][0], 0.);
     }
@@ -140,7 +140,7 @@ double PopulationAnnealing::ProjectedHamiltonian(const StateVector& projected) {
 FieldType PopulationAnnealing::LocalField(StateVector& replica, int vertex) {
     FieldType h;
     for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
-        h += it.value() * replica[it.index()];
+        h += it.value() * replica[it.index()][0];
     }
     h -= field_[vertex];
     return h;
