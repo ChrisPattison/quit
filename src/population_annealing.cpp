@@ -155,13 +155,11 @@ void PopulationAnnealing::MicroCanonicalSweep(StateVector& replica, int sweeps) 
         for(std::size_t i = 0; i < replica.size(); ++i) {
             // pick random site
             auto vertex = rng_.CheapRange(replica.size());
+            
             // get local field
             auto h = LocalField(replica, vertex);
-            // normalize
-            h /= std::sqrt(h*h);
-            // reflect about h
-            auto prev = replica[i];
-            replica[i] = FieldType(prev * FieldType(h[0]*h[0] - h[1]*h[1], 2*h[0]*h[1]), prev * FieldType(2*h[0]*h[1], h[1]*h[1]-h[0]*h[0]));
+            auto new_spin = ((2*h*(replica[vertex]*h))/(h*h))-replica[vertex];
+            replica[vertex] = new_spin;
         }
     }
 }
