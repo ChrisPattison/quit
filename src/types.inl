@@ -45,7 +45,7 @@ inline FieldType FieldType::operator-() const {
 }
 
 inline FieldType FieldType::operator-(FieldType b) const {
-    return (*this) + -b;
+    return {(*this)[0] - b[0], (*this)[1] - b[1]};
 }
 
 inline FieldType FieldType::operator*=(double b) {
