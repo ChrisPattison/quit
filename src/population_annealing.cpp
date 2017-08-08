@@ -154,7 +154,7 @@ void PopulationAnnealing::MicroCanonicalSweep(StateVector& replica, int sweeps) 
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
             // pick random site
-            auto vertex = rng_.CheapRange(replica.size());
+            auto vertex = i;
             
             // get local field
             auto h = LocalField(replica, vertex);
