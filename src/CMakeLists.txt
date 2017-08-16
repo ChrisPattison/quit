@@ -15,9 +15,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dSFMT)
 add_subdirectory(XSadd)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/XSadd)
 
-add_executable(
-    propane_svmc
-    main.cpp 
+set(SRCS
     graph.cpp 
     random_number_generator.cpp 
     parse.cpp 
@@ -28,6 +26,13 @@ add_executable(
     parallel_types.cpp 
     compare.cpp
     log_lookup.cpp
+    simd_xsadd.cpp
+)
+
+add_executable(
+    propane_svmc
+    main.cpp 
+    ${SRCS}
 )
 
 install(TARGETS propane_svmc
@@ -66,3 +71,12 @@ endif()
 set(LIBS ${LIBS} dSFMT XSadd)
 
 target_link_libraries(propane_svmc ${LIBS})
+
+
+add_library(propane_lib STATIC ${SRCS})
+set_target_properties(propane_lib PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+)
+target_link_libraries(propane_lib ${LIBS})
