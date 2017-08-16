@@ -34,7 +34,7 @@ inline void XSadd::Advance() {
 
     // This cast should be vectorized
     for(int i = 0; i < kvector_size; ++i) {
-        output_ = (static_cast<float>((state_[3] + state_[2]) >> 8)) * kfloat_norm;
+        output_[i] = static_cast<float>((state_[3][i] + state_[2][i]) >> 8) * kfloat_norm;
     }
 
     // output_ = (float_vector_t)((state_[3] + state_[2]) >> 8) * (float_vector_t){1.,1.,1.,1.}*kfloat_norm;
