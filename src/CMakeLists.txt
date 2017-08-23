@@ -26,7 +26,6 @@ set(SRCS
     parallel_types.cpp 
     compare.cpp
     log_lookup.cpp
-    simd_xsadd.cpp
 )
 
 add_executable(
