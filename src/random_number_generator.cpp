@@ -33,31 +33,22 @@ namespace propane {
     
 RandomNumberGenerator::RandomNumberGenerator(std::uint64_t seed) {
     seed_ = seed;
-
-    state_ = new dsfmt_t;
-    dsfmt_init_gen_rand(state_, static_cast<std::uint32_t>(seed));
-
-    cheap_state_ = new xsadd_t;
-    xsadd_init(cheap_state_, static_cast<std::uint32_t>(seed));
+    state_ = new xsadd_t;
+    xsadd_init(state_, static_cast<std::uint32_t>(seed));
 }
 
 RandomNumberGenerator::RandomNumberGenerator() : RandomNumberGenerator(RandomSeed()) {};
 
 RandomNumberGenerator::~RandomNumberGenerator() {
     delete state_;
-    delete cheap_state_;
     state_ = nullptr;
-    cheap_state_ = nullptr;
 }
 
 RandomNumberGenerator::RandomNumberGenerator(const RandomNumberGenerator& other) {
     seed_ = other.seed_;
     
-    state_ = new dsfmt_t;
+    state_ = new xsadd_t;
     *state_ = *(other.state_);
-
-    cheap_state_ = new xsadd_t;
-    *cheap_state_ = *(other.cheap_state_);
 }
 
 RandomNumberGenerator::RandomNumberGenerator(RandomNumberGenerator&& other) {
@@ -66,16 +57,12 @@ RandomNumberGenerator::RandomNumberGenerator(RandomNumberGenerator&& other) {
         
         state_ = other.state_;
         other.state_ = nullptr;
-        
-        cheap_state_ = other.cheap_state_;
-        other.cheap_state_ = nullptr;
     }
 }
 
 RandomNumberGenerator& RandomNumberGenerator::operator=(const RandomNumberGenerator& other) {
     seed_ = other.seed_;
     *state_ = *(other.state_);
-    *cheap_state_ = *(other.cheap_state_);
     return *this;
 }
 
@@ -86,15 +73,12 @@ RandomNumberGenerator& RandomNumberGenerator::operator=(RandomNumberGenerator&& 
         
         state_ = other.state_;
         other.state_ = nullptr;
-
-        cheap_state_ = other.cheap_state_;
-        other.cheap_state_ = nullptr;
     }
     return *this;
 }
 
-double RandomNumberGenerator::Probability() {
-    return dsfmt_genrand_close_open(state_);
+float RandomNumberGenerator::Probability() {
+    return xsadd_float(state_);
 }
 
 std::uint64_t RandomNumberGenerator::RandomSeed() {
@@ -114,6 +98,6 @@ int RandomNumberGenerator::Range(int N) {
 }
 
 int RandomNumberGenerator::CheapRange(int N) {
-    return std::floor(xsadd_float(cheap_state_) * N);
+    return std::floor(xsadd_float(state_) * N);
 }
 }

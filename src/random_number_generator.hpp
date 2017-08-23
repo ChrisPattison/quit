@@ -34,8 +34,7 @@ namespace propane {
 /** Wrapper around the refreence implementation of dSFMT19937 by Saito and Matsumoto.
  */
 class RandomNumberGenerator {
-    dsfmt_t* state_;    
-    xsadd_t* cheap_state_;
+    xsadd_t* state_;
     std::uint64_t seed_;
 
 public:
@@ -62,7 +61,7 @@ public:
     std::uint64_t GetSeed();
 /** Returns a double uniformly distributed in [0,1).
  */
-    double Probability();
+    float Probability();
 /** Returns an integer uniformly distributed in [0,N).
  */
     int Range(int N);
