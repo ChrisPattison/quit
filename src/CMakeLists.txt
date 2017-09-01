@@ -26,6 +26,7 @@ set(SRCS
     parallel_types.cpp 
     compare.cpp
     log_lookup.cpp
+    spin_vector_monte_carlo.cpp
 )
 
 add_executable(

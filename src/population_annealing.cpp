@@ -102,109 +102,6 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     init_population_ = average_population_;
     solver_mode_ = config.solver_mode;
     uniform_init_ = config.uniform_init;
- }
-
-double PopulationAnnealing::Hamiltonian(const StateVector& replica) {
-    double energy = 0.0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += replica[k][0] * it.value() * replica[it.index()][0];
-        }
-        energy -= replica[k] * field_[k];
-    }
-    return energy;
-}
-
-PopulationAnnealing::StateVector PopulationAnnealing::Project(const StateVector& replica) {
-    StateVector projected;
-    projected.resize(replica.size());
-    for( std::size_t k = 0; k < replica.size(); ++k ) {
-        projected[k] = replica[k] * FieldType(1.0, 0.0) > 0 ? FieldType(1.0, 0.0) : FieldType(-1.0, 0.0);
-    }
-    return projected;
-}
-
-double PopulationAnnealing::ProjectedHamiltonian(const StateVector& projected) {
-    double energy = 0.0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += projected[k][0] * it.value() * projected[it.index()][0];
-        }
-        energy -= projected[k] * FieldType(field_[k][0], 0.);
-    }
-    return energy;
-}
-
-FieldType PopulationAnnealing::LocalField(StateVector& replica, int vertex) {
-    FieldType h;
-    for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
-        h += FieldType(it.value() * replica[it.index()][0], 0.0);
-    }
-    h -= field_[vertex];
-    return h;
-}
-
-double PopulationAnnealing::DeltaEnergy(StateVector& replica, int vertex, FieldType new_value) {
-    return (new_value - replica[vertex]) * LocalField(replica, vertex);
-}
-
-void PopulationAnnealing::MicroCanonicalSweep(StateVector& replica, int sweeps) {
-    for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t i = 0; i < replica.size(); ++i) {
-            // pick random site
-            auto vertex = i;
-            
-            // get local field
-            auto h = LocalField(replica, vertex);
-            auto new_spin = ((2*h*(replica[vertex]*h))/(h*h))-replica[vertex];
-            replica[vertex] = new_spin;
-        }
-    }
-}
-
-void PopulationAnnealing::MetropolisSweep(StateVector& replica, int sweeps) {
-    for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t i = 0; i < replica.size(); ++i) {
-            int vertex = rng_.Range(replica.size());
-            auto new_value = VertexType(rng_.Probability());
-            double delta_energy = DeltaEnergy(replica, vertex, new_value);
-            
-            //round-off isn't a concern here
-            if(MetropolisAcceptedMove(delta_energy)) {
-                replica[vertex] = new_value;
-            }
-        }
-    }
-}
-
-void PopulationAnnealing::HeatbathSweep(StateVector& replica, int sweeps) {
-    for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t vertex = 0; vertex < replica.size(); ++vertex) {
-            auto new_value = VertexType(rng_.Probability());            
-            double delta_energy = DeltaEnergy(replica, vertex, new_value);
-
-            if(HeatbathAcceptedMove(delta_energy)) {
-                replica[vertex] = new_value;
-            }
-        }
-    }
-}
-
-double PopulationAnnealing::Overlap(StateVector& alpha, StateVector& beta) {
-    return std::inner_product(alpha.begin(), alpha.end(), beta.begin(), 0.0) / structure_.size();
-}
-
-double PopulationAnnealing::LinkOverlap(StateVector& alpha, StateVector& beta) {
-    double ql = 0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            ql += alpha[k] * beta[k] * alpha[it.index()] * beta[it.index()];
-        }
-    }
-    return ql / structure_.edges();
 }
 
 std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
@@ -216,7 +113,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     
     field_.resize(structure_.Fields().size());
     for(int k = 0; k < structure_.Fields().size(); ++k) {
-        // No transverse field for now
+        // No transverse field
         field_[k] = FieldType(structure_.Fields()(k), 0.);
     }
 
@@ -235,7 +132,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
     beta_ = schedule_.front().beta;
-    TransverseField(schedule_.front().gamma);
+    SetPopulationField(schedule_.front().gamma);
     std::vector<double> energy;
 
     auto total_time_start = std::chrono::high_resolution_clock::now();
@@ -247,7 +144,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         auto time_start = std::chrono::high_resolution_clock::now();
         if(step.beta != beta_ || step.gamma != gamma_) {
             // Set new field
-            TransverseField(step.gamma);
+            SetPopulationField(step.gamma);
             // Resample
             if(step.resample) {
                 observables.norm_factor = Resample(step.beta, step.population_fraction);
@@ -347,34 +244,6 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
     return results;
 }
 
-bool PopulationAnnealing::HeatbathAcceptedMove(double delta_energy) {
-    double accept_prob = 1.0/(1.0 + std::exp(-delta_energy*beta_));
-    return rng_.Probability() < accept_prob;
-}
-
-bool PopulationAnnealing::MetropolisAcceptedMove(double delta_energy) {
-    if(delta_energy < 0.0) {
-        return true;
-    }
-    
-    double acceptance_prob_exp = -delta_energy*beta_;
-    return AcceptedMove(acceptance_prob_exp);
-}
-
-bool PopulationAnnealing::AcceptedMove(double log_probability) {
-    double test = rng_.Probability();
-    // Compute bound on log of test number
-    auto bound = log_lookup_(test);
-
-    if(bound.upper < log_probability) {
-        return true;
-    }else if(bound.lower > log_probability) {
-        return false;
-    }
-    // Compute exp if LUT can't resolve it
-    return std::exp(log_probability) > test;
-}
-
 double PopulationAnnealing::Resample(double new_beta, double new_population_fraction) {
     std::vector<StateVector> resampled_replicas;
     std::vector<int> resampled_families;
@@ -405,10 +274,10 @@ double PopulationAnnealing::Resample(double new_beta, double new_population_frac
     return summed_weights;
 }
 
-void PopulationAnnealing::TransverseField(double magnitude) {
-    gamma_ = magnitude;
-    for(int k = 0; k < field_.size(); ++k) {
-        field_[k][1] = magnitude;
+void PopulationAnnealing::SetPopulationField(double gamma) {
+    gamma_ = gamma;
+    for(auto& r : replicas_) {
+        TransverseField(r, gamma_);
     }
 }
 }

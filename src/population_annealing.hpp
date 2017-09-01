@@ -28,6 +28,7 @@
 #include "types.hpp"
 #include "graph.hpp"
 #include "random_number_generator.hpp"
+#include "spin_vector_monte_carlo.hpp"
 #include "population_annealing_base.hpp"
 #include "log_lookup.hpp"
 #include <Eigen/Dense>
@@ -36,19 +37,10 @@ namespace propane {
 /** Implementation of Population Annealing Monte Carlo.
  * Replicas have an associated entry in the family vector indicating lineage.
  */
-class PopulationAnnealing : public PopulationAnnealingBase {
+class PopulationAnnealing : public PopulationAnnealingBase, protected SpinVectorMonteCarlo {
 protected:
-    util::LogLookup log_lookup_;
-
-    Graph structure_;
-
-    RandomNumberGenerator rng_;
-
-    using StateVector = std::vector<VertexType>;
-    using FieldVector = std::vector<FieldType>;
     std::vector<StateVector> replicas_;
     std::vector<int> replica_families_;
-    FieldVector field_;
 
     int init_population_;
     int average_population_;
@@ -64,55 +56,6 @@ protected:
 /** Gets the number of replicas in each family as a fraction of the total population
  */
     std::vector<double> FamilyCount();
-/**
- * Uses a look up table to compute a bound on the logarithm of a random number 
- * and compares to the exponent of the acceptance probability.
- * If the probability is inside the bound given by the look table, 
- * true exponential is computed and compared.
- */
-    bool AcceptedMove(double log_probability);
-/** Returns true if a move is accepted according to the Metropolis algorithm.
- */
-    virtual bool MetropolisAcceptedMove(double delta_energy);
-
-/** Uses the Heat Bath algorithm. See MetropolisAcceptedMove.
- */
-    virtual bool HeatbathAcceptedMove(double delta_energy);
-/** Returns the energy of a replica
- * Implemented as the sum of elementwise multiplication of the replica vector with the 
- * product of matrix multiplication between the upper half of the adjacency matrix
- * and the replica.
- */
-    virtual double Hamiltonian(const StateVector& replica);
-/** Projects replica onto classical spins
- */
-    virtual StateVector Project(const StateVector& replica); 
-/** Returns the energy of the replica as given by the original problem Hamiltonian
- */
-    virtual double ProjectedHamiltonian(const StateVector& projected);
-/** Returns the local field at site vertex
- */
-    FieldType LocalField(StateVector& replica, int vertex);
-/** Returns the energy change associated with flipping spin vertex.
- * Implemented as the dot product of row vertex of the adjacency matrix 
- * with the replica vector multiplied by the spin at vertex.
- */
-    virtual double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value);
-/** Carries out moves micro canonical sweeps
- */
-    virtual void MicroCanonicalSweep(StateVector& replica, int sweeps);
-/** Carries out moves monte carlo sweeps of replica using the Metropolis algorithm.
- */
-    virtual void MetropolisSweep(StateVector& replica, int moves);
-/** Carries out moves monte carlo sweeps of replica using the Heatbath algorithm.
- */
-    virtual void HeatbathSweep(StateVector& replica, int moves);
-/** Returns the overlap between replicas alpha and beta.
- */
-    double Overlap(StateVector& alpha, StateVector& beta);
-/** Returns the link overlap between replicas alpha and beta.
- */
-    double LinkOverlap(StateVector& alpha, StateVector& beta);
 /** Given computes a histogram of the samples.
  * Does not attempt to find the bins that are zero.
  * Normalizes the values so that the sum of the values is 1.
@@ -123,9 +66,9 @@ protected:
  * Returns the normalization factor Q as a byproduct.
  */
     virtual double Resample(double new_beta, double new_population_fraction);
-/** Sets the transverse field (gamma)
+/** Sets the transverse field for all replicas
  */
-    virtual void TransverseField(double magnitude);
+    virtual void SetPopulationField(double gamma);
 public:
 
     PopulationAnnealing() = delete;
