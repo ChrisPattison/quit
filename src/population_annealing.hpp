@@ -73,7 +73,6 @@ public:
 
     PopulationAnnealing() = delete;
 /** Intializes solver.
- * The inputs will be replaced by a struct in the future.
  * schedule specifies the annealing schedule, sweep counts, and histogram generation at each step.
  * seed may be zero in which case one will be generated.
  */

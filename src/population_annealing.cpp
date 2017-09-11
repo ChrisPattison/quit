@@ -102,6 +102,12 @@ PopulationAnnealing::PopulationAnnealing(Graph& structure, Config config) {
     init_population_ = average_population_;
     solver_mode_ = config.solver_mode;
     uniform_init_ = config.uniform_init;
+
+    field_.resize(structure_.Fields().size());
+    for(int k = 0; k < structure_.Fields().size(); ++k) {
+        // No transverse field
+        field_[k] = FieldType(structure_.Fields()(k), 0.);
+    }
 }
 
 std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
@@ -110,12 +116,6 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
     replicas_.resize(average_population_);
     replica_families_.resize(average_population_);
-    
-    field_.resize(structure_.Fields().size());
-    for(int k = 0; k < structure_.Fields().size(); ++k) {
-        // No transverse field
-        field_[k] = FieldType(structure_.Fields()(k), 0.);
-    }
 
     for(auto& r : replicas_) {
         r = StateVector();
