@@ -25,6 +25,7 @@
 #include "parse.hpp"
 #include "graph.hpp"
 #include "population_annealing.hpp"
+#include "parallel_tempering.hpp"
 #include "types.hpp"
 #include "string_util.hpp"
 #include "version.hpp"
@@ -37,6 +38,20 @@
 #include <string>
 #include <algorithm>
 #include <map>
+
+/** Read model and config for regular PT
+ */
+void SinglePtPre(std::string& config_path, std::string& bond_path, propane::Graph* model, propane::ParallelTempering::Config* config) {
+    auto file = std::ifstream(config_path);
+    propane::io::PtConfigParse(file, config);
+    file.close();
+
+    file = std::ifstream(bond_path);
+    *model = propane::io::IjjParse(file);
+    file.close();
+
+    propane::io::Header(*model, config_path, bond_path);
+}
 
 /** Read model and config for regular PA
  */
@@ -65,19 +80,42 @@ void SinglePaPost(std::vector<propane::PopulationAnnealing::Result>& results, pr
     propane::io::Histograms(results);
 }
 
+void SinglePtPost(std::vector<propane::ParallelTempering::Result>& results, propane::Graph& model) {
+    propane::io::ColumnNames();
+    std::cout << std::endl;
+    for(auto& r : results) {
+        propane::io::PtResults(r);
+        std::cout << std::endl;
+    }
+    propane::io::IjjDump(model, std::cout);
+    propane::io::Histograms(results);
+}
+
 void SinglePa(std::string config_path, std::string bond_path) {
     propane::Graph model;
     propane::PopulationAnnealing::Config config;
     SinglePaPre(config_path, bond_path, &model, &config);
-
+    
     propane::PopulationAnnealing population_annealing(model, config);
     auto results = population_annealing.Run();
-
+    
     SinglePaPost(results, model);
 }
 
+void SinglePt(std::string config_path, std::string bond_path) {
+    propane::Graph model;
+    propane::ParallelTempering::Config config;
+    SinglePtPre(config_path, bond_path, &model, &config);
+    
+    propane::ParallelTempering parallel_tempering(model, config);
+    auto results = parallel_tempering.Run();
+    
+    SinglePtPost(results, model);
+}
+
 enum ModeOption{
-    kModeOptionSingle
+    kModeOptionSingle,
+    kModeOptionPt
 };
 
 int main(int argc, char** argv) {
@@ -92,7 +130,7 @@ int main(int argc, char** argv) {
         ("config", "configuration file")
         ("version,v", "version number")
         ("bondfile", "file containing graph and couplers")
-        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1>");
+        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1/pt>");
     boost::program_options::variables_map var_map;
     boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
         .options(description).positional(positional_description).run(), var_map);
@@ -118,6 +156,7 @@ int main(int argc, char** argv) {
 
     // Select PA implementation
     std::map<std::string, ModeOption> selector_map;
+    selector_map.insert({"pt", kModeOptionPt});
     ModeOption selection;
     if(selector_map.count(var_map["mode"].as<std::string>()) == 0) {
         selection = kModeOptionSingle;
@@ -127,6 +166,7 @@ int main(int argc, char** argv) {
 
     switch(selection) {
         case kModeOptionSingle : SinglePa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
+        case kModeOptionPt : SinglePt(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
     }
 
     return EXIT_SUCCESS;

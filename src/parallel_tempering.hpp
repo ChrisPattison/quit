@@ -23,13 +23,15 @@
  */
  
 #pragma once
-#include <vector>
-#include <utility>
 #include "types.hpp"
 #include "graph.hpp"
 #include "random_number_generator.hpp"
 #include "parallel_tempering_base.hpp"
+#include "spin_vector_monte_carlo.hpp"
 #include "log_lookup.hpp"
+#include <vector>
+#include <utility>
+#include <chrono>
 #include <Eigen/Dense>
 
 namespace propane {
@@ -41,8 +43,6 @@ protected:
 
     RandomNumberGenerator rng_;
 
-    using StateVector = std::vector<VertexType>;
-    using FieldVector = std::vector<FieldType>;
     std::vector<StateVector> replicas_;
     std::vector<int> replica_families_;
     FieldVector field_;
@@ -53,7 +53,7 @@ protected:
     std::size_t sweeps_;
     bool solver_mode_;
     bool uniform_init_;
-
+public:
 /** Intializes solver.
  * schedule specifies the temperature set and sweep types to do at each temperature
  * seed may be zero in which case one will be generated.
@@ -61,7 +61,8 @@ protected:
     ParallelTempering(Graph& structure, Config config);
 /** Run solver and return results.
  */
-    std::vector<ParallelTempering::Result> ParallelTempering::Run();
+    std::vector<ParallelTempering::Result> Run();
+private:
 /** Carry out replica exchange on replicas
  */
     void ReplicaExchange(std::vector<StateVector>& replica_set);

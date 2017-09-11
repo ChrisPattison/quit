@@ -25,6 +25,7 @@
 #pragma once
 #include "graph.hpp"
 #include "population_annealing.hpp"
+#include "parallel_tempering.hpp"
 #include <iostream>
 #include <string>
 #include <cstdint>
@@ -50,6 +51,8 @@ void ColumnNames();
 void MpiColumnNames();
 
 void Results(PopulationAnnealing::Result& result);
+
+void PtResults(ParallelTempering::Result& result);
 
 void Histograms(std::vector<PopulationAnnealing::Result>& results);
 

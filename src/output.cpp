@@ -90,6 +90,24 @@ void Results(PopulationAnnealing::Result& r) {
         << r.total_sweeps << " ";
 }
 
+void PtResults(ParallelTempering::Result& r) {
+    std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
+        << r.beta << " " << std::setw(kWidth) 
+        << r.gamma << " " << std::setw(kWidth) 
+        << r.sweeps << " " << std::setw(kWidth)
+        << r.average_energy << " " << std::setw(kWidth) 
+        << r.average_squared_energy << " " << std::setw(kWidth) 
+        << r.norm_factor << " " << std::setw(kWidth) 
+        << r.population << " " << std::setw(kWidth) 
+        << r.ground_energy << " " << std::setw(kWidth) 
+        << r.grounded_replicas << " " << std::setw(kWidth) 
+        << r.entropy << " " << std::setw(kWidth) 
+        << r.mean_square_family_size << " " << std::setw(kWidth)
+        << r.montecarlo_walltime << " " << std::setw(kWidth)
+        << r.total_time << " " << std::setw(kWidth)
+        << r.total_sweeps << " ";
+}
+
 void Histograms(std::vector<PopulationAnnealing::Result>& results) {
     std::cout << std::endl << kMagicString << std::endl << "# Histograms" << std::endl;
     for(auto r : results) {

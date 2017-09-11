@@ -112,4 +112,31 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
     }
     std::stable_sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
 }
+
+void PtConfigParse(std::istream& file, ParallelTempering::Config* config) {
+    try {
+        boost::property_tree::ptree tree;
+        boost::property_tree::read_json(file, tree);
+
+        std::stringstream converter(tree.get<std::string>("seed", "0"));
+        converter >> std::hex >> config->seed;
+        config->solver_mode = tree.get<bool>("solver_mode", false);
+        config->uniform_init = tree.get<bool>("uniform_init", false);
+        config->sweeps = tree.get<int>("sweeps");
+        for(auto& item : tree.get_child("schedule")) {
+            config->schedule.emplace_back();
+            config->schedule.back().beta = item.second.get<double>("beta");
+            config->schedule.back().gamma = item.second.get<double>("gamma");
+            config->schedule.back().metropolis = item.second.get("metropolis", 0);
+            config->schedule.back().microcanonical = item.second.get("microcanonical", 0);
+            config->schedule.back().compute_observables = item.second.get("compute_observables", true);
+            config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);
+            config->schedule.back().energy_dist = item.second.get("energy_hist", false);
+            config->schedule.back().ground_dist = item.second.get("ground_hist", false);
+        }
+    } catch(std::exception& e) {
+        util::Check(false, "Config parsing failed.");
+    }
+    std::stable_sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.gamma < right.gamma;});
+}
 }}

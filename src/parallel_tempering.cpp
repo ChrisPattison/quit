@@ -60,9 +60,9 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         replica.resize(structure_.size());
         for(std::size_t k = 0; k < replica.size(); ++k) {
             if(uniform_init_) {
-                r[k] = FieldType(0.,1.);
+                replica[k] = FieldType(0.,1.);
             }else {
-                r[k] = FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
+                replica[k] = FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
             }
         }
     }
@@ -71,11 +71,11 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
     auto total_time_start = std::chrono::high_resolution_clock::now();
     for(std::size_t count = 0; count < sweeps_; ++count) {
         // Do replica exchange
-        ReplicaExchange();
+        ReplicaExchange(replicas_);
         // Sweep replicas
         for(int k = 0; k < schedule_.size(); ++k) {
-            MicroCanonicalSweep(replicas_[k], schedule[k].microcanonical);
-            MetropolisSweep(replicas_[k], schedule[k].metropolis);
+            MicroCanonicalSweep(replicas_[k], schedule_[k].microcanonical);
+            MetropolisSweep(replicas_[k], schedule_[k].metropolis);
         }
 
         // Measure observables.
@@ -84,20 +84,20 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
     }
 
     results.emplace_back();
-    results.ground_energy = result_sum.ground_energy;
+    results.back().ground_energy = result_sum.ground_energy;
     return results;
 }
 
-void ReplicaExchange(std::vector<StateVector>& replica_set) {
+void ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
     std::vector<double> projected_energy;
-    projected_energy.resize(replicas_.size());
-    std::transform(replicas_.begin(), replicas_.end(), projected_energy.begin(), ProjectedHamiltonian);
-    // replicas_[k+1].gamma > replicas_[k].gamma should be true
+    projected_energy.resize(replica_set.size());
+    std::transform(replica_set.begin(), replica_set.end(), projected_energy.begin(), [&](StateVector& r) { return ProjectedHamiltonian(r); });
+    // replica_set[k+1].gamma > replica_set[k].gamma should be true
     for(int k = 0; k < schedule_.size()-1; ++k) {
         double exchange_probabilty = std::min(1.0,
-            std::exp((1./replicas_[k+1].gamma - 1./replicas_[k].gamma)*(projected_energy[k+1] - projected_energy[k])));
+            std::exp((1./replica_set[k+1].gamma - 1./replica_set[k].gamma)*(projected_energy[k+1] - projected_energy[k])));
         if(exchange_probabilty < rng_.Probability()) {
-            std::swap(replicas_[k], replicas_[k+1]);
+            std::swap(replica_set[k], replica_set[k+1]);
             std::swap(projected_energy[k], projected_energy[k+1]);
         }
     }

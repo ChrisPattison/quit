@@ -28,7 +28,7 @@
 #include "population_annealing_base.hpp"
 
 namespace propane {
-class ParallelTemperingBase {
+class ParallelTemperingBase : private PopulationAnnealingBase {
 public:
     using PopulationAnnealingBase::Result;
 
@@ -45,7 +45,6 @@ public:
         bool energy_dist = false;
         bool ground_dist = false;
         bool compute_observables = false;
-        double population_fraction = 1.0;
     };
 
     struct Config {
