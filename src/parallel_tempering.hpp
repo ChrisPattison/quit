@@ -28,7 +28,6 @@
 #include "random_number_generator.hpp"
 #include "parallel_tempering_base.hpp"
 #include "spin_vector_monte_carlo.hpp"
-#include "log_lookup.hpp"
 #include <vector>
 #include <utility>
 #include <chrono>
@@ -37,15 +36,8 @@
 namespace propane {
 class ParallelTempering : public ParallelTemperingBase, protected SpinVectorMonteCarlo {
 protected:
-    util::LogLookup log_lookup_;
-
-    Graph structure_;
-
-    RandomNumberGenerator rng_;
-
     std::vector<StateVector> replicas_;
     std::vector<int> replica_families_;
-    FieldVector field_;
 
     std::vector<Schedule> schedule_;
     double beta_;
