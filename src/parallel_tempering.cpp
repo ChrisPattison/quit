@@ -82,7 +82,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
 
         // Measure observables.
         // Ground state only for now
-        result_sum.ground_energy = std::min(result_sum.ground_energy, ProjectedHamiltonian(replicas_.front()));
+        result_sum.ground_energy = std::min(result_sum.ground_energy, ProjectedHamiltonian(Project(replicas_.front())));
     }
 
     results.emplace_back();
@@ -94,7 +94,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
 void ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
     std::vector<double> projected_energy;
     projected_energy.resize(replica_set.size());
-    std::transform(replica_set.begin(), replica_set.end(), projected_energy.begin(), [&](StateVector& r) { return ProjectedHamiltonian(r); });
+    std::transform(replica_set.begin(), replica_set.end(), projected_energy.begin(), [&](StateVector& r) { return ProjectedHamiltonian(Project(r)); });
     // replica_set[k+1].gamma > replica_set[k].gamma should be true
     for(int k = 0; k < schedule_.size()-1; ++k) {
         double exchange_probabilty = std::min(1.0,
