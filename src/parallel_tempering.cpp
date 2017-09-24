@@ -67,6 +67,8 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         }
     }
 
+    // Initialize result_sum
+    result_sum.ground_energy = std::numeric_limits<decltype(result_sum.ground_energy)>::max();
     // Run
     auto total_time_start = std::chrono::high_resolution_clock::now();
     for(std::size_t count = 0; count < sweeps_; ++count) {
@@ -85,6 +87,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
 
     results.emplace_back();
     results.back().ground_energy = result_sum.ground_energy;
+    results.back().total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
     return results;
 }
 
