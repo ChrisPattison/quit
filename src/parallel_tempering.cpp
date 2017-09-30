@@ -50,7 +50,6 @@ ParallelTempering::ParallelTempering(Graph& structure, Config config) {
 
 std::vector<ParallelTempering::Result> ParallelTempering::Run() {
     std::vector<Bin> results;
-    std::vector<Bin> last_sum; // Previous bin
     std::vector<Bin> result_sum; // One bin for each temperature
     replicas_.reserve(schedule_.size());
 
@@ -71,13 +70,11 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
     }
     
     // Initialize result_sum
-    last_sum.resize(schedule_.size());
     result_sum.resize(schedule_.size());
     for(int i = 0; i < result_sum.size(); ++i) {
         result_sum[i].gamma = schedule_[i].gamma;
         result_sum[i].beta = schedule_[i].beta;
     }
-    std::copy(result_sum.begin(), result_sum.end(), last_sum.begin());
 
     // Run
     auto total_time_start = std::chrono::high_resolution_clock::now();
@@ -96,10 +93,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
             result_sum[i] += Observables(replicas_[i]);
         }
 
-        if(std::binary_search(bin_set_.begin(), bin_set_.end(), count)) { // Take bin
-            for(int i = 0; i < result_sum.size(); ++i) {
-                result_sum[i] -= last_sum[i];
-            }
+        if(std::binary_search(bin_set_.begin(), bin_set_.end(), count)) { // Record Bin
             auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
             auto new_results = results.insert(results.end(), result_sum.begin(), result_sum.end());
             std::transform(new_results, results.end(), new_results, [&](Bin b) { 
@@ -107,8 +101,6 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
                 b.total_sweeps = count;
                 return b;
             });
-
-            std::copy(result_sum.begin(), result_sum.end(), last_sum.begin());
         }
     }
 
