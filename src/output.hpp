@@ -48,6 +48,8 @@ void MpiHeader(parallel::Mpi& parallel);
 
 void ColumnNames();
 
+void PtColumnNames();
+
 void MpiColumnNames();
 
 void Results(PopulationAnnealing::Result& result);
@@ -55,7 +57,9 @@ void Results(PopulationAnnealing::Result& result);
 void PtResults(ParallelTempering::Result& result);
 
 void Histograms(std::vector<PopulationAnnealing::Result>& results);
-
+/** Dummy to output magic string
+ */
+void PtHistograms(std::vector<ParallelTempering::Result>& results);
 /** Opposite of IjjParse: Dumps bonds to file.
  */
 void IjjDump(Graph& model, std::ostream& stream);

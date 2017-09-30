@@ -25,16 +25,39 @@
 #pragma once
 #include <vector>
 #include <limits>
-#include "population_annealing_base.hpp"
+#include <cstdint>
 
 namespace propane {
-class ParallelTemperingBase : private PopulationAnnealingBase {
+/** Currently outputs already binned samples
+ *  In the future, binning should be done in post processing to unify the PA and PT data output paths
+ */
+class ParallelTemperingBase {
 public:
-    using PopulationAnnealingBase::Result;
+    struct Result;
 
-    struct Bin : Result {
-        std::size_t samples;
+    struct Bin {
+        std::size_t samples = 0;
+        double beta = std::numeric_limits<double>::quiet_NaN();
+        double gamma = std::numeric_limits<double>::quiet_NaN();
+        
+        double average_energy = 0.0;
+        double ground_energy = std::numeric_limits<double>::max();
+
+        unsigned long long int total_sweeps = 0;
+        double total_time = std::numeric_limits<double>::quiet_NaN();
+/** Combine two sample sets
+ */
+        Bin operator+(const Bin& other);
+        Bin operator+=(const Bin& other);
+/** Subtract one set of samples from a set superset
+ */
+        Bin operator-(const Bin& other);
+        Bin operator-=(const Bin& other);
+
+        Result Finalize();
     };
+
+    struct Result : public Bin { };
 
     struct Schedule {
         double beta;
@@ -51,6 +74,7 @@ public:
         std::size_t sweeps;
         std::uint64_t seed;
         std::vector<ParallelTemperingBase::Schedule> schedule;
+        std::vector<std::size_t> bin_set;
         bool solver_mode = false;
         bool uniform_init = false;
     };

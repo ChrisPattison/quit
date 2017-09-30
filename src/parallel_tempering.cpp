@@ -32,6 +32,7 @@ ParallelTempering::ParallelTempering(Graph& structure, Config config) {
     }
     
     schedule_ = config.schedule;
+    bin_set_ = config.bin_set;
     structure_ = structure;
     structure_.Adjacent().makeCompressed();
     solver_mode_ = config.solver_mode;
@@ -43,15 +44,17 @@ ParallelTempering::ParallelTempering(Graph& structure, Config config) {
         // No transverse field
         field_[k] = FieldType(structure_.Fields()(k), 0.);
     }
+    std::stable_sort(schedule_.begin(), schedule_.end(), [](const auto& left, const auto& right) {return left.gamma < right.gamma;});
+    std::stable_sort(bin_set_.begin(), bin_set_.end());
 }
 
 std::vector<ParallelTempering::Result> ParallelTempering::Run() {
-    std::vector<Result> results;
-    std::vector<Bin> bins;
-    Bin result_sum;
+    std::vector<Bin> results;
+    std::vector<Bin> last_sum; // Previous bin
+    std::vector<Bin> result_sum; // One bin for each temperature
     replicas_.reserve(schedule_.size());
 
-    // Initialize
+    // Initialize replicas
     for(auto temp : schedule_) {
         replicas_.emplace_back();
         auto& replica = replicas_.back();
@@ -66,13 +69,21 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
             }
         }
     }
-
+    
     // Initialize result_sum
-    result_sum.ground_energy = std::numeric_limits<decltype(result_sum.ground_energy)>::max();
+    last_sum.resize(schedule_.size());
+    result_sum.resize(schedule_.size());
+    for(int i = 0; i < result_sum.size(); ++i) {
+        result_sum[i].gamma = schedule_[i].gamma;
+        result_sum[i].beta = schedule_[i].beta;
+    }
+    std::copy(result_sum.begin(), result_sum.end(), last_sum.begin());
+
     // Run
     auto total_time_start = std::chrono::high_resolution_clock::now();
     for(std::size_t count = 0; count < sweeps_; ++count) {
         // Do replica exchange
+        // This could reuse the projected energy computed for observables
         ReplicaExchange(replicas_);
         // Sweep replicas
         for(int k = 0; k < schedule_.size(); ++k) {
@@ -80,15 +91,31 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
             MetropolisSweep(replicas_[k], schedule_[k].metropolis);
         }
 
-        // Measure observables.
-        // Ground state only for now
-        result_sum.ground_energy = std::min(result_sum.ground_energy, ProjectedHamiltonian(Project(replicas_.front())));
+        // Measure observables
+        for(int i = 0; i < result_sum.size(); ++i) {
+            result_sum[i] += Observables(replicas_[i]);
+        }
+
+        if(std::binary_search(bin_set_.begin(), bin_set_.end(), count)) { // Take bin
+            for(int i = 0; i < result_sum.size(); ++i) {
+                result_sum[i] -= last_sum[i];
+            }
+            auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
+            auto new_results = results.insert(results.end(), result_sum.begin(), result_sum.end());
+            std::transform(new_results, results.end(), new_results, [&](Bin b) { 
+                b.total_time = total_time;
+                b.total_sweeps = count;
+                return b;
+            });
+
+            std::copy(result_sum.begin(), result_sum.end(), last_sum.begin());
+        }
     }
 
-    results.emplace_back();
-    results.back().ground_energy = result_sum.ground_energy;
-    results.back().total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
-    return results;
+    std::vector<Result> final_results;
+    final_results.resize(results.size());
+    std::transform(results.begin(), results.end(), final_results.begin(), [](auto& r) { return r.Finalize(); });
+    return final_results;
 }
 
 void ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
@@ -104,5 +131,17 @@ void ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
             std::swap(projected_energy[k], projected_energy[k+1]);
         }
     }
+}
+
+auto ParallelTempering::Observables(StateVector& replica) -> Bin {
+    Bin result;
+    result.gamma = replica.gamma;
+    result.beta = replica.beta;
+    result.samples = 1;
+    
+    auto projected_energy = ProjectedHamiltonian(Project(replica));
+    result.average_energy = projected_energy;
+    result.ground_energy = projected_energy;
+    return result;
 }
 }

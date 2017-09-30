@@ -21,46 +21,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
-#pragma once
-#include "types.hpp"
-#include "graph.hpp"
-#include "random_number_generator.hpp"
+
 #include "parallel_tempering_base.hpp"
-#include "spin_vector_monte_carlo.hpp"
-#include <vector>
-#include <utility>
-#include <chrono>
-#include <Eigen/Dense>
+#include <numeric>
+#include <cassert>
 
 namespace propane {
-class ParallelTempering : public ParallelTemperingBase, protected SpinVectorMonteCarlo {
-protected:
-    std::vector<StateVector> replicas_;
-    std::vector<int> replica_families_;
+    auto ParallelTemperingBase::Bin::operator+=(const Bin& other) -> Bin {
+        assert(gamma == other.gamma);
+        assert(beta == other.beta);
 
-    std::vector<Schedule> schedule_;
-    std::vector<std::size_t> bin_set_;
-    double beta_;
-    double gamma_;
-    std::size_t sweeps_;
-    bool solver_mode_;
-    bool uniform_init_;
-public:
-/** Intializes solver.
- * schedule specifies the temperature set and sweep types to do at each temperature
- * seed may be zero in which case one will be generated.
- */
-    ParallelTempering(Graph& structure, Config config);
-/** Run solver and return results.
- */
-    std::vector<ParallelTempering::Result> Run();
-private:
-/** Carry out replica exchange on replicas
- */
-    void ReplicaExchange(std::vector<StateVector>& replica_set);
-/** Record observables
- */
-    Bin Observables(StateVector& replica);
-};
+        samples += other.samples;
+        average_energy += other.average_energy;
+        ground_energy = std::min(ground_energy, other.ground_energy);
+        return *this;
+    }
+
+    auto ParallelTemperingBase::Bin::operator+(const Bin& other) -> Bin {
+        Bin result = *this;
+        result += other;
+        return result;
+    }
+
+    auto ParallelTemperingBase::Bin::operator-=(const Bin& other) -> Bin {
+        assert(gamma == other.gamma);
+        assert(beta == other.beta);
+
+        samples -= other.samples;
+        average_energy -= other.average_energy;
+        // No way to subtract out ground_energy
+        return *this;
+    }
+
+    auto ParallelTemperingBase::Bin::operator-(const Bin& other) -> Bin {
+        Bin result = *this;
+        result -= other;
+        return result;
+    }
+
+    auto ParallelTemperingBase::Bin::Finalize() -> Result {
+        Result result;
+        result.beta = beta;
+        result.gamma = gamma;
+
+        result.average_energy /= samples;
+        result.ground_energy = ground_energy;
+        result.total_sweeps = total_sweeps;
+        result.total_time = total_time;
+        return result;
+    }
 }

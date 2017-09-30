@@ -134,9 +134,12 @@ void PtConfigParse(std::istream& file, ParallelTempering::Config* config) {
             config->schedule.back().energy_dist = item.second.get("energy_hist", false);
             config->schedule.back().ground_dist = item.second.get("ground_hist", false);
         }
+        
+        for(auto& item : tree.get_child("bin_set")) {
+            config->bin_set.push_back(item.second.get<std::size_t>(""));
+        }
     } catch(std::exception& e) {
         util::Check(false, "Config parsing failed.");
     }
-    std::stable_sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.gamma < right.gamma;});
 }
 }}

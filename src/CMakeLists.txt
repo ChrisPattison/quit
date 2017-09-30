@@ -27,6 +27,7 @@ set(SRCS
     compare.cpp
     log_lookup.cpp
     spin_vector_monte_carlo.cpp
+    parallel_tempering_base.cpp
     parallel_tempering.cpp
 )
 

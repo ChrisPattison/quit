@@ -81,14 +81,14 @@ void SinglePaPost(std::vector<propane::PopulationAnnealing::Result>& results, pr
 }
 
 void SinglePtPost(std::vector<propane::ParallelTempering::Result>& results, propane::Graph& model) {
-    propane::io::ColumnNames();
+    propane::io::PtColumnNames();
     std::cout << std::endl;
     for(auto& r : results) {
         propane::io::PtResults(r);
         std::cout << std::endl;
     }
     propane::io::IjjDump(model, std::cout);
-    propane::io::Histograms(results);
+    propane::io::PtHistograms(results);
 }
 
 void SinglePa(std::string config_path, std::string bond_path) {
