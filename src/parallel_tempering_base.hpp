@@ -49,10 +49,6 @@ public:
  */
         Bin operator+(const Bin& other);
         Bin operator+=(const Bin& other);
-/** Subtract one set of samples from a set superset
- */
-        Bin operator-(const Bin& other);
-        Bin operator-=(const Bin& other);
 
         Result Finalize();
     };

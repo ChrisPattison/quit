@@ -43,22 +43,6 @@ namespace propane {
         return result;
     }
 
-    auto ParallelTemperingBase::Bin::operator-=(const Bin& other) -> Bin {
-        assert(gamma == other.gamma);
-        assert(beta == other.beta);
-
-        samples -= other.samples;
-        average_energy -= other.average_energy;
-        // No way to subtract out ground_energy
-        return *this;
-    }
-
-    auto ParallelTemperingBase::Bin::operator-(const Bin& other) -> Bin {
-        Bin result = *this;
-        result -= other;
-        return result;
-    }
-
     auto ParallelTemperingBase::Bin::Finalize() -> Result {
         Result result;
         result.beta = beta;
