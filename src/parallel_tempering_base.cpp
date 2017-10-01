@@ -48,6 +48,7 @@ namespace propane {
         result.beta = beta;
         result.gamma = gamma;
 
+        result.samples = samples;
         result.average_energy = average_energy / samples;
         result.ground_energy = ground_energy;
         result.total_sweeps = total_sweeps;
