@@ -37,7 +37,7 @@ namespace propane {
         return *this;
     }
 
-    auto ParallelTemperingBase::Bin::operator+(const Bin& other) -> Bin {
+    auto ParallelTemperingBase::Bin::operator+(const Bin& other) const -> Bin {
         Bin result = *this;
         result += other;
         return result;
@@ -48,7 +48,7 @@ namespace propane {
         result.beta = beta;
         result.gamma = gamma;
 
-        result.average_energy /= samples;
+        result.average_energy = average_energy / samples;
         result.ground_energy = ground_energy;
         result.total_sweeps = total_sweeps;
         result.total_time = total_time;

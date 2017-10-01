@@ -47,7 +47,7 @@ public:
         double total_time = std::numeric_limits<double>::quiet_NaN();
 /** Combine two sample sets
  */
-        Bin operator+(const Bin& other);
+        Bin operator+(const Bin& other) const;
         Bin operator+=(const Bin& other);
 
         Result Finalize();
