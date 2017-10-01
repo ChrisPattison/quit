@@ -93,12 +93,12 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
             result_sum[i] += Observables(replicas_[i]);
         }
 
-        if(std::binary_search(bin_set_.begin(), bin_set_.end(), count)) { // Record Bin
+        if(std::binary_search(bin_set_.begin(), bin_set_.end(), count+1)) { // Record Bin
             auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
             auto new_results = results.insert(results.end(), result_sum.begin(), result_sum.end());
             std::transform(new_results, results.end(), new_results, [&](Bin b) { 
                 b.total_time = total_time;
-                b.total_sweeps = count;
+                b.total_sweeps = count+1;
                 return b;
             });
         }
