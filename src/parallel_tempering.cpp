@@ -119,6 +119,8 @@ void ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
         double exchange_probabilty = std::min(1.0,
             std::exp((1./replica_set[k+1].gamma - 1./replica_set[k].gamma)*(projected_energy[k+1] - projected_energy[k])));
         if(exchange_probabilty < rng_.Probability()) {
+            std::swap(replica_set[k].beta, replica_set[k+1].beta);
+            std::swap(replica_set[k].gamma, replica_set[k+1].gamma);
             std::swap(replica_set[k], replica_set[k+1]);
             std::swap(projected_energy[k], projected_energy[k+1]);
         }
