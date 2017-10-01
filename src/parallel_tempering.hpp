@@ -51,7 +51,7 @@ public:
  * schedule specifies the temperature set and sweep types to do at each temperature
  * seed may be zero in which case one will be generated.
  */
-    ParallelTempering(Graph& structure, Config config);
+    ParallelTempering(const Graph& structure, Config config);
 /** Run solver and return results.
  */
     std::vector<ParallelTempering::Result> Run();
@@ -61,6 +61,6 @@ private:
     void ReplicaExchange(std::vector<StateVector>& replica_set);
 /** Record observables
  */
-    Bin Observables(StateVector& replica);
+    Bin Observables(const StateVector& replica);
 };
 }

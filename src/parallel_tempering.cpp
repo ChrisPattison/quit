@@ -26,7 +26,7 @@
 
 namespace propane {
 
-ParallelTempering::ParallelTempering(Graph& structure, Config config) {
+ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
     if(config.seed != 0) {
         rng_ = RandomNumberGenerator(config.seed);
     }
@@ -127,7 +127,7 @@ void ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
     }
 }
 
-auto ParallelTempering::Observables(StateVector& replica) -> Bin {
+auto ParallelTempering::Observables(const StateVector& replica) -> Bin {
     Bin result;
     result.gamma = replica.gamma;
     result.beta = replica.beta;
