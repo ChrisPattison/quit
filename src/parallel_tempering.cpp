@@ -116,8 +116,9 @@ void ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
     std::transform(replica_set.begin(), replica_set.end(), projected_energy.begin(), [&](StateVector& r) { return ProjectedHamiltonian(Project(r)); });
     // replica_set[k+1].gamma > replica_set[k].gamma should be true
     for(int k = 0; k < schedule_.size()-1; ++k) {
+	assert(replica_set[k+1].gamma > replica_set[k].gamma);
         double exchange_probabilty = std::min(1.0,
-            std::exp((1./replica_set[k+1].gamma - 1./replica_set[k].gamma)*(projected_energy[k+1] - projected_energy[k])));
+            std::exp((replica_set[k+1].gamma - replica_set[k].gamma)*(projected_energy[k+1] - projected_energy[k])));
         if(exchange_probabilty < rng_.Probability()) {
             std::swap(replica_set[k].beta, replica_set[k+1].beta);
             std::swap(replica_set[k].gamma, replica_set[k+1].gamma);
