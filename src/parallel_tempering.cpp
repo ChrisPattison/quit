@@ -23,6 +23,7 @@
  */
  
 #include "parallel_tempering.hpp"
+#include "compare.hpp"
 
 namespace propane {
 
@@ -38,6 +39,7 @@ ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
     solver_mode_ = config.solver_mode;
     uniform_init_ = config.uniform_init;
     sweeps_ = config.sweeps;
+    planted_energy_ = config.planted_energy;
 
     field_.resize(structure_.Fields().size());
     for(int k = 0; k < structure_.Fields().size(); ++k) {
@@ -76,9 +78,10 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         result_sum[i].beta = schedule_[i].beta;
     }
 
+    bool groundstate_found = false;
     // Run
     auto total_time_start = std::chrono::high_resolution_clock::now();
-    for(std::size_t count = 0; count < sweeps_; ++count) {
+    for(std::size_t count = 0; (count < sweeps_) && !groundstate_found; ++count) {
         // Do replica exchange
         // This could reuse the projected energy computed for observables
         ReplicaExchange(replicas_);
@@ -93,7 +96,11 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
             result_sum[i] += Observables(replicas_[i]);
         }
 
-        if(std::binary_search(bin_set_.begin(), bin_set_.end(), count+1)) { // Record Bin
+        groundstate_found = util::FuzzyCompare(
+            std::min_element(result_sum.begin(), result_sum.end(), [](const auto& a, const auto& b) { return a.ground_energy < b.ground_energy; })->ground_energy, 
+            planted_energy_);
+
+        if(groundstate_found || std::binary_search(bin_set_.begin(), bin_set_.end(), count+1)) { // Record Bin
             auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();
             auto new_results = results.insert(results.end(), result_sum.begin(), result_sum.end());
             std::transform(new_results, results.end(), new_results, [&](Bin b) { 

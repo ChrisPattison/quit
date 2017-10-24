@@ -50,5 +50,5 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config);
 /** Parses configuration file for single threaded PT and populates a Config.
  * Uses boost::property_tree to read the JSON.
  */ 
- void PtConfigParse(std::istream& file, ParallelTempering::Config* config);
+ void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double planted_energy);
 }}

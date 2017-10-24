@@ -41,9 +41,9 @@
 
 /** Read model and config for regular PT
  */
-void SinglePtPre(std::string& config_path, std::string& bond_path, propane::Graph* model, propane::ParallelTempering::Config* config) {
+void SinglePtPre(std::string& config_path, std::string& bond_path, propane::Graph* model, propane::ParallelTempering::Config* config, double planted_energy) {
     auto file = std::ifstream(config_path);
-    propane::io::PtConfigParse(file, config);
+    propane::io::PtConfigParse(file, config, planted_energy);
     file.close();
 
     file = std::ifstream(bond_path);
@@ -102,10 +102,10 @@ void SinglePa(std::string config_path, std::string bond_path) {
     SinglePaPost(results, model);
 }
 
-void SinglePt(std::string config_path, std::string bond_path) {
+void SinglePt(std::string config_path, std::string bond_path, double planted) {
     propane::Graph model;
     propane::ParallelTempering::Config config;
-    SinglePtPre(config_path, bond_path, &model, &config);
+    SinglePtPre(config_path, bond_path, &model, &config, planted);
     
     propane::ParallelTempering parallel_tempering(model, config);
     auto results = parallel_tempering.Run();
@@ -130,7 +130,8 @@ int main(int argc, char** argv) {
         ("config", "configuration file")
         ("version,v", "version number")
         ("bondfile", "file containing graph and couplers")
-        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1/pt>");
+        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1/pt>")
+        ("plant,p", boost::program_options::value<double>()->default_value(std::numeric_limits<double>::quiet_NaN()), "planted/known ground state energy");
     boost::program_options::variables_map var_map;
     boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
         .options(description).positional(positional_description).run(), var_map);
@@ -164,9 +165,11 @@ int main(int argc, char** argv) {
         selection = selector_map.at(var_map["mode"].as<std::string>());
     }
 
+    double planted_energy = var_map["plant"].as<double>();
+
     switch(selection) {
         case kModeOptionSingle : SinglePa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
-        case kModeOptionPt : SinglePt(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
+        case kModeOptionPt : SinglePt(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>(), planted_energy); break;
     }
 
     return EXIT_SUCCESS;

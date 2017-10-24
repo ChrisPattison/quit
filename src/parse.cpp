@@ -113,8 +113,9 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
     std::stable_sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
 }
 
-void PtConfigParse(std::istream& file, ParallelTempering::Config* config) {
+void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double planted_energy) {
     try {
+        config->planted_energy = planted_energy;
         boost::property_tree::ptree tree;
         boost::property_tree::read_json(file, tree);
 

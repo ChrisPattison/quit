@@ -46,6 +46,7 @@ protected:
     std::size_t sweeps_;
     bool solver_mode_;
     bool uniform_init_;
+    double planted_energy_;
 public:
 /** Intializes solver.
  * schedule specifies the temperature set and sweep types to do at each temperature
