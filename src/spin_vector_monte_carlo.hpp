@@ -62,10 +62,6 @@ protected:
 /** Returns true if a move is accepted according to the Metropolis algorithm.
  */
     virtual bool MetropolisAcceptedMove(double delta_energy, double beta);
-
-/** Uses the Heat Bath algorithm. See MetropolisAcceptedMove.
- */
-    virtual bool HeatbathAcceptedMove(double delta_energy, double beta);
 /** Returns the energy of a replica
  * Implemented as the sum of elementwise multiplication of the replica vector with the 
  * product of matrix multiplication between the upper half of the adjacency matrix

@@ -23,6 +23,7 @@
  */
 
 #include "spin_vector_monte_carlo.hpp"
+#include "compare.hpp"
 
 namespace propane {
 
@@ -75,7 +76,6 @@ double SpinVectorMonteCarlo::DeltaEnergy(StateVector& replica, int vertex, Field
 void SpinVectorMonteCarlo::MicroCanonicalSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
-            // pick random site
             auto vertex = i;
             
             // get local field
@@ -103,13 +103,15 @@ void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, int sweeps) {
 
 void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t vertex = 0; vertex < replica.size(); ++vertex) {
-            auto new_value = VertexType(rng_.Probability());            
-            double delta_energy = DeltaEnergy(replica, vertex, new_value);
-
-            if(HeatbathAcceptedMove(delta_energy, replica.beta)) {
-                replica[vertex] = new_value;
-            }
+        for(std::size_t i = 0; i < replica.size(); ++i) {
+            int vertex = rng_.Range(replica.size());
+            auto h = LocalField(replica, vertex);
+            auto h_mag = std::sqrt(h*h);
+            auto h_unit = h / h_mag;
+            double x = std::log(1 + rng_.Probability() * (std::exp(2 * replica.beta * h_mag) - 1)) / (replica.beta * h_mag) - 1.;
+            auto h_perp = FieldType(h_unit[1], -h_unit[0]);
+            h_perp *= rng_.Probability() < 0.5 ? -1 : 1;
+            replica[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
         }
     }
 }
@@ -127,12 +129,6 @@ double SpinVectorMonteCarlo::LinkOverlap(StateVector& alpha, StateVector& beta) 
         }
     }
     return ql / structure_.edges();
-}
-
-
-bool SpinVectorMonteCarlo::HeatbathAcceptedMove(double delta_energy, double beta) {
-    double accept_prob = 1.0/(1.0 + std::exp(-delta_energy*beta));
-    return rng_.Probability() < accept_prob;
 }
 
 bool SpinVectorMonteCarlo::MetropolisAcceptedMove(double delta_energy, double beta) {

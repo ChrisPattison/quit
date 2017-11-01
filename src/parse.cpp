@@ -129,6 +129,7 @@ void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double
             config->schedule.back().beta = item.second.get<double>("beta");
             config->schedule.back().gamma = item.second.get<double>("gamma");
             config->schedule.back().metropolis = item.second.get("metropolis", 0);
+            config->schedule.back().heatbath = item.second.get("heatbath", 0);
             config->schedule.back().microcanonical = item.second.get("microcanonical", 0);
             config->schedule.back().compute_observables = item.second.get("compute_observables", true);
             config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);

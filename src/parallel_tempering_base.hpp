@@ -59,6 +59,7 @@ public:
         double beta;
         double gamma;
         int metropolis = 1;
+        int heatbath = 0;
         int microcanonical = 0;
         bool overlap_dist = false;
         bool energy_dist = false;

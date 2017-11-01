@@ -89,6 +89,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         for(int k = 0; k < schedule_.size(); ++k) {
             MicroCanonicalSweep(replicas_[k], schedule_[k].microcanonical);
             MetropolisSweep(replicas_[k], schedule_[k].metropolis);
+            HeatbathSweep(replicas_[k], schedule_[k].heatbath);
         }
 
         // Measure observables
