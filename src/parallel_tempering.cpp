@@ -82,15 +82,15 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
     // Run
     auto total_time_start = std::chrono::high_resolution_clock::now();
     for(std::size_t count = 0; (count < sweeps_) && !groundstate_found; ++count) {
-        // Do replica exchange
-        // This could reuse the projected energy computed for observables
-        ReplicaExchange(replicas_);
         // Sweep replicas
         for(int k = 0; k < schedule_.size(); ++k) {
             MicroCanonicalSweep(replicas_[k], schedule_[k].microcanonical);
             MetropolisSweep(replicas_[k], schedule_[k].metropolis);
             HeatbathSweep(replicas_[k], schedule_[k].heatbath);
         }
+        // Do replica exchange
+        // This could reuse the projected energy computed for observables
+        ReplicaExchange(replicas_);
 
         // Measure observables
         for(int i = 0; i < result_sum.size(); ++i) {
