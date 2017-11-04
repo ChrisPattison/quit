@@ -15,7 +15,7 @@ gdb --args propane_svmc "$@"
 
 %post
 
-dnf install -y mpich mpich-devel boost-static boost-devel cmake eigen3-devel-3.2.10 git gcc-c++ gdb
+dnf install -y mpich mpich-devel boost-static boost-devel cmake eigen3-devel-3.2.10 git gcc-c++ gdb gtest-devel
 
 cd /src
 rm -rf build
