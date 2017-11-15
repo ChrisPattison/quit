@@ -108,7 +108,7 @@ void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, int sweeps) {
             auto h = LocalField(replica, vertex);
             auto h_mag = std::sqrt(h*h);
             auto h_unit = h / h_mag;
-            double x = std::log(1 + rng_.Probability() * (std::exp(2 * replica.beta * h_mag) - 1)) / (replica.beta * h_mag) - 1.;
+            double x = -std::log(1 + rng_.Probability() * (std::exp(-2 * replica.beta * h_mag) - 1)) / (replica.beta * h_mag) - 1.;
             auto h_perp = FieldType(h_unit[1], -h_unit[0]);
             h_perp *= rng_.Probability() < 0.5 ? -1 : 1;
             replica[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
