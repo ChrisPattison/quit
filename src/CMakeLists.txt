@@ -81,4 +81,5 @@ set_target_properties(propane_lib PROPERTIES
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
+target_include_directories(propane_lib INTERFACE ${EIGEN3_INCLUDE_DIR})
 target_link_libraries(propane_lib ${LIBS})

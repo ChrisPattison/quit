@@ -6,6 +6,7 @@ if(GTEST_FOUND)
     add_executable(
         tests
         random_number_generator_test.cpp
+        spin_vector_monte_carlo_test.cpp
         main.cpp
     )
 
@@ -17,6 +18,7 @@ if(GTEST_FOUND)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/XSadd)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/dSFMT)
 
     set(LIBS propane_lib ${GTEST_LIBRARIES})
     target_link_libraries(tests ${LIBS})
