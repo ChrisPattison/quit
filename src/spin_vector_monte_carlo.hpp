@@ -36,6 +36,7 @@ class SpinVectorMonteCarlo {
 protected:
     struct StateVector : std::vector<VertexType> {
         double gamma;
+        double lambda;
         double beta;
     };
 
@@ -93,6 +94,6 @@ protected:
     virtual void HeatbathSweep(StateVector& replica, int moves);
 /** Sets the transverse field (gamma)
  */
-    virtual void TransverseField(StateVector& replica, double magnitude);
+    virtual void TransverseField(StateVector& replica, double magnitude, double p_magnitude);
 };
 }

@@ -132,7 +132,7 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
     std::iota(replica_families_.begin(), replica_families_.end(), 0);
     beta_ = schedule_.front().beta;
-    SetPopulationField(schedule_.front().gamma);
+    SetPopulationField(schedule_.front().gamma, schedule_.front().lambda);
     std::vector<double> energy;
 
     auto total_time_start = std::chrono::high_resolution_clock::now();
@@ -142,9 +142,9 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
         Result observables;
         // Thermalize
         auto time_start = std::chrono::high_resolution_clock::now();
-        if(step.beta != beta_ || step.gamma != gamma_) {
+        if(step.beta != beta_ || step.gamma != gamma_ || step.lambda != lambda_) {
             // Set new field
-            SetPopulationField(step.gamma);
+            SetPopulationField(step.gamma, step.lambda);
             // Resample
             if(step.resample) {
                 observables.norm_factor = Resample(step.beta, step.population_fraction);
@@ -165,8 +165,12 @@ std::vector<PopulationAnnealing::Result> PopulationAnnealing::Run() {
 
         observables.beta = beta_;
         observables.gamma = gamma_;
+        observables.lambda = lambda_;
         observables.population = replicas_.size();
-        bool report_results = (beta_ == schedule_.back().beta && gamma_ == schedule_.back().gamma);
+        bool report_results = (
+            beta_ == schedule_.back().beta 
+            && gamma_ == schedule_.back().gamma
+            && lambda_ == schedule_.back().lambda );
         if(!solver_mode_ || report_results) {
             if(step.compute_observables) {
                 std::vector<StateVector> projected_replicas;
@@ -274,10 +278,11 @@ double PopulationAnnealing::Resample(double new_beta, double new_population_frac
     return summed_weights;
 }
 
-void PopulationAnnealing::SetPopulationField(double gamma) {
+void PopulationAnnealing::SetPopulationField(double gamma, double lambda) {
     gamma_ = gamma;
+    lambda_ = lambda;
     for(auto& r : replicas_) {
-        TransverseField(r, gamma_);
+        TransverseField(r, gamma_, lambda_);
     }
 }
 }

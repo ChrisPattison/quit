@@ -29,6 +29,7 @@
 namespace propane {
     auto ParallelTemperingBase::Bin::operator+=(const Bin& other) -> Bin {
         assert(gamma == other.gamma);
+        assert(lambda == other.lambda);
         assert(beta == other.beta);
 
         samples += other.samples;
@@ -47,6 +48,7 @@ namespace propane {
         Result result;
         result.beta = beta;
         result.gamma = gamma;
+        result.lambda = lambda;
 
         result.samples = samples;
         result.average_energy = average_energy / samples;

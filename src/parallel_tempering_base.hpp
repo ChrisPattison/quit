@@ -39,6 +39,7 @@ public:
         std::size_t samples = 0;
         double beta = std::numeric_limits<double>::quiet_NaN();
         double gamma = std::numeric_limits<double>::quiet_NaN();
+        double lambda = std::numeric_limits<double>::quiet_NaN();
         
         double average_energy = 0.0;
         double ground_energy = std::numeric_limits<double>::max();
@@ -58,6 +59,7 @@ public:
     struct Schedule {
         double beta;
         double gamma;
+        double lambda;
         int metropolis = 1;
         int heatbath = 0;
         int microcanonical = 0;

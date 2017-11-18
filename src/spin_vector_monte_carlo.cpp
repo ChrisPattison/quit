@@ -34,7 +34,10 @@ double SpinVectorMonteCarlo::Hamiltonian(const StateVector& replica) {
             it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
             energy += replica[k][0] * it.value() * replica[it.index()][0];
         }
-        energy -= replica[k] * field_[k] + replica[k][0] * replica.gamma;
+        energy -= replica[k] * field_[k];
+        energy *= replica.lambda; // Problem Hamiltonian Strength
+
+        energy -= replica[k][0] * replica.gamma;
     }
     return energy;
 }
@@ -65,7 +68,9 @@ FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, int vertex) {
     for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
         h += FieldType(it.value() * replica[it.index()][0], 0.0);
     }
-    h -= field_[vertex] + FieldType(0., replica.gamma);
+    h -= field_[vertex];
+    h *= replica.lambda;
+    h -= FieldType(0., replica.gamma);
     return h;
 }
 
@@ -154,7 +159,7 @@ bool SpinVectorMonteCarlo::AcceptedMove(double log_probability) {
     return std::exp(log_probability) > test;
 }
 
-void SpinVectorMonteCarlo::TransverseField(StateVector& replica, double magnitude) {
+void SpinVectorMonteCarlo::TransverseField(StateVector& replica, double magnitude, double p_magnitude) {
     replica.gamma = magnitude;
 }
 }

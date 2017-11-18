@@ -43,6 +43,7 @@ class PopulationAnnealingBase {
         std::vector<Histogram> ground_distribution;
         double beta = std::numeric_limits<double>::quiet_NaN();
         double gamma = std::numeric_limits<double>::quiet_NaN();
+        double lambda = std::numeric_limits<double>::quiet_NaN();
         int population = -1;
         double norm_factor = std::numeric_limits<double>::quiet_NaN();
         double average_energy = std::numeric_limits<double>::quiet_NaN();
@@ -62,6 +63,7 @@ class PopulationAnnealingBase {
     struct Schedule {
         double beta;
         double gamma;
+        double lambda;
         int sweeps = 10;
         int microcanonical = 0;
         bool resample = true;

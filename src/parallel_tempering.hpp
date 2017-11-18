@@ -41,8 +41,6 @@ protected:
 
     std::vector<Schedule> schedule_;
     std::vector<std::size_t> bin_set_;
-    double beta_;
-    double gamma_;
     std::size_t sweeps_;
     bool solver_mode_;
     bool uniform_init_;

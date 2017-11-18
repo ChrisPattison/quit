@@ -47,6 +47,7 @@ protected:
     std::vector<Schedule> schedule_;
     double beta_;
     double gamma_;
+    double lambda_;
     bool solver_mode_;
     bool uniform_init_;
 
@@ -68,7 +69,7 @@ protected:
     virtual double Resample(double new_beta, double new_population_fraction);
 /** Sets the transverse field for all replicas
  */
-    virtual void SetPopulationField(double gamma);
+    virtual void SetPopulationField(double gamma, double lambda);
 public:
 
     PopulationAnnealing() = delete;

@@ -97,6 +97,7 @@ void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
             config->schedule.emplace_back();
             config->schedule.back().beta = item.second.get<double>("beta");
             config->schedule.back().gamma = item.second.get<double>("gamma", 0.0);
+            config->schedule.back().lambda = item.second.get<double>("lambda", 1.0);
             config->schedule.back().resample = item.second.get<bool>("resample", true);
             config->schedule.back().population_fraction = item.second.get<double>("population_fraction", 1.0);
             config->schedule.back().sweeps = item.second.get("sweeps", default_sweeps);
@@ -128,6 +129,7 @@ void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double
             config->schedule.emplace_back();
             config->schedule.back().beta = item.second.get<double>("beta");
             config->schedule.back().gamma = item.second.get<double>("gamma");
+            config->schedule.back().lambda = item.second.get<double>("lambda");
             config->schedule.back().metropolis = item.second.get("metropolis", 0);
             config->schedule.back().heatbath = item.second.get("heatbath", 0);
             config->schedule.back().microcanonical = item.second.get("microcanonical", 0);
