@@ -33,6 +33,7 @@ namespace propane {
         assert(beta == other.beta);
 
         samples += other.samples;
+        exchange_probabilty += other.exchange_probabilty;
         average_energy += other.average_energy;
         ground_energy = std::min(ground_energy, other.ground_energy);
         return *this;
@@ -51,6 +52,7 @@ namespace propane {
         result.lambda = lambda;
 
         result.samples = samples;
+        result.exchange_probabilty = exchange_probabilty / samples;
         result.average_energy = average_energy / samples;
         result.ground_energy = ground_energy;
         result.total_sweeps = total_sweeps;
