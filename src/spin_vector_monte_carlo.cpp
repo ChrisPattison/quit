@@ -37,7 +37,7 @@ double SpinVectorMonteCarlo::Hamiltonian(const StateVector& replica) {
         energy -= replica[k] * field_[k];
         energy *= replica.lambda; // Problem Hamiltonian Strength
 
-        energy -= replica[k][0] * replica.gamma;
+        energy -= replica[k][1] * replica.gamma;
     }
     return energy;
 }
