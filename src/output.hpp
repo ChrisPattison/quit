@@ -24,7 +24,6 @@
  
 #pragma once
 #include "graph.hpp"
-#include "population_annealing.hpp"
 #include "parallel_tempering.hpp"
 #include <iostream>
 #include <string>
@@ -44,19 +43,12 @@ static constexpr int kOutputCouplerCoeff = 1;
 
 void Header(Graph& model, std::string config_path, std::string bond_path);
 
-void MpiHeader(parallel::Mpi& parallel);
-
 void ColumnNames();
 
 void PtColumnNames();
 
-void MpiColumnNames();
-
-void Results(PopulationAnnealing::Result& result);
-
 void PtResults(ParallelTempering::Result& result);
 
-void Histograms(std::vector<PopulationAnnealing::Result>& results);
 /** Dummy to output magic string
  */
 void PtHistograms(std::vector<ParallelTempering::Result>& results);
