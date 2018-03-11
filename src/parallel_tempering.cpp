@@ -46,7 +46,7 @@ ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
         // No transverse field
         field_[k] = FieldType(structure_.Fields()(k), 0.);
     }
-    std::stable_sort(schedule_.begin(), schedule_.end(), [](const auto& left, const auto& right) {return left.gamma/left.lambda < right.gamma/right.lambda;});
+    std::stable_sort(schedule_.begin(), schedule_.end(), [](const auto& left, const auto& right) {return left.gamma < right.gamma;});
     std::stable_sort(bin_set_.begin(), bin_set_.end());
 }
 
@@ -123,22 +123,26 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
 }
 
 std::vector<double> ParallelTempering::ReplicaExchange(std::vector<StateVector>& replica_set) {
-    std::vector<double> projected_energy;
+    std::vector<double> problem_energy(replica_set.size());
+    std::vector<double> driver_energy(replica_set.size());
     std::vector<double> exchange_probabilty(replica_set.size());
-    projected_energy.resize(replica_set.size());
-    std::transform(replica_set.begin(), replica_set.end(), projected_energy.begin(), [&](StateVector& r) { return ProjectedHamiltonian(Project(r)); });
+    std::transform(replica_set.begin(), replica_set.end(), problem_energy.begin(), [&](StateVector& r) { return ProblemHamiltonian(r); });
+    std::transform(replica_set.begin(), replica_set.end(), driver_energy.begin(), [&](StateVector& r) { return DriverHamiltonian(r); });
     // replica_set[k+1].gamma > replica_set[k].gamma should be true
     for(int k = 0; k < schedule_.size()-1; ++k) {
-        assert(replica_set[k+1].gamma/replica_set[k+1].lambda > replica_set[k].gamma/replica_set[k].lambda);
+        // Exp[-d[AB] H_P - d[DB] H_D
         exchange_probabilty[k] = std::min(1.0,
-            std::exp(-(replica_set[k+1].gamma/replica_set[k+1].lambda - replica_set[k].gamma/replica_set[k].lambda)
-                *(projected_energy[k+1] - projected_energy[k])));
+            std::exp(
+                -(replica_set[k+1].gamma*replica_set[k+1].beta - replica_set[k].gamma*replica_set[k].beta)
+                *(driver_energy[k+1] - driver_energy[k])
+                -(replica_set[k+1].lambda*replica_set[k+1].beta - replica_set[k].lambda*replica_set[k].beta)
+                *(problem_energy[k+1] - problem_energy[k])));
         if(exchange_probabilty[k] > rng_.Probability()) {
             std::swap(replica_set[k].beta, replica_set[k+1].beta);
             std::swap(replica_set[k].gamma, replica_set[k+1].gamma);
             std::swap(replica_set[k].lambda, replica_set[k+1].lambda);
             std::swap(replica_set[k], replica_set[k+1]);
-            std::swap(projected_energy[k], projected_energy[k+1]);
+            std::swap(problem_energy[k], problem_energy[k+1]);
         }
     }
     exchange_probabilty.back() = std::numeric_limits<double>::quiet_NaN();
@@ -152,7 +156,7 @@ auto ParallelTempering::Observables(const StateVector& replica) -> Bin {
     result.beta = replica.beta;
     result.samples = 1;
     
-    auto projected_energy = ProjectedHamiltonian(Project(replica));
+    auto projected_energy = ProblemHamiltonian(Project(replica));
     result.average_energy = projected_energy;
     result.ground_energy = projected_energy;
     return result;

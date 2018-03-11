@@ -24,6 +24,7 @@
 
 #include "spin_vector_monte_carlo.hpp"
 #include "compare.hpp"
+#include <numeric>
 
 namespace propane {
 
@@ -51,14 +52,22 @@ SpinVectorMonteCarlo::StateVector SpinVectorMonteCarlo::Project(const StateVecto
     return projected;
 }
 
-double SpinVectorMonteCarlo::ProjectedHamiltonian(const StateVector& projected) {
+double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
     double energy = 0.0;
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
         for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
             it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += projected[k][0] * it.value() * projected[it.index()][0];
+            energy += replica[k][0] * it.value() * replica[it.index()][0];
         }
-        energy -= projected[k] * FieldType(field_[k][0], 0.);
+        energy -= replica[k] * FieldType(field_[k][0], 0.);
+    }
+    return energy;
+}
+
+double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
+    double energy = 0.0;
+    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
+        energy += replica[k][1];
     }
     return energy;
 }

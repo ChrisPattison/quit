@@ -73,8 +73,13 @@ protected:
  */
     virtual StateVector Project(const StateVector& replica); 
 /** Returns the energy of the replica as given by the original problem Hamiltonian
+ * Does not include strength prefactor
  */
-    virtual double ProjectedHamiltonian(const StateVector& projected);
+    virtual double ProblemHamiltonian(const StateVector& replica);
+/** Returns energy of the replica as given by the Hamiltonian driving term
+ * Does not include strength prefactor
+ */
+    virtual double DriverHamiltonian(const StateVector& replica);
 /** Returns the local field at site vertex
  */
     FieldType LocalField(StateVector& replica, int vertex);
