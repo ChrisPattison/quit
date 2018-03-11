@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
         ("config", "configuration file")
         ("version,v", "version number")
         ("bondfile", "file containing graph and couplers")
-        ("mode,m", boost::program_options::value<std::string>()->default_value("1"), "select run mode <1/pt>")
+        ("mode,m", boost::program_options::value<std::string>()->default_value("pt"), "select run mode <1/pt>")
         ("plant,p", boost::program_options::value<double>()->default_value(std::numeric_limits<double>::quiet_NaN()), "planted/known ground state energy");
     boost::program_options::variables_map var_map;
     boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
 
     // Print Help
     if(var_map.count("help") || argc == 1) {
-        std::cout << "Parallel Optimized Population Annealing V" << propane::version::kMajor << "." << propane::version::kMinor << std::endl;
+        std::cout << "Quantum Inspired Tempering" << std::endl;
         std::cout << "C. Pattison" << std::endl << std::endl;
         std::cout << "Usage: " << argv[0] << " [options] <config> <bondfile>" << std::endl;
         std::cout << description << std::endl;
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     }
 
     if(var_map.count("version")) {
-        std::cout << "Parallel Optimized Population Annealing V" << propane::version::kMajor << "." << propane::version::kMinor << std::endl;
+        std::cout << "QUantum Inspired Tempering" << std::endl;
         std::cout << "Branch: " << propane::version::kRefSpec << std::endl;
         std::cout << "Commit: " << std::string(propane::version::kCommitHash).substr(0, 8) << std::endl;
         std::cout << "Build:  " << propane::version::kBuildType << std::endl;

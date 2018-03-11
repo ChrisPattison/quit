@@ -25,8 +25,8 @@
 #pragma once
 
 namespace propane { namespace version {
-static const int kMajor = @PROPANE_VERSION_MAJOR@;
-static const int kMinor = @PROPANE_VERSION_MINOR@;
+static const int kMajor = @QUIT_VERSION_MAJOR@;
+static const int kMinor = @QUIT_VERSION_MINOR@;
 static const auto kRefSpec = "@GIT_REFSPEC@";
 static const auto kCommitHash = "@GIT_SHA1@";
 static const auto kBuildTime = "@BUILD_TIME@";

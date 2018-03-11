@@ -20,7 +20,7 @@ if(GTEST_FOUND)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/XSadd)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/dSFMT)
 
-    set(LIBS propane_lib ${GTEST_LIBRARIES})
+    set(LIBS quit_lib ${GTEST_LIBRARIES})
     target_link_libraries(tests ${LIBS})
 
 endif()

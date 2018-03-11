@@ -5,7 +5,7 @@ From: fedora:27
 cp -rf . $SINGULARITY_ROOTFS/src
 
 %runscript
-gdb --args propane_svmc "$@"
+gdb --args quit_solve "$@"
 
 %files
 

@@ -32,17 +32,17 @@ set(SRCS
 )
 
 add_executable(
-    propane_svmc
+    quit_solve
     main.cpp 
     ${SRCS}
 )
 
-install(TARGETS propane_svmc
+install(TARGETS quit_solve
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
 )
 
-set_target_properties(propane_svmc PROPERTIES
+set_target_properties(quit_solve PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
@@ -61,25 +61,25 @@ include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
 if(MPI_COMPILE_FLAGS)
-  set_target_properties(propane_svmc PROPERTIES
+  set_target_properties(quit_solve PROPERTIES
     COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 endif()
 
 if(MPI_LINK_FLAGS)
-  set_target_properties(propane_svmc PROPERTIES
+  set_target_properties(quit_solve PROPERTIES
     LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
 
 set(LIBS ${LIBS} dSFMT XSadd)
 
-target_link_libraries(propane_svmc ${LIBS})
+target_link_libraries(quit_solve ${LIBS})
 
 
-add_library(propane_lib STATIC ${SRCS})
-set_target_properties(propane_lib PROPERTIES
+add_library(quit_lib STATIC ${SRCS})
+set_target_properties(quit_lib PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
-target_include_directories(propane_lib INTERFACE ${EIGEN3_INCLUDE_DIR})
-target_link_libraries(propane_lib ${LIBS})
+target_include_directories(quit_lib INTERFACE ${EIGEN3_INCLUDE_DIR})
+target_link_libraries(quit_lib ${LIBS})
