@@ -20,9 +20,7 @@ set(SRCS
     random_number_generator.cpp 
     parse.cpp 
     output.cpp
-    parallel.cpp 
     string_util.cpp 
-    parallel_types.cpp 
     compare.cpp
     log_lookup.cpp
     spin_vector_monte_carlo.cpp

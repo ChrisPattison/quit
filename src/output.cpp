@@ -28,7 +28,6 @@
 #include <cfenv>
 #include <string>
 #include "compare.hpp"
-#include "parallel.hpp"
 
 namespace propane { namespace io {   
 void Header(Graph& model, std::string config_path, std::string bond_path) {

@@ -30,7 +30,6 @@
 #include <cstdint>
 #include "version.hpp"
 #include "string_util.hpp"
-#include "parallel.hpp"
 
 namespace propane { namespace io {
 
