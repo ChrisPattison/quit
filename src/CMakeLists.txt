@@ -55,20 +55,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-find_package(MPI REQUIRED)
-include_directories(${MPI_INCLUDE_PATH})
-set(LIBS ${LIBS} ${MPI_LIBRARIES})
-
-if(MPI_COMPILE_FLAGS)
-  set_target_properties(quit_solve PROPERTIES
-    COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-endif()
-
-if(MPI_LINK_FLAGS)
-  set_target_properties(quit_solve PROPERTIES
-    LINK_FLAGS "${MPI_LINK_FLAGS}")
-endif()
-
 set(LIBS ${LIBS} dSFMT XSadd)
 
 target_link_libraries(quit_solve ${LIBS})
