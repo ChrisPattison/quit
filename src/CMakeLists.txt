@@ -21,7 +21,6 @@ set(SRCS
     parse.cpp 
     output.cpp
     parallel.cpp 
-    population_annealing.cpp 
     string_util.cpp 
     parallel_types.cpp 
     compare.cpp

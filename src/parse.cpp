@@ -81,39 +81,6 @@ Graph IjjParse(std::istream& file) {
     return model;
 }
 
-void ConfigParse(std::istream& file, PopulationAnnealing::Config* config) {
-    try {
-        boost::property_tree::ptree tree;
-        boost::property_tree::read_json(file, tree);
-
-        config->population = tree.get<int>("population");
-        std::stringstream converter(tree.get<std::string>("seed", "0"));
-        converter >> std::hex >> config->seed;
-        int default_sweeps = tree.get<int>("default_sweeps", 10);
-        int default_microcanonical = tree.get<int>("default_microcanonical", 0);
-        config->solver_mode = tree.get<bool>("solver_mode", false);
-        config->uniform_init = tree.get<bool>("uniform_init", false);
-        for(auto& item : tree.get_child("schedule")) {
-            config->schedule.emplace_back();
-            config->schedule.back().beta = item.second.get<double>("beta");
-            config->schedule.back().gamma = item.second.get<double>("gamma", 0.0);
-            config->schedule.back().lambda = item.second.get<double>("lambda", 1.0);
-            config->schedule.back().resample = item.second.get<bool>("resample", true);
-            config->schedule.back().population_fraction = item.second.get<double>("population_fraction", 1.0);
-            config->schedule.back().sweeps = item.second.get("sweeps", default_sweeps);
-            config->schedule.back().microcanonical = item.second.get("microcanonical", default_microcanonical);
-            config->schedule.back().heat_bath = item.second.get("heat_bath", false);
-            config->schedule.back().compute_observables = item.second.get("compute_observables", true);
-            config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);
-            config->schedule.back().energy_dist = item.second.get("energy_hist", false);
-            config->schedule.back().ground_dist = item.second.get("ground_hist", false);
-        }
-    } catch(std::exception& e) {
-        util::Check(false, "Config parsing failed.");
-    }
-    std::stable_sort(config->schedule.begin(), config->schedule.end(), [](const auto& left, const auto& right) {return left.beta < right.beta;});
-}
-
 void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double planted_energy) {
     try {
         config->planted_energy = planted_energy;

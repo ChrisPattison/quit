@@ -24,7 +24,6 @@
  
 #include "parse.hpp"
 #include "graph.hpp"
-#include "population_annealing.hpp"
 #include "parallel_tempering.hpp"
 #include "types.hpp"
 #include "string_util.hpp"
@@ -53,33 +52,6 @@ void SinglePtPre(std::string& config_path, std::string& bond_path, propane::Grap
     propane::io::Header(*model, config_path, bond_path);
 }
 
-/** Read model and config for regular PA
- */
-void SinglePaPre(std::string& config_path, std::string& bond_path, propane::Graph* model, propane::PopulationAnnealing::Config* config) {
-    auto file = std::ifstream(config_path);
-    propane::io::ConfigParse(file, config);
-    file.close();
-
-    file = std::ifstream(bond_path);
-    *model = propane::io::IjjParse(file);
-    file.close();
-
-    propane::io::Header(*model, config_path, bond_path);
-}
-
-/** Output Data for regular PA
- */
-void SinglePaPost(std::vector<propane::PopulationAnnealing::Result>& results, propane::Graph& model) {
-    propane::io::ColumnNames();
-    std::cout << std::endl;
-    for(auto& r : results) {
-        propane::io::Results(r);
-        std::cout << std::endl;
-    }
-    propane::io::IjjDump(model, std::cout);
-    propane::io::Histograms(results);
-}
-
 void SinglePtPost(std::vector<propane::ParallelTempering::Result>& results, propane::Graph& model) {
     propane::io::PtColumnNames();
     std::cout << std::endl;
@@ -89,17 +61,6 @@ void SinglePtPost(std::vector<propane::ParallelTempering::Result>& results, prop
     }
     propane::io::IjjDump(model, std::cout);
     propane::io::PtHistograms(results);
-}
-
-void SinglePa(std::string config_path, std::string bond_path) {
-    propane::Graph model;
-    propane::PopulationAnnealing::Config config;
-    SinglePaPre(config_path, bond_path, &model, &config);
-    
-    propane::PopulationAnnealing population_annealing(model, config);
-    auto results = population_annealing.Run();
-    
-    SinglePaPost(results, model);
 }
 
 void SinglePt(std::string config_path, std::string bond_path, double planted) {
@@ -114,7 +75,6 @@ void SinglePt(std::string config_path, std::string bond_path, double planted) {
 }
 
 enum ModeOption{
-    kModeOptionSingle,
     kModeOptionPt
 };
 
@@ -160,7 +120,7 @@ int main(int argc, char** argv) {
     selector_map.insert({"pt", kModeOptionPt});
     ModeOption selection;
     if(selector_map.count(var_map["mode"].as<std::string>()) == 0) {
-        selection = kModeOptionSingle;
+        selection = kModeOptionPt;
     }else {
         selection = selector_map.at(var_map["mode"].as<std::string>());
     }
@@ -168,7 +128,6 @@ int main(int argc, char** argv) {
     double planted_energy = var_map["plant"].as<double>();
 
     switch(selection) {
-        case kModeOptionSingle : SinglePa(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>()); break;
         case kModeOptionPt : SinglePt(var_map["config"].as<std::string>(), var_map["bondfile"].as<std::string>(), planted_energy); break;
     }
 

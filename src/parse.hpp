@@ -24,7 +24,6 @@
  
 #pragma once
 #include "graph.hpp"
-#include "population_annealing.hpp"
 #include "parallel_tempering.hpp"
 #include <iostream>
 #include <string>
@@ -43,10 +42,6 @@ static const std::vector<char> kWhitespaceTokens = {' ', '\t'};
  * i j J_ij
  */
 Graph IjjParse(std::istream& file);
-/** Parses configuration file for single threaded PA and populates a Config.
- * Uses boost::property_tree to read the JSON.
- */ 
-void ConfigParse(std::istream& file, PopulationAnnealing::Config* config);
 /** Parses configuration file for single threaded PT and populates a Config.
  * Uses boost::property_tree to read the JSON.
  */ 
