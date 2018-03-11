@@ -16,17 +16,17 @@ endif()
 message("* Using interprocedural optimizations : ${IPO_SUPPORTED}")
 
 
-set(SHARED_FAST_FLAGS "-march=native")
+set(SHARED_FAST_FLAGS "-Wall -Wno-misleading-indentation -Wno-int-in-bool-context -march=native")
 
 # -------- Fast
 if(NOT CMAKE_CXX_FLAGS_FAST)
-    set(CMAKE_CXX_FLAGS_FAST "-Wall ${SHARED_FAST_FLAGS} -O3 -DNDEBUG" CACHE STRING
+    set(CMAKE_CXX_FLAGS_FAST "${SHARED_FAST_FLAGS} -O3 -DNDEBUG" CACHE STRING
         "Flags used by the C++ compiler during fast release builds."
         FORCE)
 endif()
 
 if(NOT CMAKE_C_FLAGS_FAST)
-    SET( CMAKE_C_FLAGS_FAST "-Wall ${SHARED_FAST_FLAGS} -O3 -DNDEBUG" CACHE STRING
+    SET( CMAKE_C_FLAGS_FAST "${SHARED_FAST_FLAGS} -O3 -DNDEBUG" CACHE STRING
         "Flags used by the C compiler during fast release builds."
         FORCE )
 endif()
@@ -47,13 +47,13 @@ endif()
 # -------- Fast Debug
 
 if(NOT CMAKE_CXX_FLAGS_FASTDEBUG)
-    SET( CMAKE_CXX_FLAGS_FASTDEBUG "-Wall ${SHARED_FAST_FLAGS} -g -O2" CACHE STRING 
+    SET( CMAKE_CXX_FLAGS_FASTDEBUG "${SHARED_FAST_FLAGS} -g -O2" CACHE STRING 
         "Flags used by the C++ compiler during fast debugging builds." 
         FORCE )
 endif()
 
 if(NOT CMAKE_C_FLAGS_FASTDEBUG)
-    SET( CMAKE_C_FLAGS_FASTDEBUG "-Wall ${SHARED_FAST_FLAGS} -g -O2" CACHE STRING
+    SET( CMAKE_C_FLAGS_FASTDEBUG "${SHARED_FAST_FLAGS} -g -O2" CACHE STRING
         "Flags used by the C compiler during fast debugging builds."
         FORCE )
 endif()
