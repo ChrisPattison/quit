@@ -11,7 +11,7 @@ if(GTEST_FOUND)
     )
 
     set_target_properties(tests PROPERTIES
-        CXX_STANDARD 14
+        CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
     )
