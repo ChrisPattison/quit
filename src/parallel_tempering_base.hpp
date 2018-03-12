@@ -45,6 +45,9 @@ public:
         double average_energy = 0.0;
         double ground_energy = std::numeric_limits<double>::max();
 
+        double problem_energy = 0.0;
+        double driver_energy = 0.0;
+
         unsigned long long int total_sweeps = 0;
         double total_time = std::numeric_limits<double>::quiet_NaN();
 /** Combine two sample sets

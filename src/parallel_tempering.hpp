@@ -61,6 +61,6 @@ private:
     std::vector<double> ReplicaExchange(std::vector<StateVector>& replica_set);
 /** Record observables
  */
-    Bin Observables(const StateVector& replica);
+    Bin Observables(const StateVector& replica, bool minimum_set = false);
 };
 }

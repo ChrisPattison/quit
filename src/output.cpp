@@ -48,6 +48,8 @@ void PtColumnNames() {
         << "Samples" << std::setw(kHeaderWidth)
         << "<E>" << std::setw(kHeaderWidth) 
         << "E_MIN" << std::setw(kHeaderWidth) 
+        << "<E_P>" << std::setw(kHeaderWidth)
+        << "<E_D>" << std::setw(kHeaderWidth)
         << "P_XCHG" << std::setw(kHeaderWidth) 
         << "Total_Walltime" << std::setw(kHeaderWidth)
         << "Total_Sweeps";
@@ -60,6 +62,8 @@ void PtResults(ParallelTempering::Result& r) {
         << r.samples << " " << std::setw(kWidth)
         << r.average_energy << " " << std::setw(kWidth)
         << r.ground_energy << " " << std::setw(kWidth)
+        << r.problem_energy << " " << std::setw(kWidth)
+        << r.driver_energy << " " << std::setw(kWidth)
         << r.exchange_probabilty << " " << std::setw(kWidth)
         << r.total_time << " " << std::setw(kWidth)
         << r.total_sweeps << " ";

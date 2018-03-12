@@ -36,6 +36,9 @@ namespace propane {
         exchange_probabilty += other.exchange_probabilty;
         average_energy += other.average_energy;
         ground_energy = std::min(ground_energy, other.ground_energy);
+
+        problem_energy += other.problem_energy;
+        driver_energy += other.driver_energy;
         return *this;
     }
 
@@ -52,6 +55,8 @@ namespace propane {
         result.lambda = lambda;
 
         result.samples = samples;
+        result.problem_energy = problem_energy / samples;
+        result.driver_energy = driver_energy / samples;
         result.exchange_probabilty = exchange_probabilty / samples;
         result.average_energy = average_energy / samples;
         result.ground_energy = ground_energy;

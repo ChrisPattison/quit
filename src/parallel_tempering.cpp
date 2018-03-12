@@ -149,13 +149,18 @@ std::vector<double> ParallelTempering::ReplicaExchange(std::vector<StateVector>&
     return exchange_probabilty;
 }
 
-auto ParallelTempering::Observables(const StateVector& replica) -> Bin {
+auto ParallelTempering::Observables(const StateVector& replica, bool minimum_set) -> Bin {
     Bin result;
     result.gamma = replica.gamma;
     result.lambda = replica.lambda;
     result.beta = replica.beta;
     result.samples = 1;
-    
+
+    if(!minimum_set) {
+        result.problem_energy = ProblemHamiltonian(replica);
+        result.driver_energy = DriverHamiltonian(replica);
+    }
+
     auto projected_energy = ProblemHamiltonian(Project(replica));
     result.average_energy = projected_energy;
     result.ground_energy = projected_energy;
