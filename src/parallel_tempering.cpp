@@ -133,9 +133,9 @@ std::vector<double> ParallelTempering::ReplicaExchange(std::vector<StateVector>&
         // Exp[-d[AB] H_P - d[DB] H_D
         exchange_probabilty[k] = std::min(1.0,
             std::exp(
-                -(replica_set[k+1].gamma*replica_set[k+1].beta - replica_set[k].gamma*replica_set[k].beta)
+                (replica_set[k+1].gamma*replica_set[k+1].beta - replica_set[k].gamma*replica_set[k].beta)
                 *(driver_energy[k+1] - driver_energy[k])
-                -(replica_set[k+1].lambda*replica_set[k+1].beta - replica_set[k].lambda*replica_set[k].beta)
+                +(replica_set[k+1].lambda*replica_set[k+1].beta - replica_set[k].lambda*replica_set[k].beta)
                 *(problem_energy[k+1] - problem_energy[k])));
         if(exchange_probabilty[k] > rng_.Probability()) {
             std::swap(replica_set[k].beta, replica_set[k+1].beta);
