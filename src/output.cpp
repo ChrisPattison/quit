@@ -60,7 +60,7 @@ void PtResults(ParallelTempering::Result& r) {
         << r.beta << " " << std::setw(kWidth) 
         << r.gamma << " " << std::setw(kWidth)
         << r.samples << " " << std::setw(kWidth)
-        << r.average_energy << " " << std::setw(kWidth)
+        << r.discrete_energy << " " << std::setw(kWidth)
         << r.ground_energy << " " << std::setw(kWidth)
         << r.problem_energy << " " << std::setw(kWidth)
         << r.driver_energy << " " << std::setw(kWidth)

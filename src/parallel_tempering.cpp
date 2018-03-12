@@ -162,7 +162,7 @@ auto ParallelTempering::Observables(const StateVector& replica, bool minimum_set
     }
 
     auto projected_energy = ProblemHamiltonian(Project(replica));
-    result.average_energy = projected_energy;
+    result.discrete_energy = projected_energy;
     result.ground_energy = projected_energy;
     return result;
 }

@@ -42,7 +42,7 @@ public:
         double lambda = std::numeric_limits<double>::quiet_NaN();
         
         double exchange_probabilty = 0.0;
-        double average_energy = 0.0;
+        double discrete_energy = 0.0;
         double ground_energy = std::numeric_limits<double>::max();
 
         double problem_energy = 0.0;
