@@ -67,7 +67,7 @@ double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
 double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
     double energy = 0.0;
     for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        energy += replica[k][1];
+        energy -= replica[k][1];
     }
     return energy;
 }
