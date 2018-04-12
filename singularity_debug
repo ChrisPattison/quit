@@ -15,7 +15,7 @@ gdb --args quit_solve "$@"
 
 %post
 
-dnf install -y boost-static boost-devel cmake git gcc-c++ gdb gtest-devel wget bzip2
+dnf install -y boost-static boost-devel cmake git gcc-c++ gdb gtest-devel wget bzip2 make
 
 cd /src
 rm -rf build
