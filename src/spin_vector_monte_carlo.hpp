@@ -62,24 +62,24 @@ protected:
     bool AcceptedMove(double log_probability);
 /** Returns true if a move is accepted according to the Metropolis algorithm.
  */
-    virtual bool MetropolisAcceptedMove(double delta_energy, double beta);
+    bool MetropolisAcceptedMove(double delta_energy, double beta);
 /** Returns the energy of a replica
  * Implemented as the sum of elementwise multiplication of the replica vector with the 
  * product of matrix multiplication between the upper half of the adjacency matrix
  * and the replica.
  */
-    virtual double Hamiltonian(const StateVector& replica);
+    double Hamiltonian(const StateVector& replica);
 /** Projects replica onto classical spins
  */
-    virtual StateVector Project(const StateVector& replica); 
+    StateVector Project(const StateVector& replica); 
 /** Returns the energy of the replica as given by the original problem Hamiltonian
  * Does not include strength prefactor
  */
-    virtual double ProblemHamiltonian(const StateVector& replica);
+    double ProblemHamiltonian(const StateVector& replica);
 /** Returns energy of the replica as given by the Hamiltonian driving term
  * Does not include strength prefactor
  */
-    virtual double DriverHamiltonian(const StateVector& replica);
+    double DriverHamiltonian(const StateVector& replica);
 /** Returns the local field at site vertex
  */
     FieldType LocalField(StateVector& replica, int vertex);
@@ -87,18 +87,18 @@ protected:
  * Implemented as the dot product of row vertex of the adjacency matrix 
  * with the replica vector multiplied by the spin at vertex.
  */
-    virtual double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value);
+    double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value);
 /** Carries out moves micro canonical sweeps
  */
-    virtual void MicroCanonicalSweep(StateVector& replica, int sweeps);
+    void MicroCanonicalSweep(StateVector& replica, int sweeps);
 /** Carries out moves monte carlo sweeps of replica using the Metropolis algorithm.
  */
-    virtual void MetropolisSweep(StateVector& replica, int moves);
+    void MetropolisSweep(StateVector& replica, int moves);
 /** Carries out moves monte carlo sweeps of replica using the Heatbath algorithm.
  */
-    virtual void HeatbathSweep(StateVector& replica, int moves);
+    void HeatbathSweep(StateVector& replica, int moves);
 /** Sets the transverse field (gamma)
  */
-    virtual void TransverseField(StateVector& replica, double magnitude, double p_magnitude);
+    void TransverseField(StateVector& replica, double magnitude, double p_magnitude);
 };
 }
