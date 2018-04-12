@@ -5,6 +5,8 @@ set (QUIT_VERSION_MAJOR 1)
 set (QUIT_VERSION_MINOR 0)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
+set(SHARED_FAST_FLAGS "-Wall -Wno-misleading-indentation -Wno-int-in-bool-context -march=native")
+
 # Enable interprocedural optimization if supported
 set(IPO_SUPPORTED NO)
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.9")
@@ -15,8 +17,13 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.9")
 endif()
 message("* Using interprocedural optimizations : ${IPO_SUPPORTED}")
 
-
-set(SHARED_FAST_FLAGS "-Wall -Wno-misleading-indentation -Wno-int-in-bool-context -march=native")
+# Enable OpenMP if supported
+set(OPENMP_FOUND NO)
+find_package(OpenMP)
+if(OPENMP_FOUND)
+    set(SHARED_FAST_FLAGS "${SHARED_FAST_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+message("* Using OpenMP : ${OPENMP_FOUND}")
 
 # -------- Fast
 if(NOT CMAKE_CXX_FLAGS_FAST)

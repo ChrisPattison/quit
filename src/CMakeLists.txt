@@ -7,6 +7,8 @@ configure_file (
     "${CMAKE_CURRENT_BINARY_DIR}/version.hpp"
 )
 
+add_definitions(-DEIGEN_DONT_PARALLELIZE)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(dSFMT)
