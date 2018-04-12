@@ -64,9 +64,6 @@ public:
         double beta;
         double gamma;
         double lambda;
-        int metropolis = 1;
-        int heatbath = 0;
-        int microcanonical = 0;
         bool overlap_dist = false;
         bool energy_dist = false;
         bool ground_dist = false;
@@ -75,6 +72,7 @@ public:
 
     struct Config {
         std::size_t sweeps;
+        std::size_t microcanonical_sweeps;
         std::uint64_t seed;
         std::vector<ParallelTemperingBase::Schedule> schedule;
         std::vector<std::size_t> bin_set;

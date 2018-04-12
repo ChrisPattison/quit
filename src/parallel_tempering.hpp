@@ -45,6 +45,8 @@ protected:
     bool solver_mode_;
     bool uniform_init_;
     double planted_energy_;
+
+    std::size_t microcanonical_sweeps_;
 public:
 /** Intializes solver.
  * schedule specifies the temperature set and sweep types to do at each temperature

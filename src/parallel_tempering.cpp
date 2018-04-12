@@ -40,6 +40,7 @@ ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
     uniform_init_ = config.uniform_init;
     sweeps_ = config.sweeps;
     planted_energy_ = config.planted_energy;
+    microcanonical_sweeps_ = config.microcanonical_sweeps;
 
     field_.resize(structure_.Fields().size());
     for(int k = 0; k < structure_.Fields().size(); ++k) {
@@ -86,9 +87,8 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
     for(std::size_t count = 0; (count < sweeps_) && !groundstate_found; ++count) {
         // Sweep replicas
         for(int k = 0; k < schedule_.size(); ++k) {
-            MicroCanonicalSweep(replicas_[k], schedule_[k].microcanonical);
-            MetropolisSweep(replicas_[k], schedule_[k].metropolis);
-            HeatbathSweep(replicas_[k], schedule_[k].heatbath);
+            MicroCanonicalSweep(replicas_[k], microcanonical_sweeps_);
+            HeatbathSweep(replicas_[k], 1);
         }
         // Do replica exchange
         // This could reuse the projected energy computed for observables
