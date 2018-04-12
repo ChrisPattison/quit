@@ -104,9 +104,7 @@ void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, int sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
             int vertex = rng_.Range(replica.size());
-            VertexType new_value;
-            #pragma ordered simd
-            new_value = VertexType(rng_.Probability());
+            auto new_value = VertexType(rng_.Probability());
             double delta_energy = DeltaEnergy(replica, vertex, new_value);
             
             //round-off isn't a concern here
@@ -124,18 +122,14 @@ void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, int sweeps) {
             auto h = LocalField(replica, vertex);
             auto h_mag = std::sqrt(h*h);
             if (h_mag != 0) {
-                float prob;
                 auto h_unit = h / h_mag;
-                #pragma ordered simd
-                prob = rng_.Probability();
+                float prob = rng_.Probability();
                 double x = -std::log(1 + prob * (std::exp(-2 * replica.beta * h_mag) - 1)) / (replica.beta * h_mag) - 1.;
                 auto h_perp = FieldType(h_unit[1], -h_unit[0]);
-                #pragma ordered simd
                 prob = rng_.Probability();
                 h_perp *= prob < 0.5 ? -1 : 1;
                 replica[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
             }else {
-                #pragma ordered simd
                 replica[vertex] = VertexType(rng_.Probability());
             }
         }
