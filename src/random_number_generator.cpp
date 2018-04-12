@@ -33,52 +33,62 @@ namespace propane {
     
 RandomNumberGenerator::RandomNumberGenerator(std::uint64_t seed) {
     seed_ = seed;
-    state_ = new xsadd_t;
-    xsadd_init(state_, static_cast<std::uint32_t>(seed));
+    for(std::uint32_t k = 0; k < state_.size(); ++k) {
+        state_[k] = new xsadd_t;
+        xsadd_init(state_[k], static_cast<std::uint32_t>(seed ^ (k << 24)));
+    }
 }
 
 RandomNumberGenerator::RandomNumberGenerator() : RandomNumberGenerator(RandomSeed()) {};
 
 RandomNumberGenerator::~RandomNumberGenerator() {
-    delete state_;
-    state_ = nullptr;
+    for(std::uint32_t k = 0; k < state_.size(); ++k) {
+        delete state_[k];
+        state_[k] = nullptr;
+    }
 }
 
 RandomNumberGenerator::RandomNumberGenerator(const RandomNumberGenerator& other) {
     seed_ = other.seed_;
-    
-    state_ = new xsadd_t;
-    *state_ = *(other.state_);
+    for(std::uint32_t k = 0; k < state_.size(); ++k) {
+        state_[k] = new xsadd_t;
+        *state_[k] = *(other.state_[k]);
+    }
 }
 
 RandomNumberGenerator::RandomNumberGenerator(RandomNumberGenerator&& other) {
     if(this != &other) {
         seed_ = other.seed_;
-        
-        state_ = other.state_;
-        other.state_ = nullptr;
+        for(std::uint32_t k = 0; k < state_.size(); ++k) {
+            state_[k] = other.state_[k];
+            other.state_[k] = nullptr;
+        }
     }
 }
 
 RandomNumberGenerator& RandomNumberGenerator::operator=(const RandomNumberGenerator& other) {
     seed_ = other.seed_;
-    *state_ = *(other.state_);
+    for(std::uint32_t k = 0; k < state_.size(); ++k) {
+        *state_[k] = *(other.state_[k]);
+    }
     return *this;
 }
 
 RandomNumberGenerator& RandomNumberGenerator::operator=(RandomNumberGenerator&& other) {
     if(this != &other) {
-        delete state_;
         seed_ = other.seed_;
-        
-        state_ = other.state_;
-        other.state_ = nullptr;
+
+        for(std::uint32_t k = 0; k < state_.size(); ++k ) {
+            delete state_[k];
+            state_[k] = other.state_[k];
+            other.state_[k] = nullptr;
+        }
     }
     return *this;
 }
 
-float RandomNumberGenerator::Probability() {
-    return xsadd_float(state_);
+float RandomNumberGenerator::Probability(std::uint32_t lane) {
+    return xsadd_float(state_[lane]);
 }
 
 std::uint64_t RandomNumberGenerator::RandomSeed() {
@@ -98,6 +108,6 @@ int RandomNumberGenerator::Range(int N) {
 }
 
 int RandomNumberGenerator::CheapRange(int N) {
-    return std::floor(xsadd_float(state_) * N);
+    return Range(N);
 }
 }

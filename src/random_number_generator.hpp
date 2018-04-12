@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <climits>
+#include <array>
 #include "dSFMT.h"
 #include "xsadd.h"
 
@@ -34,7 +35,7 @@ namespace propane {
 /** Wrapper around the refreence implementation of dSFMT19937 by Saito and Matsumoto.
  */
 class RandomNumberGenerator {
-    xsadd_t* state_;
+    std::array<xsadd_t*, 16> state_;
     std::uint64_t seed_;
 
 public:
@@ -61,12 +62,15 @@ public:
     std::uint64_t GetSeed();
 /** Returns a double uniformly distributed in [0,1).
  */
-    float Probability();
+    #pragma omp declare simd simdlen(16) linear(lane)
+    float Probability(std::uint32_t lane = 0);
 /** Returns an integer uniformly distributed in [0,N).
  */
+    #pragma omp declare simd
     int Range(int N);
 /** Returns an integer uniformly distributed in [0, N) using a cheap RNG.
  */
+    #pragma omp declare simd
     int CheapRange(int N);
 };
 }
