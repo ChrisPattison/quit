@@ -25,6 +25,10 @@ if(OPENMP_FOUND)
 endif()
 message("* Using OpenMP : ${OPENMP_FOUND}")
 
+include(${CMAKE_SOURCE_DIR}/cmake/TBBGet.cmake)
+set(tbb_root ${CMAKE_BINARY_DIR}/tbb)
+tbb_get(TBB_ROOT tbb_root)
+
 # -------- Fast
 if(NOT CMAKE_CXX_FLAGS_FAST)
     set(CMAKE_CXX_FLAGS_FAST "${SHARED_FAST_FLAGS} -O3 -DNDEBUG" CACHE STRING

@@ -9,6 +9,12 @@ configure_file (
 
 add_definitions(-DEIGEN_DONT_PARALLELIZE)
 
+find_package(TBB REQUIRED)
+set(LIBS ${LIBS} ${TBB_IMPORTED_TARGETS})
+include_directories(${TBB_INCLUDE_DIRS})
+
+include_directories(BEFORE ${CMAKE_BINARY_DIR}/parallelstl/include)
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(dSFMT)

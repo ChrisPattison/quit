@@ -25,6 +25,9 @@ cd build
 wget bitbucket.org/eigen/eigen/get/3.2.10.tar.bz2
 tar -xjf 3.2.10.tar.bz2
 
+git clone https://github.com/intel/parallelstl.git
+# source parallelstl/linux/pstlvars.sh intel64
+
 MPI_HOME=/usr/lib64/mpich cmake .. -DEIGEN3_INCLUDE_DIR=../build/eigen-eigen-b9cd8366d4e8
 make
 make install

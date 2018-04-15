@@ -25,6 +25,8 @@ cd build
 wget bitbucket.org/eigen/eigen/get/3.2.10.tar.bz2
 tar -xjf 3.2.10.tar.bz2
 
+git clone https://github.com/intel/parallelstl.git
+
 MPI_HOME=/usr/lib64/mpich cmake .. -DCMAKE_BUILD_TYPE=FastDebug -DEIGEN3_INCLUDE_DIR=../build/eigen-eigen-b9cd8366d4e8
 make
 make install
