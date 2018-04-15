@@ -72,18 +72,18 @@ double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
     return energy;
 }
 
-FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, int vertex) {
+FieldType SpinVectorMonteCarlo::LocalField(const StateVector& replica, int vertex) {
     FieldType h;
     for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
-        h += FieldType(it.value() * replica[it.index()][0], 0.0);
+        h[0] += it.value() * replica[it.index()][0];
     }
     h -= field_[vertex];
     h *= replica.lambda;
-    h -= FieldType(0., replica.gamma);
+    h[1] -= replica.gamma;
     return h;
 }
 
-double SpinVectorMonteCarlo::DeltaEnergy(StateVector& replica, int vertex, FieldType new_value) {
+float SpinVectorMonteCarlo::DeltaEnergy(const StateVector& replica, int vertex, FieldType new_value) {
     return (new_value - replica[vertex]) * LocalField(replica, vertex);
 }
 
@@ -105,7 +105,7 @@ void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, int sweeps) {
         for(std::size_t i = 0; i < replica.size(); ++i) {
             int vertex = rng_.Range(replica.size());
             auto new_value = VertexType(rng_.Probability());
-            double delta_energy = DeltaEnergy(replica, vertex, new_value);
+            float delta_energy = DeltaEnergy(replica, vertex, new_value);
             
             //round-off isn't a concern here
             if(MetropolisAcceptedMove(delta_energy, replica.beta)) {
@@ -124,11 +124,11 @@ void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, int sweeps) {
             if (h_mag != 0) {
                 auto h_unit = h / h_mag;
                 float prob = rng_.Probability();
-                double x = -std::log(1 + prob * (std::exp(-2 * replica.beta * h_mag) - 1)) / (replica.beta * h_mag) - 1.;
+                float x = -std::log(1 + prob * (std::exp(-2 * replica.beta * h_mag) - 1)) / (replica.beta * h_mag) - 1.;
                 auto h_perp = FieldType(h_unit[1], -h_unit[0]);
                 prob = rng_.Probability();
                 h_perp *= prob < 0.5 ? -1 : 1;
-                replica[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
+                replica[vertex] = h_unit * x + h_perp * std::sqrt(1-x*x);
             }else {
                 replica[vertex] = VertexType(rng_.Probability());
             }
@@ -151,17 +151,17 @@ double SpinVectorMonteCarlo::LinkOverlap(StateVector& alpha, StateVector& beta) 
     return ql / structure_.edges();
 }
 
-bool SpinVectorMonteCarlo::MetropolisAcceptedMove(double delta_energy, double beta) {
+bool SpinVectorMonteCarlo::MetropolisAcceptedMove(float delta_energy, float beta) {
     if(delta_energy < 0.0) {
         return true;
     }
     
-    double acceptance_prob_exp = -delta_energy*beta;
+    float acceptance_prob_exp = -delta_energy*beta;
     return AcceptedMove(acceptance_prob_exp);
 }
 
-bool SpinVectorMonteCarlo::AcceptedMove(double log_probability) {
-    double test = rng_.Probability();
+bool SpinVectorMonteCarlo::AcceptedMove(float log_probability) {
+    float test = rng_.Probability();
     // Compute bound on log of test number
     auto bound = log_lookup_(test);
 
@@ -174,7 +174,7 @@ bool SpinVectorMonteCarlo::AcceptedMove(double log_probability) {
     return std::exp(log_probability) > test;
 }
 
-void SpinVectorMonteCarlo::TransverseField(StateVector& replica, double magnitude, double p_magnitude) {
+void SpinVectorMonteCarlo::TransverseField(StateVector& replica, float magnitude, float p_magnitude) {
     replica.gamma = magnitude;
 }
 }

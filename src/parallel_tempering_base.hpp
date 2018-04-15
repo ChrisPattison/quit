@@ -37,9 +37,9 @@ public:
 
     struct Bin {
         std::size_t samples = 0;
-        double beta = std::numeric_limits<double>::quiet_NaN();
-        double gamma = std::numeric_limits<double>::quiet_NaN();
-        double lambda = std::numeric_limits<double>::quiet_NaN();
+        float beta = std::numeric_limits<float>::quiet_NaN();
+        float gamma = std::numeric_limits<float>::quiet_NaN();
+        float lambda = std::numeric_limits<float>::quiet_NaN();
         
         double exchange_probabilty = 0.0;
         double discrete_energy = 0.0;
@@ -61,9 +61,9 @@ public:
     struct Result : public Bin { };
 
     struct Schedule {
-        double beta;
-        double gamma;
-        double lambda;
+        float beta;
+        float gamma;
+        float lambda;
         bool overlap_dist = false;
         bool energy_dist = false;
         bool ground_dist = false;
