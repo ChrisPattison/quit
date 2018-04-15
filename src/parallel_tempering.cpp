@@ -24,6 +24,7 @@
  
 #include "parallel_tempering.hpp"
 #include "compare.hpp"
+#include <pstl/algorithm>
 
 namespace propane {
 

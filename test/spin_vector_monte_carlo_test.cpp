@@ -1,6 +1,6 @@
 #include "spin_vector_monte_carlo.hpp"
 #include <vector>
-#include <algorithm>
+#include <pstl/algorithm>
 #include <cmath>
 #include <iostream>
 #include "gtest/gtest.h"

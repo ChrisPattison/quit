@@ -24,7 +24,7 @@
  
 #include "parse.hpp"
 #include <vector>
-#include <algorithm>
+#include <pstl/algorithm>
 #include <iterator>
 #include <exception>
 #include <tuple>

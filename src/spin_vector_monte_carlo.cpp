@@ -24,7 +24,8 @@
 
 #include "spin_vector_monte_carlo.hpp"
 #include "compare.hpp"
-#include <numeric>
+#include <pstl/numeric>
+#include <pstl/algorithm>
 
 namespace propane {
 
