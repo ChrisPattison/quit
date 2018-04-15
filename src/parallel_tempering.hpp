@@ -31,7 +31,6 @@
 #include <vector>
 #include <utility>
 #include <chrono>
-#include <Eigen/Dense>
 
 namespace propane {
 class ParallelTempering : public ParallelTemperingBase, protected SpinVectorMonteCarlo {

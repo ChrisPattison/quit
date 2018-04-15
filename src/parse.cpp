@@ -61,7 +61,7 @@ Graph IjjParse(std::istream& file) {
             }
         } while(!file.eof());
         
-        model.Resize(stoi(header[0]), values.size());
+        model.Resize(stoi(header[0]));
         for(auto& v : values) {
             int i = std::get<0>(v);
             int j = std::get<1>(v);
@@ -73,10 +73,8 @@ Graph IjjParse(std::istream& file) {
                 model.SetField(i, coeff);
             }
         }
-        util::Check(model.IsConsistent(), "Missing edge somewhere.");
-        util::Check(model.Adjacent().size() > 0, "No Elements.");
     } catch(std::exception& e) {
-        util::Check(false, "Input parsing failed.");
+        util::Check(false, e.what());
     }
     return model;
 }

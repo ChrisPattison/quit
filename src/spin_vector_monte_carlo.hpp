@@ -29,7 +29,6 @@
 #include "graph.hpp"
 #include "random_number_generator.hpp"
 #include "log_lookup.hpp"
-#include <Eigen/Dense>
 
 namespace propane {
 class SpinVectorMonteCarlo {
@@ -40,21 +39,14 @@ protected:
         double beta;
     };
 
-    using FieldVector = std::vector<FieldType>;
-
     util::LogLookup log_lookup_;
     RandomNumberGenerator rng_;
 
     Graph structure_;
-    FieldVector field_;
 /** Returns the overlap between replicas alpha and beta.
  */
     #pragma omp declare simd
     double Overlap(StateVector& alpha, StateVector& beta);
-/** Returns the link overlap between replicas alpha and beta.
- */
-    #pragma omp declare simd
-    double LinkOverlap(StateVector& alpha, StateVector& beta);
 /**
  * Uses a look up table to compute a bound on the logarithm of a random number 
  * and compares to the exponent of the acceptance probability.
@@ -91,25 +83,25 @@ protected:
 /** Returns the local field at site vertex
  */
     #pragma omp declare simd
-    FieldType LocalField(StateVector& replica, int vertex);
+    FieldType LocalField(StateVector& replica, IndexType vertex);
 /** Returns the energy change associated with flipping spin vertex.
  * Implemented as the dot product of row vertex of the adjacency matrix 
  * with the replica vector multiplied by the spin at vertex.
  */
     #pragma omp declare simd
-    double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value);
+    double DeltaEnergy(StateVector& replica, IndexType vertex, FieldType new_value);
 /** Carries out moves micro canonical sweeps
  */
     #pragma omp declare simd
-    void MicroCanonicalSweep(StateVector& replica, int sweeps);
+    void MicroCanonicalSweep(StateVector& replica, std::size_t sweeps);
 /** Carries out moves monte carlo sweeps of replica using the Metropolis algorithm.
  */
     #pragma omp declare simd
-    void MetropolisSweep(StateVector& replica, int moves);
+    void MetropolisSweep(StateVector& replica, std::size_t moves);
 /** Carries out moves monte carlo sweeps of replica using the Heatbath algorithm.
  */
     #pragma omp declare simd
-    void HeatbathSweep(StateVector& replica, int moves);
+    void HeatbathSweep(StateVector& replica, std::size_t moves);
 /** Sets the transverse field (gamma)
  */
     void TransverseField(StateVector& replica, double magnitude, double p_magnitude);

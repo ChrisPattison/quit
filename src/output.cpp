@@ -75,39 +75,8 @@ void PtHistograms(std::vector<ParallelTempering::Result>& results) {
     std::cout << std::endl << kMagicString << std::endl << "# No Histograms" << std::endl;
 }
 
-
+// Removed
 void IjjDump(Graph& model, std::ostream& stream) {
     stream << std::endl << kMagicString << std::endl << "# Input" << std::endl;
-    auto round_mode = std::fegetround();
-    std::fesetround(FE_TONEAREST);
-    stream << model.size() << kOutputSeperator << kOutputCouplerCoeff << std::endl;
-    // Coefficients
-    for(std::size_t k = 0; k < model.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(model.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            double value = kOutputCouplerCoeff * it.value();
-            stream << k << kOutputSeperator << it.index() << kOutputSeperator;
-            if(util::FuzzyUlpCompare(value, std::lrint(value), 100)) {
-                stream << std::lrint(value);
-            }else {
-                stream << value;
-            }
-            stream << std::endl;
-        }
-    }
-    // Fields
-    if(model.has_field()) {
-        for(std::size_t k = 0; k < model.Fields().size(); ++k) {
-            stream << k << kOutputSeperator << k << kOutputSeperator;
-            double value = kOutputCouplerCoeff * model.Fields()[k];
-            if(util::FuzzyUlpCompare(value, std::lrint(value), 100)) {
-                stream << std::lrint(value);
-            }else {
-                stream << value;
-            }
-            stream << std::endl;
-        }
-    }
-    std::fesetround(round_mode);
 }
 }}

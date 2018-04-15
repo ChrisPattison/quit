@@ -24,7 +24,6 @@
  
 #pragma once
 #include <array>
-#include <Eigen/Dense>
 
 namespace propane {
 
@@ -75,6 +74,7 @@ struct FieldType : std::array<double, 2> {
 
 using EdgeType = double;
 using VertexType = FieldType;
+using IndexType = std::size_t;
 const double kEpsilon = 1e-13;
 
 

@@ -30,7 +30,6 @@
 #include "version.hpp"
 #include "output.hpp"
 #include <boost/program_options.hpp>
-#include <Eigen/Dense>
 #include <fstream>
 #include <iostream>
 #include <iomanip>

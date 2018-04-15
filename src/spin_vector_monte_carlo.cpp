@@ -26,22 +26,12 @@
 #include "compare.hpp"
 #include <pstl/numeric>
 #include <pstl/algorithm>
+#include <pstl/execution>
 
 namespace propane {
 
 double SpinVectorMonteCarlo::Hamiltonian(const StateVector& replica) {
-    double energy = 0.0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += replica[k][0] * it.value() * replica[it.index()][0];
-        }
-        energy -= replica[k] * field_[k];
-        energy *= replica.lambda; // Problem Hamiltonian Strength
-
-        energy -= replica[k][1] * replica.gamma;
-    }
-    return energy;
+    return replica.lambda * ProblemHamiltonian(replica) + replica.gamma * DriverHamiltonian(replica);
 }
 
 SpinVectorMonteCarlo::StateVector SpinVectorMonteCarlo::Project(const StateVector& replica) {
@@ -55,42 +45,53 @@ SpinVectorMonteCarlo::StateVector SpinVectorMonteCarlo::Project(const StateVecto
 
 double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
     double energy = 0.0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            energy += replica[k][0] * it.value() * replica[it.index()][0];
-        }
-        energy -= replica[k] * FieldType(field_[k][0], 0.);
+    for(auto site = 0; site < structure_.size(); ++site) {
+        energy += replica[site][0] / 2.0
+            * std::transform_reduce(std::execution::unseq, 
+            structure_.adjacent()[site].begin(), structure_.adjacent()[site].end(),
+            structure_.weights()[site].begin(),
+            0.0, std::plus<>(), 
+            [&replica](const auto& spin, const auto& weight) { return weight * replica[spin][0]; });
     }
+    energy -= std::transform_reduce(std::execution::unseq,
+        structure_.fields().begin(), structure_.fields().end(),
+        replica.begin(),
+        0.0, std::plus<>(),
+        [&replica](const auto& field, const auto& spin) { return field * spin[0]; });
+
     return energy;
 }
 
 double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
     double energy = 0.0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        energy -= replica[k][1];
-    }
+    energy -= replica.gamma * 
+        std::transform_reduce(std::execution::unseq,
+        replica.begin(), replica.end(),
+        0.0, std::plus<>(),
+        [&replica](const auto& spin) { return spin[1]; });
     return energy;
 }
 
-FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, int vertex) {
-    FieldType h;
-    for(Eigen::SparseMatrix<EdgeType>::InnerIterator it(structure_.Adjacent(), vertex); it; ++it) {
-        h += FieldType(it.value() * replica[it.index()][0], 0.0);
-    }
-    h -= field_[vertex];
-    h *= replica.lambda;
-    h -= FieldType(0., replica.gamma);
+FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, IndexType vertex) {
+    FieldType h(0, 0);
+    h[0] += replica.lambda * std::transform_reduce(std::execution::unseq, 
+        structure_.adjacent()[vertex].begin(), structure_.adjacent()[vertex].end(),
+        structure_.weights()[vertex].begin(),
+        0.0, std::plus<>(), 
+        [&replica](const auto& spin, const auto& weight) { return weight * replica[spin][0]; });
+
+    h[0] -= replica.lambda * structure_.fields()[vertex];
+    h[1] -= replica.gamma;
     return h;
 }
 
-double SpinVectorMonteCarlo::DeltaEnergy(StateVector& replica, int vertex, FieldType new_value) {
+double SpinVectorMonteCarlo::DeltaEnergy(StateVector& replica, IndexType vertex, FieldType new_value) {
     return (new_value - replica[vertex]) * LocalField(replica, vertex);
 }
 
-void SpinVectorMonteCarlo::MicroCanonicalSweep(StateVector& replica, int sweeps) {
+void SpinVectorMonteCarlo::MicroCanonicalSweep(StateVector& replica, std::size_t sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t i = 0; i < replica.size(); ++i) {
+        for(IndexType i = 0; i < replica.size(); ++i) {
             auto vertex = i;
             
             // get local field
@@ -101,10 +102,10 @@ void SpinVectorMonteCarlo::MicroCanonicalSweep(StateVector& replica, int sweeps)
     }
 }
 
-void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, int sweeps) {
+void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, std::size_t sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t i = 0; i < replica.size(); ++i) {
-            int vertex = rng_.Range(replica.size());
+        for(IndexType i = 0; i < replica.size(); ++i) {
+            IndexType vertex = rng_.Range(replica.size());
             auto new_value = VertexType(rng_.Probability());
             double delta_energy = DeltaEnergy(replica, vertex, new_value);
             
@@ -116,10 +117,10 @@ void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, int sweeps) {
     }
 }
 
-void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, int sweeps) {
+void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, std::size_t sweeps) {
     for(std::size_t k = 0; k < sweeps; ++k) {
-        for(std::size_t i = 0; i < replica.size(); ++i) {
-            int vertex = rng_.Range(replica.size());
+        for(IndexType i = 0; i < replica.size(); ++i) {
+            IndexType vertex = rng_.Range(replica.size());
             auto h = LocalField(replica, vertex);
             auto h_mag = std::sqrt(h*h);
             if (h_mag != 0) {
@@ -139,17 +140,6 @@ void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, int sweeps) {
 
 double SpinVectorMonteCarlo::Overlap(StateVector& alpha, StateVector& beta) {
     return std::inner_product(alpha.begin(), alpha.end(), beta.begin(), 0.0) / structure_.size();
-}
-
-double SpinVectorMonteCarlo::LinkOverlap(StateVector& alpha, StateVector& beta) {
-    double ql = 0;
-    for(std::size_t k = 0; k < structure_.Adjacent().outerSize(); ++k) {
-        for(Eigen::SparseTriangularView<Eigen::SparseMatrix<EdgeType>,Eigen::Upper>::InnerIterator 
-            it(structure_.Adjacent().triangularView<Eigen::Upper>(), k); it; ++it) {
-            ql += alpha[k] * beta[k] * alpha[it.index()] * beta[it.index()];
-        }
-    }
-    return ql / structure_.edges();
 }
 
 bool SpinVectorMonteCarlo::MetropolisAcceptedMove(double delta_energy, double beta) {

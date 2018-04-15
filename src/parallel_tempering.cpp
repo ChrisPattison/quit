@@ -36,18 +36,13 @@ ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
     schedule_ = config.schedule;
     bin_set_ = config.bin_set;
     structure_ = structure;
-    structure_.Adjacent().makeCompressed();
+    structure_.Compress();
     solver_mode_ = config.solver_mode;
     uniform_init_ = config.uniform_init;
     sweeps_ = config.sweeps;
     planted_energy_ = config.planted_energy;
     microcanonical_sweeps_ = config.microcanonical_sweeps;
 
-    field_.resize(structure_.Fields().size());
-    for(int k = 0; k < structure_.Fields().size(); ++k) {
-        // No transverse field
-        field_[k] = FieldType(structure_.Fields()(k), 0.);
-    }
     std::stable_sort(schedule_.begin(), schedule_.end(), [](const auto& left, const auto& right) {return left.gamma < right.gamma;});
     std::stable_sort(bin_set_.begin(), bin_set_.end());
 }
@@ -65,18 +60,14 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         replica.gamma = temp.gamma;
         replica.lambda = temp.lambda;
         replica.resize(structure_.size());
-        for(std::size_t k = 0; k < replica.size(); ++k) {
-            if(uniform_init_) {
-                replica[k] = FieldType(0.,1.);
-            }else {
-                replica[k] = FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
-            }
-        }
+        std::generate(replica.begin(), replica.end(), [&]() {
+            return FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
+        });
     }
     
     // Initialize result_sum
     result_sum.resize(schedule_.size());
-    for(int i = 0; i < result_sum.size(); ++i) {
+    for(std::size_t i = 0; i < result_sum.size(); ++i) {
         result_sum[i].gamma = schedule_[i].gamma;
         result_sum[i].lambda = schedule_[i].lambda;
         result_sum[i].beta = schedule_[i].beta;
@@ -88,7 +79,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
     for(std::size_t count = 0; (count < sweeps_) && !groundstate_found; ++count) {
         // Sweep replicas
         #pragma omp simd
-        for(int k = 0; k < schedule_.size(); ++k) {
+        for(std::size_t k = 0; k < schedule_.size(); ++k) {
             MicroCanonicalSweep(replicas_[k], microcanonical_sweeps_);
             HeatbathSweep(replicas_[k], 1);
         }
@@ -97,7 +88,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         auto exchange_probabilty = ReplicaExchange(replicas_);
 
         // Measure observables
-        for(int i = 0; i < result_sum.size(); ++i) {
+        for(std::size_t i = 0; i < result_sum.size(); ++i) {
             auto step_observables = Observables(replicas_[i]);
             step_observables.exchange_probabilty = exchange_probabilty[i];
             result_sum[i] += step_observables;
@@ -131,7 +122,7 @@ std::vector<double> ParallelTempering::ReplicaExchange(std::vector<StateVector>&
     std::transform(replica_set.begin(), replica_set.end(), problem_energy.begin(), [&](StateVector& r) { return ProblemHamiltonian(r); });
     std::transform(replica_set.begin(), replica_set.end(), driver_energy.begin(), [&](StateVector& r) { return DriverHamiltonian(r); });
     // replica_set[k+1].gamma > replica_set[k].gamma should be true
-    for(int k = 0; k < schedule_.size()-1; ++k) {
+    for(std::size_t k = 0; k < schedule_.size()-1; ++k) {
         // Exp[-d[AB] H_P - d[DB] H_D
         exchange_probabilty[k] = std::min(1.0,
             std::exp(
