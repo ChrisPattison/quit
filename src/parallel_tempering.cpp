@@ -127,8 +127,8 @@ std::vector<double> ParallelTempering::ReplicaExchange(std::vector<StateVector>&
     std::vector<double> problem_energy(replica_set.size());
     std::vector<double> driver_energy(replica_set.size());
     std::vector<double> exchange_probabilty(replica_set.size());
-    std::transform(replica_set.begin(), replica_set.end(), problem_energy.begin(), [&](const StateVector& r) { return ProblemHamiltonian(r); });
-    std::transform(replica_set.begin(), replica_set.end(), driver_energy.begin(), [&](const StateVector& r) { return DriverHamiltonian(r); });
+    std::transform(replica_set.begin(), replica_set.end(), problem_energy.begin(), [&](StateVector& r) { return ProblemHamiltonian(r); });
+    std::transform(replica_set.begin(), replica_set.end(), driver_energy.begin(), [&](StateVector& r) { return DriverHamiltonian(r); });
     // replica_set[k+1].gamma > replica_set[k].gamma should be true
     for(int k = 0; k < schedule_.size()-1; ++k) {
         // Exp[-d[AB] H_P - d[DB] H_D

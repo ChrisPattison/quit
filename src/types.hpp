@@ -30,29 +30,28 @@ namespace propane {
 
 /** struct that represents a vector in R^2
  */
-struct FieldType : std::array<float, 2> {
-    using ValueType = value_type;
+struct FieldType : std::array<double, 2> {
 /** Initializes with the zero vector
  */
     FieldType();
 /** Given a uniform value in [0,1), initializes a unit vector in a random direction
  */
-    FieldType(ValueType uniform);
+    FieldType(double uniform);
 /** Initializes vector with components a and b
  */
-    FieldType(ValueType a, ValueType b);
+    FieldType(double a, double b);
 /** Inner product
  */
-    float operator*(FieldType b) const;
+    double operator*(FieldType b) const;
 /** Scalar division
  */
-    FieldType operator/(ValueType b) const;
+    FieldType operator/(double b) const;
 /** Scalar multiplication
  */
     FieldType operator*(int b) const;
 /** Scalar multiplication
  */
-    FieldType operator*(ValueType b) const;
+    FieldType operator*(double b) const;
 /** Vector addition
  */
     FieldType operator+(FieldType b) const;
@@ -63,9 +62,9 @@ struct FieldType : std::array<float, 2> {
  */
     FieldType operator-(FieldType b) const;
 
-    FieldType operator*=(ValueType b);
+    FieldType operator*=(double b);
 
-    FieldType operator/=(ValueType b);
+    FieldType operator/=(double b);
 
     FieldType operator+=(FieldType b);
 
@@ -74,12 +73,12 @@ struct FieldType : std::array<float, 2> {
 };
 
 
-using EdgeType = float;
+using EdgeType = double;
 using VertexType = FieldType;
-const float kEpsilon = 1e-6;
+const double kEpsilon = 1e-13;
 
 
-FieldType operator*(const float& a, const FieldType& b);
+FieldType operator*(const double& a, const FieldType& b);
 
 FieldType operator*(const int& a, const FieldType& b);
 }

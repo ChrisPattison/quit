@@ -35,9 +35,9 @@ namespace propane {
 class SpinVectorMonteCarlo {
 protected:
     struct StateVector : std::vector<VertexType> {
-        float gamma;
-        float lambda;
-        float beta;
+        double gamma;
+        double lambda;
+        double beta;
     };
 
     using FieldVector = std::vector<FieldType>;
@@ -49,9 +49,11 @@ protected:
     FieldVector field_;
 /** Returns the overlap between replicas alpha and beta.
  */
+    #pragma omp declare simd
     double Overlap(StateVector& alpha, StateVector& beta);
 /** Returns the link overlap between replicas alpha and beta.
  */
+    #pragma omp declare simd
     double LinkOverlap(StateVector& alpha, StateVector& beta);
 /**
  * Uses a look up table to compute a bound on the logarithm of a random number 
@@ -59,37 +61,43 @@ protected:
  * If the probability is inside the bound given by the look table, 
  * true exponential is computed and compared.
  */
-    bool AcceptedMove(float log_probability);
+    #pragma omp declare simd
+    bool AcceptedMove(double log_probability);
 /** Returns true if a move is accepted according to the Metropolis algorithm.
  */
-    bool MetropolisAcceptedMove(float delta_energy, float beta);
+    #pragma omp declare simd
+    bool MetropolisAcceptedMove(double delta_energy, double beta);
 /** Returns the energy of a replica
  * Implemented as the sum of elementwise multiplication of the replica vector with the 
  * product of matrix multiplication between the upper half of the adjacency matrix
  * and the replica.
  */
+    #pragma omp declare simd
     double Hamiltonian(const StateVector& replica);
 /** Projects replica onto classical spins
  */
+    #pragma omp declare simd
     StateVector Project(const StateVector& replica); 
 /** Returns the energy of the replica as given by the original problem Hamiltonian
  * Does not include strength prefactor
  */
+    #pragma omp declare simd
     double ProblemHamiltonian(const StateVector& replica);
 /** Returns energy of the replica as given by the Hamiltonian driving term
  * Does not include strength prefactor
  */
+    #pragma omp declare simd
     double DriverHamiltonian(const StateVector& replica);
 /** Returns the local field at site vertex
  */
-    __attribute__((always_inline)) 
-    inline FieldType LocalField(const StateVector& replica, int vertex);
+    #pragma omp declare simd
+    FieldType LocalField(StateVector& replica, int vertex);
 /** Returns the energy change associated with flipping spin vertex.
  * Implemented as the dot product of row vertex of the adjacency matrix 
  * with the replica vector multiplied by the spin at vertex.
  */
-    __attribute__((always_inline))
-    inline float DeltaEnergy(const StateVector& replica, int vertex, FieldType new_value);
+    #pragma omp declare simd
+    double DeltaEnergy(StateVector& replica, int vertex, FieldType new_value);
 /** Carries out moves micro canonical sweeps
  */
     #pragma omp declare simd
@@ -104,6 +112,6 @@ protected:
     void HeatbathSweep(StateVector& replica, int moves);
 /** Sets the transverse field (gamma)
  */
-    void TransverseField(StateVector& replica, float magnitude, float p_magnitude);
+    void TransverseField(StateVector& replica, double magnitude, double p_magnitude);
 };
 }
