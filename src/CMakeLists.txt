@@ -7,8 +7,6 @@ configure_file (
     "${CMAKE_CURRENT_BINARY_DIR}/version.hpp"
 )
 
-add_definitions(-DEIGEN_DONT_PARALLELIZE)
-
 find_package(TBB REQUIRED)
 set(LIBS ${LIBS} ${TBB_IMPORTED_TARGETS})
 include_directories(${TBB_INCLUDE_DIRS})
@@ -57,9 +55,6 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
 include_directories(${Boost_INCLUDE_DIRS})
 
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
-
 set(LIBS ${LIBS} dSFMT XSadd)
 
 target_link_libraries(quit_solve ${LIBS})
@@ -71,5 +66,4 @@ set_target_properties(quit_lib PROPERTIES
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
-target_include_directories(quit_lib INTERFACE ${EIGEN3_INCLUDE_DIR})
 target_link_libraries(quit_lib ${LIBS})
