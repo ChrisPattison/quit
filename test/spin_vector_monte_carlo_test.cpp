@@ -11,17 +11,15 @@ class SingleSpinTester : public propane::SpinVectorMonteCarlo {
     StateVector state_;
 public:
     SingleSpinTester() {
-        structure_.Resize(2,1);
+        structure_.Resize(2);
         structure_.AddEdge(0, 1, 0.0);
         structure_.AddEdge(1, 0, 0.0);
+        structure_.SetField(0, 1.0);
         structure_.SetField(1, 1.0);
         state_.beta = 1.0;
         state_.gamma = 0.0;
         state_.resize(2);
         std::fill(state_.begin(), state_.end(), propane::VertexType(1.0, 0.0));
-        // This should be set in the SpinVectorMonteCarlo constructor
-        field_.resize(state_.size());
-        std::fill(field_.begin(), field_.end(), propane::VertexType(1.0, 0.0));
     }
 
     propane::VertexType SampleHeatbath() {
