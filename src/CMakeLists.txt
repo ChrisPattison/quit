@@ -67,7 +67,7 @@ target_link_libraries(quit_solve ${LIBS})
 
 add_library(quit_lib STATIC ${SRCS})
 set_target_properties(quit_lib PROPERTIES
-    CXX_STANDARD 14
+    CXX_STANDARD 17
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
