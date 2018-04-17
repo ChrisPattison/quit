@@ -68,7 +68,6 @@ protected:
     double Hamiltonian(const StateVector& replica);
 /** Projects replica onto classical spins
  */
-    #pragma omp declare simd
     StateVector Project(const StateVector& replica); 
 /** Returns the energy of the replica as given by the original problem Hamiltonian
  * Does not include strength prefactor
@@ -82,13 +81,11 @@ protected:
     double DriverHamiltonian(const StateVector& replica);
 /** Returns the local field at site vertex
  */
-    #pragma omp declare simd
     FieldType LocalField(StateVector& replica, IndexType vertex);
 /** Returns the energy change associated with flipping spin vertex.
  * Implemented as the dot product of row vertex of the adjacency matrix 
  * with the replica vector multiplied by the spin at vertex.
  */
-    #pragma omp declare simd
     double DeltaEnergy(StateVector& replica, IndexType vertex, FieldType new_value);
 /** Carries out moves micro canonical sweeps
  */
