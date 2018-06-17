@@ -37,7 +37,6 @@ ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
     structure_ = structure;
     structure_.Adjacent().makeCompressed();
     solver_mode_ = config.solver_mode;
-    uniform_init_ = config.uniform_init;
     sweeps_ = config.sweeps;
     planted_energy_ = config.planted_energy;
 
@@ -64,11 +63,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         replica.lambda = temp.lambda;
         replica.resize(structure_.size());
         for(std::size_t k = 0; k < replica.size(); ++k) {
-            if(uniform_init_) {
-                replica[k] = FieldType(0.,1.);
-            }else {
-                replica[k] = FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
-            }
+            replica[k] = FieldType(rng_.Probability());
         }
     }
     
