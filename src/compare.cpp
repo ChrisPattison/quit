@@ -52,7 +52,7 @@ bool FuzzyEpsCompare(const float& a, const float& b, const float err = 1e-6) {
     return std::abs(a - b) < err;
 }
 
-bool FuzzyEpsCompare(const double& a, const double& b, const double err = 1e-15) {
+bool FuzzyEpsCompare(const double& a, const double& b, const double err = 1e-12) {
     return std::abs(a - b) < err;
 }
 
