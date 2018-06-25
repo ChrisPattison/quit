@@ -39,6 +39,7 @@ ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
     solver_mode_ = config.solver_mode;
     sweeps_ = config.sweeps;
     planted_energy_ = config.planted_energy;
+    hit_criteria_ = config.hit_criteria;
 
     field_.resize(structure_.Fields().size());
     for(int k = 0; k < structure_.Fields().size(); ++k) {
@@ -96,8 +97,8 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
             result_sum[i] += step_observables;
         }
 
-        auto min_energy = std::min_element(result_sum.begin(), result_sum.end(), [](const auto& a, const auto& b) { return a.ground_energy < b.ground_energy; })->ground_energy;
-        groundstate_found = min_energy <= planted_energy_|| util::FuzzyCompare(min_energy, planted_energy_);
+        double min_energy = std::min_element(result_sum.begin(), result_sum.end(), [](const auto& a, const auto& b) { return a.ground_energy < b.ground_energy; })->ground_energy;
+        groundstate_found = min_energy <= planted_energy_|| util::FuzzyEpsCompare(min_energy, planted_energy_, hit_criteria_);
 
         if(groundstate_found || std::binary_search(bin_set_.begin(), bin_set_.end(), count+1)) { // Record Bin
             auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();

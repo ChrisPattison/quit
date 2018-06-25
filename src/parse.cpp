@@ -90,6 +90,7 @@ void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double
         std::stringstream converter(tree.get<std::string>("seed", "0"));
         converter >> std::hex >> config->seed;
         config->solver_mode = tree.get<bool>("solver_mode", false);
+        config->hit_criteria = tree.get<double>("hit_criteria", 1e-12);
         config->sweeps = tree.get<int>("sweeps");
         for(auto& item : tree.get_child("schedule")) {
             config->schedule.emplace_back();

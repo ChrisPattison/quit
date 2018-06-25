@@ -80,6 +80,7 @@ public:
         std::vector<std::size_t> bin_set;
         bool solver_mode = false;
         double planted_energy = std::numeric_limits<double>::quiet_NaN();
+        double hit_criteria = 1e-12;
     };
 };
 }

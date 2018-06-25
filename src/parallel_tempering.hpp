@@ -45,6 +45,7 @@ protected:
     bool solver_mode_;
     bool uniform_init_;
     double planted_energy_;
+    double hit_criteria_;
 public:
 /** Intializes solver.
  * schedule specifies the temperature set and sweep types to do at each temperature
