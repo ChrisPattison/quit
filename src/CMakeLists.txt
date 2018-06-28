@@ -9,6 +9,7 @@ configure_file (
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+add_definitions(-DDSFMT_MEXP=19937)
 add_subdirectory(dSFMT)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dSFMT)
 
