@@ -2,11 +2,6 @@ include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 string(TIMESTAMP BUILD_TIME UTC)
 
-configure_file (
-    "${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/version.hpp"
-)
-
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_definitions(-DDSFMT_MEXP=19937)
@@ -15,6 +10,23 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dSFMT)
 
 add_subdirectory(XSadd)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/XSadd)
+
+configure_file (
+    "${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/version.hpp"
+)
+
+if(NOT QUIT_LOG_LOOKUP_SIZE)
+    set(QUIT_LOG_LOOKUP_SIZE 1024
+        CACHE STRING "Set number of entries in log lookup table."
+        FORCE)
+endif()
+message("* Using ${QUIT_LOG_LOOKUP_SIZE} Log lookup table entries")
+
+configure_file (
+    "${CMAKE_CURRENT_SOURCE_DIR}/constant.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/constant.hpp"
+)
 
 set(SRCS
     graph.cpp 
