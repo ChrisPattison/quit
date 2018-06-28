@@ -104,7 +104,8 @@ void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, std::size_t swe
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(IndexType i = 0; i < replica.size(); ++i) {
             IndexType vertex = rng_.Range(replica.size());
-            auto new_value = VertexType(rng_.Probability());
+            auto raw_new_value = sin_lookup_.Unit(rng_.Probability());
+            auto new_value = VertexType(raw_new_value.cos, raw_new_value.sin);
             double delta_energy = DeltaEnergy(replica, vertex, new_value);
             
             //round-off isn't a concern here

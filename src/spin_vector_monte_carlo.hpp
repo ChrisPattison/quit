@@ -29,6 +29,7 @@
 #include "graph.hpp"
 #include "random_number_generator.hpp"
 #include "log_lookup.hpp"
+#include "discrete_sine.hpp"
 
 namespace propane {
 class SpinVectorMonteCarlo {
@@ -40,6 +41,7 @@ protected:
     };
 
     util::LogLookup log_lookup_;
+    util::DiscreteSine sin_lookup_;
     RandomNumberGenerator rng_;
 
     Graph structure_;

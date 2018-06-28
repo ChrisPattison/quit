@@ -16,6 +16,13 @@ configure_file (
     "${CMAKE_CURRENT_BINARY_DIR}/version.hpp"
 )
 
+if(NOT QUIT_SINE_LOOKUP_SIZE)
+    set(QUIT_SINE_LOOKUP_SIZE 4096
+        CACHE STRING "Set number of entries in sine lookup table."
+        FORCE)
+endif()
+message("* Using ${QUIT_SINE_LOOKUP_SIZE} Sine lookup table entries")
+
 if(NOT QUIT_LOG_LOOKUP_SIZE)
     set(QUIT_LOG_LOOKUP_SIZE 1024
         CACHE STRING "Set number of entries in log lookup table."
