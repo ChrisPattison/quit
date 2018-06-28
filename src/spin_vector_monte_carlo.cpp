@@ -46,13 +46,13 @@ double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
     double energy = 0.0;
     for(auto site = 0; site < structure_.size(); ++site) {
         energy += replica[site][0] / 2.0
-            * std::transform_reduce( 
+            * std::inner_product( 
             structure_.adjacent()[site].begin(), structure_.adjacent()[site].end(),
             structure_.weights()[site].begin(),
             0.0, std::plus<>(), 
             [&replica](const auto& spin, const auto& weight) { return weight * replica[spin][0]; });
     }
-    energy -= std::transform_reduce(
+    energy -= std::inner_product(
         structure_.fields().begin(), structure_.fields().end(),
         replica.begin(),
         0.0, std::plus<>(),
@@ -64,16 +64,15 @@ double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
 double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
     double energy = 0.0;
     energy -= replica.gamma * 
-        std::transform_reduce(
+        std::accumulate(
         replica.begin(), replica.end(),
-        0.0, std::plus<>(),
-        [&replica](const auto& spin) { return spin[1]; });
+        0.0, [&replica](const auto& a, const auto& spin) { return a + spin[1]; });
     return energy;
 }
 
 FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, IndexType vertex) {
     FieldType h(0, 0);
-    h[0] += replica.lambda * std::transform_reduce(
+    h[0] += replica.lambda * std::inner_product(
         structure_.adjacent()[vertex].begin(), structure_.adjacent()[vertex].end(),
         structure_.weights()[vertex].begin(),
         0.0, std::plus<>(), 
