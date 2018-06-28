@@ -23,14 +23,16 @@
  */
  
 #pragma once
-#include <vector>
+#include <array>
+#include <limits>
+#include <cmath>
+#include "constant.hpp"
 
 namespace propane { namespace util {
 /** Utility to quickly obtain a bound for the natural logarithm of a value
  */
 class LogLookup {
-    int const kLookupTableSize = 1024;
-    std::vector<double> lookup_table_;
+    std::array<double, propane::constant::klog_lut_size> lookup_table_;
 public:
     struct Bound {
         double upper;
@@ -42,8 +44,17 @@ public:
 /** Returns the upper and lower bound of the natural log of a number in [0,1]
  * Returns +/- inf if out of bounds
  */
-    Bound GetBound(double value);
+    inline Bound GetBound(double value) const {
+    unsigned int lower_index = static_cast<unsigned int>(std::floor(value * (lookup_table_.size() - 1)));
+    // Bounds checking
+    if(lower_index < 0 || lower_index >= lookup_table_.size() - 1) {
+        return {std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()};
+    }
+    return {lookup_table_[lower_index+1], lookup_table_[lower_index]};
+    }
 
-    Bound operator()(double value);
+    inline Bound operator()(double value) const {
+        return GetBound(value);
+    }
 };
 }}
