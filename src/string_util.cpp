@@ -23,7 +23,7 @@
  */
  
 #include "string_util.hpp"
-#include <pstl/algorithm>
+#include <algorithm>
 #include <iterator>
 #include <iostream>
 

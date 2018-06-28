@@ -24,9 +24,8 @@
 
 #include "spin_vector_monte_carlo.hpp"
 #include "compare.hpp"
-#include <pstl/numeric>
-#include <pstl/algorithm>
-#include <pstl/execution>
+#include <numeric>
+#include <algorithm>
 
 namespace propane {
 
@@ -47,13 +46,13 @@ double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
     double energy = 0.0;
     for(auto site = 0; site < structure_.size(); ++site) {
         energy += replica[site][0] / 2.0
-            * std::transform_reduce(std::execution::unseq, 
+            * std::transform_reduce( 
             structure_.adjacent()[site].begin(), structure_.adjacent()[site].end(),
             structure_.weights()[site].begin(),
             0.0, std::plus<>(), 
             [&replica](const auto& spin, const auto& weight) { return weight * replica[spin][0]; });
     }
-    energy -= std::transform_reduce(std::execution::unseq,
+    energy -= std::transform_reduce(
         structure_.fields().begin(), structure_.fields().end(),
         replica.begin(),
         0.0, std::plus<>(),
@@ -65,7 +64,7 @@ double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
 double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
     double energy = 0.0;
     energy -= replica.gamma * 
-        std::transform_reduce(std::execution::unseq,
+        std::transform_reduce(
         replica.begin(), replica.end(),
         0.0, std::plus<>(),
         [&replica](const auto& spin) { return spin[1]; });
@@ -74,7 +73,7 @@ double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
 
 FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, IndexType vertex) {
     FieldType h(0, 0);
-    h[0] += replica.lambda * std::transform_reduce(std::execution::unseq, 
+    h[0] += replica.lambda * std::transform_reduce(
         structure_.adjacent()[vertex].begin(), structure_.adjacent()[vertex].end(),
         structure_.weights()[vertex].begin(),
         0.0, std::plus<>(), 

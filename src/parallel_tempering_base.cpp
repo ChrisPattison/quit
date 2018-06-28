@@ -23,7 +23,7 @@
  */
 
 #include "parallel_tempering_base.hpp"
-#include <pstl/numeric>
+#include <numeric>
 #include <cassert>
 
 namespace propane {

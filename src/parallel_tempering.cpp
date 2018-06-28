@@ -24,7 +24,7 @@
  
 #include "parallel_tempering.hpp"
 #include "compare.hpp"
-#include <pstl/algorithm>
+#include <algorithm>
 
 namespace propane {
 
@@ -38,10 +38,10 @@ ParallelTempering::ParallelTempering(const Graph& structure, Config config) {
     structure_ = structure;
     structure_.Compress();
     solver_mode_ = config.solver_mode;
-    uniform_init_ = config.uniform_init;
     sweeps_ = config.sweeps;
     planted_energy_ = config.planted_energy;
     microcanonical_sweeps_ = config.microcanonical_sweeps;
+    hit_criteria_ = config.hit_criteria;
 
     std::stable_sort(schedule_.begin(), schedule_.end(), [](const auto& left, const auto& right) {return left.gamma < right.gamma;});
     std::stable_sort(bin_set_.begin(), bin_set_.end());
@@ -61,7 +61,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         replica.lambda = temp.lambda;
         replica.resize(structure_.size());
         std::generate(replica.begin(), replica.end(), [&]() {
-            return FieldType(1.,0.) * (rng_.Probability() < 0.5 ? 1 : -1);
+            return FieldType(rng_.Probability());
         });
     }
     
@@ -94,8 +94,8 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
             result_sum[i] += step_observables;
         }
 
-        auto min_energy = std::min_element(result_sum.begin(), result_sum.end(), [](const auto& a, const auto& b) { return a.ground_energy < b.ground_energy; })->ground_energy;
-        groundstate_found = min_energy <= planted_energy_|| util::FuzzyCompare(min_energy, planted_energy_);
+        double min_energy = std::min_element(result_sum.begin(), result_sum.end(), [](const auto& a, const auto& b) { return a.ground_energy < b.ground_energy; })->ground_energy;
+        groundstate_found = min_energy <= planted_energy_|| util::FuzzyEpsCompare(min_energy, planted_energy_, hit_criteria_);
 
         if(groundstate_found || std::binary_search(bin_set_.begin(), bin_set_.end(), count+1)) { // Record Bin
             auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - total_time_start).count();

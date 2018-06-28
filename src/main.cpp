@@ -34,7 +34,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <pstl/algorithm>
+#include <algorithm>
 #include <map>
 
 /** Read model and config for regular PT

@@ -15,7 +15,7 @@ quit_solve "$@"
 
 %post
 
-dnf install -y boost-static boost-devel cmake git gcc-c++ wget bzip2 make tbb
+dnf install -y boost-static boost-devel cmake git gcc-c++ wget bzip2 make
 
 cd /src
 rm -rf build

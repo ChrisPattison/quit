@@ -24,7 +24,7 @@
  
 #include "parse.hpp"
 #include <vector>
-#include <pstl/algorithm>
+#include <algorithm>
 #include <iterator>
 #include <exception>
 #include <tuple>
@@ -88,7 +88,7 @@ void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double
         std::stringstream converter(tree.get<std::string>("seed", "0"));
         converter >> std::hex >> config->seed;
         config->solver_mode = tree.get<bool>("solver_mode", false);
-        config->uniform_init = tree.get<bool>("uniform_init", false);
+        config->hit_criteria = tree.get<double>("hit_criteria", 1e-12);
         config->sweeps = tree.get<int>("sweeps");
         config->microcanonical_sweeps = tree.get<std::size_t>("microcanonical_sweeps", 10);
         for(auto& item : tree.get_child("schedule")) {
