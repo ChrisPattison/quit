@@ -87,67 +87,87 @@ double SpinVectorMonteCarlo::DeltaEnergy(StateVector& replica, IndexType vertex,
     return (new_value - replica[vertex]) * LocalField(replica, vertex);
 }
 
-void SpinVectorMonteCarlo::MicroCanonicalSweep(StateVector& replica, std::size_t sweeps) {
-    for(std::size_t k = 0; k < sweeps; ++k) {
-        for(IndexType i = 0; i < replica.size(); ++i) {
-            auto vertex = i;
-            
-            // get local field
-            auto h = LocalField(replica, vertex);
-            auto new_spin = ((2*h*(replica[vertex]*h))/(h*h))-replica[vertex];
-            replica[vertex] = new_spin;
+void SpinVectorMonteCarlo::MicroCanonicalSweep(std::vector<StateVector>& replica, std::size_t sweeps) {
+    auto var_count = replica[0].size();
+
+    for(std::size_t s = 0; s < sweeps; ++s) {
+        for(IndexType v = 0; v < replica[0].size(); ++v) {
+            auto vertex = rng_.Range(var_count);
+
+            for(std::size_t k = 0; k < replica.size(); ++k) {
+                auto& r = replica[k];
+                // get local field
+                auto h = LocalField(r, vertex);
+                auto new_spin = ((2*h*(r[vertex]*h))/(h*h))-r[vertex];
+                r[vertex] = new_spin;
+            }
         }
     }
 }
 
-void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, std::size_t sweeps) {
-    StateVector local_field;
+void SpinVectorMonteCarlo::MetropolisSweep(std::vector<StateVector>& replica, std::size_t sweeps) {
+    std::vector<StateVector> local_field;
     local_field.resize(replica.size());
-    for(std::size_t i = 0; i < replica.size(); ++i) {
-        local_field[i] = LocalField(replica, i);
+    for(std::size_t k = 0; k < replica.size(); ++k) {
+        local_field[k].resize(replica[k].size());
+        for(std::size_t i = 0; i < replica[k].size(); ++i) {
+            local_field[k][i] = LocalField(replica[k], i);
+        }
     }
 
-    for(std::size_t k = 0; k < sweeps; ++k) {
-        for(IndexType i = 0; i < replica.size(); ++i) {
-            IndexType vertex = rng_.Range(replica.size());
-            auto raw_new_value = sin_lookup_.Unit(rng_.Probability());
-            auto new_value = VertexType(raw_new_value.cos, raw_new_value.sin);
+    auto var_count = replica[0].size();
 
-            auto value_diff = new_value - replica[vertex];
-            double delta_energy = value_diff * local_field[i];
-            
-            //round-off isn't a concern here
-            if(MetropolisAcceptedMove(delta_energy, replica.beta)) {
-                replica[vertex] = new_value;
-                const auto& adjacent = structure_.adjacent()[vertex];
-                const auto& weight = structure_.weights()[vertex];
-                local_field[vertex][1] += replica.gamma * value_diff[1];
-                local_field[vertex][0] += replica.lambda * structure_.fields()[vertex] * value_diff[0];
-                // Update local fields
-                for(std::size_t i = 0; i < adjacent.size(); ++i) {
-                    local_field[adjacent[i]][0] += replica.lambda * (weight[i] * value_diff)[0];
+    for(std::size_t s = 0; s < sweeps; ++s) {
+        for(IndexType v = 0; v < var_count; ++v) {
+            IndexType vertex = rng_.Range(var_count);
+
+            for(std::size_t k = 0; k < replica.size(); ++k) {
+                auto& r = replica[k];
+                auto raw_new_value = sin_lookup_.Unit(rng_.Probability());
+                auto new_value = VertexType(raw_new_value.cos, raw_new_value.sin);
+
+                auto value_diff = new_value - r[vertex];
+                double delta_energy = value_diff * local_field[k][vertex];
+                
+                //round-off isn't a concern here
+                if(MetropolisAcceptedMove(delta_energy, r.beta)) {
+                    r[vertex] = new_value;
+                    const auto& adjacent = structure_.adjacent()[vertex];
+                    const auto& weight = structure_.weights()[vertex];
+                    local_field[k][vertex][1] += r.gamma * value_diff[1];
+                    local_field[k][vertex][0] += r.lambda * structure_.fields()[vertex] * value_diff[0];
+                    // Update local fields
+                    for(std::size_t i = 0; i < adjacent.size(); ++i) {
+                        local_field[k][adjacent[i]][0] += r.lambda * (weight[i] * value_diff)[0];
+                    }
                 }
             }
         }
     }
 }
 
-void SpinVectorMonteCarlo::HeatbathSweep(StateVector& replica, std::size_t sweeps) {
-    for(std::size_t k = 0; k < sweeps; ++k) {
-        for(IndexType i = 0; i < replica.size(); ++i) {
-            IndexType vertex = rng_.Range(replica.size());
-            auto h = LocalField(replica, vertex);
-            auto h_mag = std::sqrt(h*h);
-            if (h_mag != 0) {
-                auto h_unit = h / h_mag;
-                float prob = rng_.Probability();
-                double x = -std::log(1 + prob * (std::exp(-2 * replica.beta * h_mag) - 1)) / (replica.beta * h_mag) - 1.;
-                auto h_perp = FieldType(h_unit[1], -h_unit[0]);
-                prob = rng_.Probability();
-                h_perp *= prob < 0.5 ? -1 : 1;
-                replica[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
-            }else {
-                replica[vertex] = VertexType(rng_.Probability());
+void SpinVectorMonteCarlo::HeatbathSweep(std::vector<StateVector>& replica, std::size_t sweeps) {
+    auto var_count = replica[0].size();
+    
+    for(std::size_t s = 0; s < sweeps; ++s) {
+        for(IndexType i = 0; i < var_count; ++i) {
+            IndexType vertex = rng_.Range(var_count);
+
+            for(std::size_t k = 0; k < replica.size(); ++k) {
+                auto& r = replica[k];
+                auto h = LocalField(r, vertex);
+                auto h_mag = std::sqrt(h*h);
+                if (h_mag != 0) {
+                    auto h_unit = h / h_mag;
+                    float prob = rng_.Probability();
+                    double x = -std::log(1 + prob * (std::exp(-2 * r.beta * h_mag) - 1)) / (r.beta * h_mag) - 1.;
+                    auto h_perp = FieldType(h_unit[1], -h_unit[0]);
+                    prob = rng_.Probability();
+                    h_perp *= prob < 0.5 ? -1 : 1;
+                    r[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
+                }else {
+                    r[vertex] = VertexType(rng_.Probability());
+                }
             }
         }
     }

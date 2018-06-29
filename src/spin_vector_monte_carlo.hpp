@@ -91,16 +91,13 @@ protected:
     double DeltaEnergy(StateVector& replica, IndexType vertex, FieldType new_value);
 /** Carries out moves micro canonical sweeps
  */
-    #pragma omp declare simd
-    void MicroCanonicalSweep(StateVector& replica, std::size_t sweeps);
+    void MicroCanonicalSweep(std::vector<StateVector>& replica, std::size_t sweeps);
 /** Carries out moves monte carlo sweeps of replica using the Metropolis algorithm.
  */
-    #pragma omp declare simd
-    void MetropolisSweep(StateVector& replica, std::size_t moves);
+    void MetropolisSweep(std::vector<StateVector>& replica, std::size_t moves);
 /** Carries out moves monte carlo sweeps of replica using the Heatbath algorithm.
  */
-    #pragma omp declare simd
-    void HeatbathSweep(StateVector& replica, std::size_t moves);
+    void HeatbathSweep(std::vector<StateVector>& replica, std::size_t moves);
 /** Sets the transverse field (gamma)
  */
     void TransverseField(StateVector& replica, double magnitude, double p_magnitude);
