@@ -50,6 +50,17 @@ void Graph::AddEdge(IndexType from, IndexType to, EdgeType coupler) {
 }
 
 void Graph::Compress() {
+    for(std::size_t k = 0; k < adjacent_.size(); ++k) {
+        std::vector<std::pair<decltype(adjacent_)::value_type::value_type, decltype(weights_)::value_type::value_type>> key_value(adjacent_[k].size());
+        for(std::size_t i = 0; i < adjacent_[k].size(); ++i) {
+            key_value[i] = {adjacent_[k][i], weights_[k][i]};
+        }
+        std::sort(key_value.begin(), key_value.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+        for(std::size_t i = 0; i < adjacent_[k].size(); ++i) {
+            adjacent_[k][i] = key_value[i].first;
+            weights_[k][i] = key_value[i].second;
+        }
+    }
     for(auto v : adjacent_) { v.shrink_to_fit(); }
     for(auto v : weights_) { v.shrink_to_fit(); }
 }
