@@ -70,7 +70,7 @@ double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
     return energy;
 }
 
-FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, IndexType vertex) {
+FieldType SpinVectorMonteCarlo::LocalField(const StateVector& replica, IndexType vertex) {
     FieldType h(0, 0);
     h[0] += replica.lambda * std::inner_product(
         structure_.adjacent()[vertex].begin(), structure_.adjacent()[vertex].end(),
@@ -83,21 +83,40 @@ FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, IndexType verte
     return h;
 }
 
+void SpinVectorMonteCarlo::LocalField(const std::vector<StateVector>& replica, IndexType vertex, std::vector<FieldType>& field) {
+    std::fill(field.begin(), field.end(), FieldType(0, 0));
+
+    for(std::size_t i = 0; i < structure_.adjacent()[vertex].size(); ++i) {
+        for(std::size_t k = 0; k < replica.size(); ++k) {
+            field[k][0] += structure_.weights()[vertex][i] * replica[k][structure_.adjacent()[vertex][i]][0];
+        }
+    }
+    for(std::size_t k = 0; k < replica.size(); ++k) {
+        field[k][0] += structure_.fields()[vertex];
+        field[k] *= replica[k].lambda;
+    }
+    for(std::size_t k = 0; k < replica.size(); ++k) {
+        field[k][1] += replica[k].gamma;
+    }
+}
+
 double SpinVectorMonteCarlo::DeltaEnergy(StateVector& replica, IndexType vertex, FieldType new_value) {
     return (new_value - replica[vertex]) * LocalField(replica, vertex);
 }
 
 void SpinVectorMonteCarlo::MicroCanonicalSweep(std::vector<StateVector>& replica, std::size_t sweeps) {
     auto var_count = replica[0].size();
+    std::vector<FieldType> local_field(replica.size());
 
     for(std::size_t s = 0; s < sweeps; ++s) {
         for(IndexType v = 0; v < replica[0].size(); ++v) {
             auto vertex = rng_.Range(var_count);
+            // get local field
+            LocalField(replica, vertex, local_field);
 
             for(std::size_t k = 0; k < replica.size(); ++k) {
                 auto& r = replica[k];
-                // get local field
-                auto h = LocalField(r, vertex);
+                auto& h = local_field[k];
                 auto new_spin = ((2*h*(r[vertex]*h))/(h*h))-r[vertex];
                 r[vertex] = new_spin;
             }

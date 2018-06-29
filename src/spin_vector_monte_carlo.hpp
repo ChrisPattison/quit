@@ -83,7 +83,10 @@ protected:
     double DriverHamiltonian(const StateVector& replica);
 /** Returns the local field at site vertex
  */
-    FieldType LocalField(StateVector& replica, IndexType vertex);
+    FieldType LocalField(const StateVector& replica, IndexType vertex);
+/** Returns the local field at site vertex for all replicas
+ */
+    void LocalField(const std::vector<StateVector>& replica, IndexType vertex, std::vector<FieldType>& field);
 /** Returns the energy change associated with flipping spin vertex.
  * Implemented as the dot product of row vertex of the adjacency matrix 
  * with the replica vector multiplied by the spin at vertex.
