@@ -101,16 +101,32 @@ void SpinVectorMonteCarlo::MicroCanonicalSweep(StateVector& replica, std::size_t
 }
 
 void SpinVectorMonteCarlo::MetropolisSweep(StateVector& replica, std::size_t sweeps) {
+    StateVector local_field;
+    local_field.resize(replica.size());
+    for(std::size_t i = 0; i < replica.size(); ++i) {
+        local_field[i] = LocalField(replica, i);
+    }
+
     for(std::size_t k = 0; k < sweeps; ++k) {
         for(IndexType i = 0; i < replica.size(); ++i) {
             IndexType vertex = rng_.Range(replica.size());
             auto raw_new_value = sin_lookup_.Unit(rng_.Probability());
             auto new_value = VertexType(raw_new_value.cos, raw_new_value.sin);
-            double delta_energy = DeltaEnergy(replica, vertex, new_value);
+
+            auto value_diff = new_value - replica[vertex];
+            double delta_energy = value_diff * local_field[i];
             
             //round-off isn't a concern here
             if(MetropolisAcceptedMove(delta_energy, replica.beta)) {
                 replica[vertex] = new_value;
+                const auto& adjacent = structure_.adjacent()[vertex];
+                const auto& weight = structure_.weights()[vertex];
+                local_field[vertex][1] += replica.gamma * value_diff[1];
+                local_field[vertex][0] += replica.lambda * structure_.fields()[vertex] * value_diff[0];
+                // Update local fields
+                for(std::size_t i = 0; i < adjacent.size(); ++i) {
+                    local_field[adjacent[i]][0] += replica.lambda * (weight[i] * value_diff)[0];
+                }
             }
         }
     }
