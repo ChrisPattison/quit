@@ -72,12 +72,13 @@ double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
 
 FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, IndexType vertex) {
     FieldType h(0, 0);
-    h[0] += replica.lambda * std::inner_product(
-        structure_.adjacent()[vertex].begin(), structure_.adjacent()[vertex].end(),
-        structure_.weights()[vertex].begin(),
-        0.0, std::plus<>(), 
-        [&replica](const auto& spin, const auto& weight) { return weight * replica[spin][0]; });
-
+    double x = 0;
+    const auto adj_count = structure_.adjacent()[vertex].size();
+    #pragma omp simd reduction(+: x)
+    for(std::size_t i = 0; i < adj_count; ++i) {
+        x += structure_.weights()[vertex][i] * replica[structure_.adjacent()[vertex][i]][0];
+    }
+    h[0] = replica.lambda * x;
     h[0] -= replica.lambda * structure_.fields()[vertex];
     h[1] -= replica.gamma;
     return h;
@@ -88,18 +89,34 @@ double SpinVectorMonteCarlo::DeltaEnergy(StateVector& replica, IndexType vertex,
 }
 
 void SpinVectorMonteCarlo::MicroCanonicalSweep(std::vector<StateVector>& replica, std::size_t sweeps) {
+    std::vector<StateVector> local_field;
+    local_field.resize(replica.size());
+    for(std::size_t k = 0; k < replica.size(); ++k) {
+        local_field[k].resize(replica[k].size());
+        for(std::size_t i = 0; i < replica[k].size(); ++i) {
+            local_field[k][i] = LocalField(replica[k], i);
+        }
+    }
+
     auto var_count = replica[0].size();
 
     for(std::size_t s = 0; s < sweeps; ++s) {
         for(IndexType v = 0; v < replica[0].size(); ++v) {
             auto vertex = rng_.Range(var_count);
+            const auto& adjacent = structure_.adjacent()[vertex];
+            const auto& weight = structure_.weights()[vertex];
 
             for(std::size_t k = 0; k < replica.size(); ++k) {
                 auto& r = replica[k];
                 // get local field
-                auto h = LocalField(r, vertex);
+                auto& h = local_field[k][vertex];
                 auto new_spin = ((2*h*(r[vertex]*h))/(h*h))-r[vertex];
+                auto value_diff = new_spin - r[vertex];
                 r[vertex] = new_spin;
+
+                for(std::size_t i = 0; i < adjacent.size(); ++i) {
+                    local_field[k][adjacent[i]][0] += r.lambda * (weight[i] * value_diff)[0];
+                }
             }
         }
     }
@@ -134,8 +151,6 @@ void SpinVectorMonteCarlo::MetropolisSweep(std::vector<StateVector>& replica, st
                     r[vertex] = new_value;
                     const auto& adjacent = structure_.adjacent()[vertex];
                     const auto& weight = structure_.weights()[vertex];
-                    local_field[k][vertex][1] += r.gamma * value_diff[1];
-                    local_field[k][vertex][0] += r.lambda * structure_.fields()[vertex] * value_diff[0];
                     // Update local fields
                     for(std::size_t i = 0; i < adjacent.size(); ++i) {
                         local_field[k][adjacent[i]][0] += r.lambda * (weight[i] * value_diff)[0];
@@ -173,10 +188,6 @@ void SpinVectorMonteCarlo::HeatbathSweep(std::vector<StateVector>& replica, std:
     }
 }
 
-double SpinVectorMonteCarlo::Overlap(StateVector& alpha, StateVector& beta) {
-    return std::inner_product(alpha.begin(), alpha.end(), beta.begin(), 0.0) / structure_.size();
-}
-
 bool SpinVectorMonteCarlo::MetropolisAcceptedMove(double delta_energy, double beta) {
     if(delta_energy < 0.0) {
         return true;
@@ -204,3 +215,4 @@ void SpinVectorMonteCarlo::TransverseField(StateVector& replica, double magnitud
     replica.gamma = magnitude;
 }
 }
+
