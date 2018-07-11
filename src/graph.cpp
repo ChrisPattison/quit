@@ -23,6 +23,7 @@
  */
  
 #include "graph.hpp"
+#include <algorithm>
 
 namespace propane {
 

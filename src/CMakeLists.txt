@@ -16,19 +16,12 @@ configure_file (
     "${CMAKE_CURRENT_BINARY_DIR}/version.hpp"
 )
 
-if(NOT QUIT_SINE_LOOKUP_SIZE)
-    set(QUIT_SINE_LOOKUP_SIZE 4096
-        CACHE STRING "Set number of entries in sine lookup table."
-        FORCE)
-endif()
-message("* Using ${QUIT_SINE_LOOKUP_SIZE} Sine lookup table entries")
-
-if(NOT QUIT_LOG_LOOKUP_SIZE)
-    set(QUIT_LOG_LOOKUP_SIZE 1024
+if(NOT PT_LOG_LOOKUP_SIZE)
+    set(PT_LOG_LOOKUP_SIZE 1024
         CACHE STRING "Set number of entries in log lookup table."
         FORCE)
 endif()
-message("* Using ${QUIT_LOG_LOOKUP_SIZE} Log lookup table entries")
+message("* Using ${PT_LOG_LOOKUP_SIZE} Log lookup table entries")
 
 configure_file (
     "${CMAKE_CURRENT_SOURCE_DIR}/constant.hpp.in"
@@ -43,23 +36,23 @@ set(SRCS
     string_util.cpp 
     compare.cpp
     log_lookup.cpp
-    spin_vector_monte_carlo.cpp
+    ising.cpp
     parallel_tempering_base.cpp
     parallel_tempering.cpp
 )
 
 add_executable(
-    quit_solve
+    pt_solve
     main.cpp 
     ${SRCS}
 )
 
-install(TARGETS quit_solve
+install(TARGETS pt_solve
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
 )
 
-set_target_properties(quit_solve PROPERTIES
+set_target_properties(pt_solve PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
@@ -71,13 +64,13 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 set(LIBS ${LIBS} dSFMT XSadd)
 
-target_link_libraries(quit_solve ${LIBS})
+target_link_libraries(pt_solve ${LIBS})
 
 
-add_library(quit_lib STATIC ${SRCS})
-set_target_properties(quit_lib PROPERTIES
+add_library(pt_lib STATIC ${SRCS})
+set_target_properties(pt_lib PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
-target_link_libraries(quit_lib ${LIBS})
+target_link_libraries(pt_lib ${LIBS})

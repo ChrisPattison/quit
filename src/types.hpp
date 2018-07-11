@@ -27,63 +27,13 @@
 
 namespace propane {
 
-/** struct that represents a vector in R^2
- */
-struct FieldType : std::array<double, 2> {
-/** Initializes with the zero vector
- */
-    FieldType();
-/** Given a uniform value in [0,1), initializes a unit vector in a random direction
- */
-    FieldType(double uniform);
-/** Initializes vector with components a and b
- */
-    FieldType(double a, double b);
-/** Inner product
- */
-    double operator*(FieldType b) const;
-/** Scalar division
- */
-    FieldType operator/(double b) const;
-/** Scalar multiplication
- */
-    FieldType operator*(int b) const;
-/** Scalar multiplication
- */
-    FieldType operator*(double b) const;
-/** Vector addition
- */
-    FieldType operator+(FieldType b) const;
-/** Negation
- */
-    FieldType operator-() const;
-/** Vector subtraction
- */
-    FieldType operator-(FieldType b) const;
-
-    FieldType operator*=(double b);
-
-    FieldType operator/=(double b);
-
-    FieldType operator+=(FieldType b);
-
-    FieldType operator-=(FieldType b);
-
-};
-
-
 using EdgeType = double;
-using VertexType = FieldType;
+using VertexType = char;
 using IndexType = std::size_t;
 const double kEpsilon = 1e-13;
 
-
-FieldType operator*(const double& a, const FieldType& b);
-
-FieldType operator*(const int& a, const FieldType& b);
 }
 
-#include "types.inl"
 
 
     

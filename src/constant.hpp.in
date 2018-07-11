@@ -4,6 +4,5 @@
 
 namespace propane { namespace constant {
 static constexpr double pi = std::atan(1)*4;
-static constexpr std::size_t ksine_lut_size = @QUIT_SINE_LOOKUP_SIZE@;
-static constexpr std::size_t klog_lut_size = @QUIT_LOG_LOOKUP_SIZE@;
+static constexpr std::size_t klog_lut_size = @PT_LOG_LOOKUP_SIZE@;
 }}

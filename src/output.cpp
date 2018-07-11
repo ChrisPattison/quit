@@ -31,7 +31,7 @@
 
 namespace propane { namespace io {   
 void Header(Graph& model, std::string config_path, std::string bond_path) {
-    std::cout << "# QUantum Inspired Tempering" << std::endl;
+    std::cout << "# Parallel Tempering" << std::endl;
     std::cout << "# C. Pattison" << std::endl;
     std::cout << "# Branch: " << version::kRefSpec << std::endl;
     std::cout << "# Commit: " << version::kCommitHash << std::endl;
@@ -44,13 +44,9 @@ void Header(Graph& model, std::string config_path, std::string bond_path) {
 void PtColumnNames() {
     std::cout << std::right << std::setw(kHeaderWidth)
         << "Beta" << std::setw(kHeaderWidth)
-        << "Gamma" << std::setw(kHeaderWidth)
-        << "Lambda" << std::setw(kHeaderWidth)
         << "Samples" << std::setw(kHeaderWidth)
         << "<E>" << std::setw(kHeaderWidth) 
         << "E_MIN" << std::setw(kHeaderWidth) 
-        << "<E_P>" << std::setw(kHeaderWidth)
-        << "<E_D>" << std::setw(kHeaderWidth)
         << "P_XCHG" << std::setw(kHeaderWidth) 
         << "Total_Walltime" << std::setw(kHeaderWidth)
         << "Total_Sweeps";
@@ -59,13 +55,9 @@ void PtColumnNames() {
 void PtResults(ParallelTempering::Result& r) {
     std::cout << std::setprecision(10) << std::scientific << std::setw(kWidth)
         << r.beta << " " << std::setw(kWidth) 
-        << r.gamma << " " << std::setw(kWidth)
-        << r.lambda << " " << std::setw(kWidth)
         << r.samples << " " << std::setw(kWidth)
-        << r.discrete_energy << " " << std::setw(kWidth)
+        << r.energy << " " << std::setw(kWidth)
         << r.ground_energy << " " << std::setw(kWidth)
-        << r.problem_energy << " " << std::setw(kWidth)
-        << r.driver_energy << " " << std::setw(kWidth)
         << r.exchange_probabilty << " " << std::setw(kWidth)
         << r.total_time << " " << std::setw(kWidth)
         << r.total_sweeps << " ";

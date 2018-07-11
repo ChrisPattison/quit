@@ -90,16 +90,10 @@ void PtConfigParse(std::istream& file, ParallelTempering::Config* config, double
         config->solver_mode = tree.get<bool>("solver_mode", false);
         config->hit_criteria = tree.get<double>("hit_criteria", 1e-12);
         config->sweeps = tree.get<int>("sweeps");
-        config->microcanonical_sweeps = tree.get<std::size_t>("microcanonical_sweeps", 10);
         for(auto& item : tree.get_child("schedule")) {
             config->schedule.emplace_back();
             config->schedule.back().beta = item.second.get<double>("beta");
-            config->schedule.back().gamma = item.second.get<double>("gamma");
-            config->schedule.back().lambda = item.second.get<double>("lambda", 1.0);
             config->schedule.back().compute_observables = item.second.get("compute_observables", true);
-            config->schedule.back().overlap_dist = item.second.get("overlap_hist", false);
-            config->schedule.back().energy_dist = item.second.get("energy_hist", false);
-            config->schedule.back().ground_dist = item.second.get("ground_hist", false);
         }
         
         for(auto& item : tree.get_child("bin_set")) {

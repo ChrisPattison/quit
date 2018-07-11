@@ -27,13 +27,13 @@
 #include "graph.hpp"
 #include "random_number_generator.hpp"
 #include "parallel_tempering_base.hpp"
-#include "spin_vector_monte_carlo.hpp"
+#include "ising.hpp"
 #include <vector>
 #include <utility>
 #include <chrono>
 
 namespace propane {
-class ParallelTempering : public ParallelTemperingBase, protected SpinVectorMonteCarlo {
+class ParallelTempering : public ParallelTemperingBase, protected Ising {
 protected:
     std::vector<StateVector> replicas_;
     std::vector<int> replica_families_;
@@ -45,7 +45,6 @@ protected:
     bool uniform_init_;
     double planted_energy_;
 
-    std::size_t microcanonical_sweeps_;
     double hit_criteria_;
 public:
 /** Intializes solver.
@@ -60,9 +59,9 @@ private:
 /** Carry out replica exchange on replicas
  * Returns the set of exchange probabilities
  */
-    std::vector<double> ReplicaExchange(std::vector<StateVector>& replica_set);
+    std::vector<double> ReplicaExchange(std::vector<StateVector>* replica_set);
 /** Record observables
  */
-    Bin Observables(const StateVector& replica, bool minimum_set = false);
+    Bin Observables(const StateVector& replica);
 };
 }

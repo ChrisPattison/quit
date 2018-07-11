@@ -1,14 +1,11 @@
 find_package(GTest)
 
 if(GTEST_FOUND)
-    include_directories(BEFORE ${CMAKE_BINARY_DIR}/parallelstl/include)
-
     include_directories(${GTEST_INCLUDE_DIRS})
 
     add_executable(
         tests
         random_number_generator_test.cpp
-        spin_vector_monte_carlo_test.cpp
         main.cpp
     )
 
@@ -23,7 +20,7 @@ if(GTEST_FOUND)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/XSadd)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/dSFMT)
 
-    set(LIBS quit_lib ${GTEST_LIBRARIES})
+    set(LIBS pt_lib ${GTEST_LIBRARIES})
     target_link_libraries(tests ${LIBS})
 
 endif()

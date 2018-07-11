@@ -28,17 +28,12 @@
 
 namespace propane {
     auto ParallelTemperingBase::Bin::operator+=(const Bin& other) -> Bin {
-        assert(gamma == other.gamma);
-        assert(lambda == other.lambda);
         assert(beta == other.beta);
 
         samples += other.samples;
-        exchange_probabilty += other.exchange_probabilty;
-        discrete_energy += other.discrete_energy;
+        energy += other.energy;
         ground_energy = std::min(ground_energy, other.ground_energy);
 
-        problem_energy += other.problem_energy;
-        driver_energy += other.driver_energy;
         return *this;
     }
 
@@ -51,14 +46,10 @@ namespace propane {
     auto ParallelTemperingBase::Bin::Finalize() -> Result {
         Result result;
         result.beta = beta;
-        result.gamma = gamma;
-        result.lambda = lambda;
 
         result.samples = samples;
-        result.problem_energy = problem_energy / samples;
-        result.driver_energy = driver_energy / samples;
         result.exchange_probabilty = exchange_probabilty / samples;
-        result.discrete_energy = discrete_energy / samples;
+        result.energy = energy / samples;
         result.ground_energy = ground_energy;
         result.total_sweeps = total_sweeps;
         result.total_time = total_time;

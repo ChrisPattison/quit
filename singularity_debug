@@ -5,7 +5,7 @@ From: fedora:27
 cp -rf . $SINGULARITY_ROOTFS/src
 
 %runscript
-gdb --args quit_solve "$@"
+gdb --args pt_solve "$@"
 
 %files
 

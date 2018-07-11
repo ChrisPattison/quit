@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
 
-project (QUIT CXX)
-set (QUIT_VERSION_MAJOR 1)
-set (QUIT_VERSION_MINOR 0)
+project (PT CXX)
+set (PT_VERSION_MAJOR 1)
+set (PT_VERSION_MINOR 0)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 set(SHARED_FAST_FLAGS "-Wall -Wno-misleading-indentation -Wno-int-in-bool-context -march=native")

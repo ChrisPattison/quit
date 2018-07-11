@@ -38,15 +38,10 @@ public:
     struct Bin {
         std::size_t samples = 0;
         double beta = std::numeric_limits<double>::quiet_NaN();
-        double gamma = std::numeric_limits<double>::quiet_NaN();
-        double lambda = std::numeric_limits<double>::quiet_NaN();
         
         double exchange_probabilty = 0.0;
-        double discrete_energy = 0.0;
+        double energy = 0.0;
         double ground_energy = std::numeric_limits<double>::max();
-
-        double problem_energy = 0.0;
-        double driver_energy = 0.0;
 
         unsigned long long int total_sweeps = 0;
         double total_time = std::numeric_limits<double>::quiet_NaN();
@@ -62,17 +57,11 @@ public:
 
     struct Schedule {
         double beta;
-        double gamma;
-        double lambda;
-        bool overlap_dist = false;
-        bool energy_dist = false;
-        bool ground_dist = false;
         bool compute_observables = false;
     };
 
     struct Config {
         std::size_t sweeps;
-        std::size_t microcanonical_sweeps;
         std::uint64_t seed;
         std::vector<ParallelTemperingBase::Schedule> schedule;
         std::vector<std::size_t> bin_set;

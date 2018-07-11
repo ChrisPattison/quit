@@ -5,7 +5,7 @@ From: fedora:27
 cp -rf . $SINGULARITY_ROOTFS/src
 
 %runscript
-quit_solve "$@"
+pt_solve "$@"
 
 %files
 
