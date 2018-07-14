@@ -31,6 +31,7 @@ namespace propane {
         assert(beta == other.beta);
 
         samples += other.samples;
+        exchange_probabilty += other.exchange_probabilty;
         energy += other.energy;
         ground_energy = std::min(ground_energy, other.ground_energy);
 
