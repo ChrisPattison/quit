@@ -29,16 +29,16 @@ namespace propane {
 
 /** struct that represents a vector in R^2
  */
-struct FieldType : std::array<double, 2> {
+struct FieldType : std::array<double, 3> {
 /** Initializes with the zero vector
  */
     FieldType();
 /** Given a uniform value in [0,1), initializes a unit vector in a random direction
  */
-    FieldType(double uniform);
+    FieldType(double uniform1, double uniform2);
 /** Initializes vector with components a and b
  */
-    FieldType(double a, double b);
+    FieldType(double a, double b, double c);
 /** Inner product
  */
     double operator*(FieldType b) const;

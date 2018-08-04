@@ -34,10 +34,16 @@ double SpinVectorMonteCarlo::Hamiltonian(const StateVector& replica) {
 }
 
 SpinVectorMonteCarlo::StateVector SpinVectorMonteCarlo::Project(const StateVector& replica) {
+    // Priviliged direction
+    auto direction = std::accumulate(replica.begin(), replica.end(), FieldType(0,0,0));
+    direction /= direction * direction;
+    // We should check both directions but randomly flip for now
+    direction *= rng_.Probability() < 0.5 ? -1.0 : 1.0;
+
     StateVector projected;
     projected.resize(replica.size());
     for( std::size_t k = 0; k < replica.size(); ++k ) {
-        projected[k] = replica[k] * FieldType(1.0, 0.0) > 0 ? FieldType(1.0, 0.0) : FieldType(-1.0, 0.0);
+        projected[k] = replica[k] * direction > 0 ? FieldType(1.0, 0.0, 0.0) : FieldType(-1.0, 0.0, 0.0);
     }
     return projected;
 }
@@ -45,14 +51,14 @@ SpinVectorMonteCarlo::StateVector SpinVectorMonteCarlo::Project(const StateVecto
 double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
     double energy = 0.0;
     for(auto site = 0; site < structure_.size(); ++site) {
-        energy += replica[site][0] / 2.0
+        energy += ((replica[site] / 2.0)
             * std::inner_product( 
             structure_.adjacent()[site].begin(), structure_.adjacent()[site].end(),
             structure_.weights()[site].begin(),
-            0.0, std::plus<>(), 
-            [&replica](const auto& spin, const auto& weight) { return weight * replica[spin][0]; });
+            FieldType(0,0,0), std::plus<>(), 
+            [&replica](const auto& spin, const auto& weight) { return weight * replica[spin]; }));
     }
-    energy -= std::inner_product(
+    energy += std::inner_product(
         structure_.fields().begin(), structure_.fields().end(),
         replica.begin(),
         0.0, std::plus<>(),
@@ -63,7 +69,7 @@ double SpinVectorMonteCarlo::ProblemHamiltonian(const StateVector& replica) {
 
 double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
     double energy = 0.0;
-    energy -= replica.gamma * 
+    energy += replica.gamma * 
         std::accumulate(
         replica.begin(), replica.end(),
         0.0, [&replica](const auto& a, const auto& spin) { return a + spin[1]; });
@@ -72,15 +78,12 @@ double SpinVectorMonteCarlo::DriverHamiltonian(const StateVector& replica) {
 
 FieldType SpinVectorMonteCarlo::LocalField(StateVector& replica, IndexType vertex) {
     FieldType h(0, 0);
-    double x = 0;
     const auto adj_count = structure_.adjacent()[vertex].size();
-    #pragma omp simd reduction(+: x)
     for(std::size_t i = 0; i < adj_count; ++i) {
-        x += structure_.weights()[vertex][i] * replica[structure_.adjacent()[vertex][i]][0];
+        h += replica.lambda * structure_.weights()[vertex][i] * replica[structure_.adjacent()[vertex][i]];
     }
-    h[0] = replica.lambda * x;
-    h[0] -= replica.lambda * structure_.fields()[vertex];
-    h[1] -= replica.gamma;
+    h[0] += replica.lambda * structure_.fields()[vertex];
+    h[1] += replica.gamma;
     return h;
 }
 
@@ -140,8 +143,12 @@ void SpinVectorMonteCarlo::MetropolisSweep(std::vector<StateVector>& replica, st
 
             for(std::size_t k = 0; k < replica.size(); ++k) {
                 auto& r = replica[k];
-                auto raw_new_value = sin_lookup_.Unit(rng_.Probability());
-                auto new_value = VertexType(raw_new_value.cos, raw_new_value.sin);
+                auto raw_new_value1 = sin_lookup_.Unit(rng_.Probability());
+                auto raw_new_value2 = sin_lookup_.Unit(rng_.Probability());
+                auto new_value = VertexType(
+                    raw_new_value1.sin * raw_new_value2.cos, 
+                    raw_new_value1.sin * raw_new_value2.sin,
+                    raw_new_value1.cos);
 
                 auto value_diff = new_value - r[vertex];
                 double delta_energy = value_diff * local_field[k][vertex];
@@ -153,7 +160,7 @@ void SpinVectorMonteCarlo::MetropolisSweep(std::vector<StateVector>& replica, st
                     const auto& weight = structure_.weights()[vertex];
                     // Update local fields
                     for(std::size_t i = 0; i < adjacent.size(); ++i) {
-                        local_field[k][adjacent[i]][0] += r.lambda * (weight[i] * value_diff)[0];
+                        local_field[k][adjacent[i]] += r.lambda * (weight[i] * value_diff);
                     }
                 }
             }
@@ -162,30 +169,30 @@ void SpinVectorMonteCarlo::MetropolisSweep(std::vector<StateVector>& replica, st
 }
 
 void SpinVectorMonteCarlo::HeatbathSweep(std::vector<StateVector>& replica, std::size_t sweeps) {
-    auto var_count = replica[0].size();
+    // auto var_count = replica[0].size();
     
-    for(std::size_t s = 0; s < sweeps; ++s) {
-        for(IndexType i = 0; i < var_count; ++i) {
-            IndexType vertex = rng_.Range(var_count);
+    // for(std::size_t s = 0; s < sweeps; ++s) {
+    //     for(IndexType i = 0; i < var_count; ++i) {
+    //         IndexType vertex = rng_.Range(var_count);
 
-            for(std::size_t k = 0; k < replica.size(); ++k) {
-                auto& r = replica[k];
-                auto h = LocalField(r, vertex);
-                auto h_mag = std::sqrt(h*h);
-                if (h_mag != 0) {
-                    auto h_unit = h / h_mag;
-                    float prob = rng_.Probability();
-                    double x = -std::log(1 + prob * (std::exp(-2 * r.beta * h_mag) - 1)) / (r.beta * h_mag) - 1.;
-                    auto h_perp = FieldType(h_unit[1], -h_unit[0]);
-                    prob = rng_.Probability();
-                    h_perp *= prob < 0.5 ? -1 : 1;
-                    r[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
-                }else {
-                    r[vertex] = VertexType(rng_.Probability());
-                }
-            }
-        }
-    }
+    //         for(std::size_t k = 0; k < replica.size(); ++k) {
+    //             auto& r = replica[k];
+    //             auto h = LocalField(r, vertex);
+    //             auto h_mag = std::sqrt(h*h);
+    //             if (h_mag != 0) {
+    //                 auto h_unit = h / h_mag;
+    //                 float prob = rng_.Probability();
+    //                 double x = -std::log(1 + prob * (std::exp(-2 * r.beta * h_mag) - 1)) / (r.beta * h_mag) - 1.;
+    //                 auto h_perp = FieldType(h_unit[1], -h_unit[0]);
+    //                 prob = rng_.Probability();
+    //                 h_perp *= prob < 0.5 ? -1 : 1;
+    //                 r[vertex] = h_unit * x + h_perp * std::sqrt(1.0-x*x);
+    //             }else {
+    //                 r[vertex] = VertexType(rng_.Probability());
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 bool SpinVectorMonteCarlo::MetropolisAcceptedMove(double delta_energy, double beta) {

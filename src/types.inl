@@ -7,21 +7,25 @@ namespace propane {
 inline FieldType::FieldType() {
     (*this)[0] = 0;
     (*this)[1] = 0;
+    (*this)[2] = 0;
 }
 
-inline FieldType::FieldType(double uniform) {
-    double angle = uniform * boost::math::constants::pi<double>();
-    (*this)[0] = std::cos(angle);
-    (*this)[1] = std::sin(angle);
+inline FieldType::FieldType(double uniform1, double uniform2) {
+    double angle1 = uniform1 * boost::math::constants::pi<double>();
+    double angle2 = uniform2 * boost::math::constants::pi<double>();
+    (*this)[0] = std::sin(angle1)*std::cos(angle2);
+    (*this)[1] = std::sin(angle1)*std::sin(angle2);
+    (*this)[2] = std::cos(angle1);
 }
 
-inline FieldType::FieldType(double a, double b) {
+inline FieldType::FieldType(double a, double b, double c) {
     (*this)[0] = a;
     (*this)[1] = b;
+    (*this)[2] = c;
 }
 
 inline double FieldType::operator*(FieldType b) const {
-    return (*this)[0] * b[0] + (*this)[1] * b[1];
+    return (*this)[0] * b[0] + (*this)[1] * b[1] + (*this)[2] * b[2];
 }
 
 inline FieldType FieldType::operator/(double b) const {
@@ -29,23 +33,23 @@ inline FieldType FieldType::operator/(double b) const {
 }
 
 inline FieldType FieldType::operator*(int b) const {
-    return {(*this)[0] * b, (*this)[1] * b};
+    return {(*this)[0] * b, (*this)[1] * b, (*this)[2] * b};
 }
 
 inline FieldType FieldType::operator*(double b) const {
-    return {(*this)[0] * b, (*this)[1] * b};
+    return {(*this)[0] * b, (*this)[1] * b, (*this)[2] * b};
 }
 
 inline FieldType FieldType::operator+(FieldType b) const {
-    return {(*this)[0] + b[0], (*this)[1] + b[1]};
+    return {(*this)[0] + b[0], (*this)[1] + b[1], (*this)[2] + b[2]};
 }
 
 inline FieldType FieldType::operator-() const {
-    return {-(*this)[0], -(*this)[1]};
+    return {-(*this)[0], -(*this)[1], -(*this)[2]};
 }
 
 inline FieldType FieldType::operator-(FieldType b) const {
-    return {(*this)[0] - b[0], (*this)[1] - b[1]};
+    return {(*this)[0] - b[0], (*this)[1] - b[1], (*this)[2] - b[2]};
 }
 
 inline FieldType FieldType::operator*=(double b) {

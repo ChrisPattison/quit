@@ -61,7 +61,7 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         replica.lambda = temp.lambda;
         replica.resize(structure_.size());
         std::generate(replica.begin(), replica.end(), [&]() {
-            return FieldType(rng_.Probability());
+            return FieldType(rng_.Probability(), rng_.Probability());
         });
     }
     
