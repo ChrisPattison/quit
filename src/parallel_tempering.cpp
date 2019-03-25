@@ -56,10 +56,12 @@ std::vector<ParallelTempering::Result> ParallelTempering::Run() {
         replicas_.emplace_back();
         auto& replica = replicas_.back();
         replica.beta = temp.beta;
-        replica.resize(structure_.size());
-        std::generate(replica.begin(), replica.end(), [&]() {
+        replica.state.resize(structure_.size());
+        std::generate(replica.state.begin(), replica.state.end(), [&]() {
             return rng_.Probability() < 0.5 ? -1 : 1;
         });
+        InitLocalFields(&replica);
+        replica.energy = Hamiltonian(replica);
     }
     
     // Initialize result_sum
@@ -109,7 +111,7 @@ std::vector<double> ParallelTempering::ReplicaExchange(std::vector<StateVector>*
     auto& replica_set = *replica_set_ptr;
     std::vector<double> energy(replica_set.size());
     std::vector<double> exchange_probabilty(replica_set.size());
-    std::transform(replica_set.begin(), replica_set.end(), energy.begin(), [&](StateVector& r) { return Hamiltonian(r); });
+    std::transform(replica_set.begin(), replica_set.end(), energy.begin(), [&](StateVector& r) { return r.energy; });
     for(std::size_t k = 0; k < schedule_.size()-1; ++k) {
         exchange_probabilty[k] = std::min(1.0,std::exp((replica_set[k+1].beta - replica_set[k].beta)*(energy[k+1] - energy[k])));
         if(exchange_probabilty[k] > rng_.Probability()) {
@@ -127,7 +129,7 @@ auto ParallelTempering::Observables(const StateVector& replica) -> Bin {
     result.beta = replica.beta;
     result.samples = 1;
 
-    auto energy = Hamiltonian(replica);
+    auto energy = replica.energy;
     result.energy = energy;
     result.ground_energy = energy;
     return result;

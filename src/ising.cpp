@@ -58,40 +58,39 @@ double Ising::LocalField(const StateVector& replica, IndexType site) {
         structure_.adjacent()[site].begin(), structure_.adjacent()[site].end(),
         structure_.weights()[site].begin(),
         0.0, std::plus<>(), 
-        [&replica](const auto& spin, const auto& weight) { return weight * replica[spin]; });
+        [&replica](const auto& spin, const auto& weight) { return weight * replica.state[spin]; });
     field += structure_.fields()[site];
     return field;
+}
+
+void Ising::InitLocalFields(StateVector* replica) {
+    replica->local_field.resize(replica->size());
+    for(auto site = 0; site < replica->size(); ++site) {
+        replica->local_field[site] = LocalField(*replica, site);
+    }
 }
 
 double Ising::Hamiltonian(const StateVector& replica) {
     double energy = 0.0;
     for(auto site = 0; site < structure_.size(); ++site) {
-        energy += replica[site] / 2.0
+        energy += replica.state[site] / 2.0
             * std::inner_product( 
             structure_.adjacent()[site].begin(), structure_.adjacent()[site].end(),
             structure_.weights()[site].begin(),
             0.0, std::plus<>(), 
-            [&replica](const auto& spin, const auto& weight) { return weight * replica[spin]; });
+            [&replica](const auto& spin, const auto& weight) { return weight * replica.state[spin]; });
     }
-    energy += std::inner_product(structure_.fields().begin(), structure_.fields().end(), replica.begin(), 0.0);
+    energy += std::inner_product(structure_.fields().begin(), structure_.fields().end(), replica.state.begin(), 0.0);
 
     return energy;
 }
 
 double Ising::DeltaEnergy(const StateVector& replica, IndexType site) {
-    return -2*replica[site]*LocalField(replica, site);
+    return -2*replica.state[site]*LocalField(replica, site);
 }
 
 void Ising::MetropolisSweep(std::vector<StateVector>* replica_set_ptr, std::size_t sweeps) {
     auto& replica_set = *replica_set_ptr;
-    std::vector<StateVector> local_field;
-    local_field.resize(replica_set.size());
-    for(std::size_t k = 0; k < replica_set.size(); ++k) {
-        local_field[k].resize(replica_set[k].size());
-        for(std::size_t i = 0; i < replica_set[k].size(); ++i) {
-            local_field[k][i] = LocalField(replica_set[k], i);
-        }
-    }
 
     auto var_count = replica_set[0].size();
 
@@ -102,16 +101,18 @@ void Ising::MetropolisSweep(std::vector<StateVector>* replica_set_ptr, std::size
             for(std::size_t k = 0; k < replica_set.size(); ++k) {
                 auto& r = replica_set[k];
 
-                double delta_energy = DeltaEnergy(r, vertex);
+                double delta_energy = -2*r.state[vertex]*r.local_field[vertex];
                 
                 //round-off isn't a concern here
                 if(MetropolisAcceptedMove(delta_energy, r.beta)) {
-                    r[vertex] *= -1;
+                    r.state[vertex] *= -1;
                     const auto& adjacent = structure_.adjacent()[vertex];
                     const auto& weight = structure_.weights()[vertex];
-                    // Update local fields
+
+                    // Update local fields and energy
+                    r.energy += delta_energy;
                     for(std::size_t i = 0; i < adjacent.size(); ++i) {
-                        local_field[k][adjacent[i]] += 2 * r[vertex] * weight[i];
+                        r.local_field[adjacent[i]] += 2 * r.state[vertex] * weight[i];
                     }
                 }
             }

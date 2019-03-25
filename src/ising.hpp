@@ -33,8 +33,14 @@
 namespace propane {
 class Ising {
 protected:
-    struct StateVector : std::vector<VertexType> {
+    /** TODO: The encapsulation here is very broken
+     */
+    struct StateVector {
         double beta;
+        double energy;
+        std::vector<VertexType> state;
+        std::vector<double> local_field;
+        auto size() const { return state.size(); }
     };
 
     util::LogLookup log_lookup_;
@@ -54,6 +60,9 @@ protected:
 /** Returns the local field at site
  */
     double LocalField(const StateVector& replica, IndexType site);
+/** Initialize local fields
+ */
+    void InitLocalFields(StateVector* replica);
 /** Returns the energy of a replica
  * Implemented as the sum of elementwise multiplication of the replica vector with the 
  * product of matrix multiplication between the upper half of the adjacency matrix
